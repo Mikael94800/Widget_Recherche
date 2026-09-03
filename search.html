@@ -28,6 +28,15 @@
     .btn-search:hover { background-color: #0958d9; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
     .btn-reset:hover { background-color: #e5e7eb; }
+
+    /* TABLEAU DE RESULTATS INTEGRE */
+    .table-container { margin-top: 16px; max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    th { background-color: #f3f4f6; color: #374151; padding: 8px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; }
+    td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
+    tr.result-row { cursor: pointer; transition: background 0.15s; }
+    tr.result-row:hover { background-color: #e6f4ff; }
+    tr.selected { background-color: #bae0ff !important; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -127,10 +136,30 @@
       <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
       <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
+
+    <!-- TABLEAU DE RESULTATS -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Structure</th>
+            <th>Service</th>
+            <th>Ville</th>
+          </tr>
+        </thead>
+        <tbody id="results-table-body">
+          <!-- Injecté dynamiquement par JS -->
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <script>
     let allRecords = [];
+    let selectedRowId = null;
 
     grist.ready({ requiredAccess: 'full' });
 
@@ -152,6 +181,18 @@
     function contientCritere(champData, valeurRecherchee) {
       const texteChamp = normaliserChaine(champData).toLowerCase();
       return texteChamp.includes(valeurRecherchee.toLowerCase());
+    }
+
+    function selectionnerContact(id) {
+      selectedRowId = id;
+      
+      // Met en surbrillance dans le tableau HTML
+      document.querySelectorAll('.result-row').forEach(row => {
+        row.classList.toggle('selected', row.dataset.id == id);
+      });
+
+      // Transmet l'ID au reste de l'interface Grist pour ouvrir la fiche
+      grist.setCursorPos({ rowId: id });
     }
 
     function appliquerFiltres() {
@@ -195,21 +236,37 @@
         return true;
       });
 
-      const matchingIds = matchingRecords.map(r => r.id);
-
       const badge = document.getElementById('result-count');
-      if (matchingIds.length === allRecords.length) {
-        badge.innerText = `Tous les contacts (${allRecords.length})`;
-      } else {
-        badge.innerText = `${matchingIds.length} / ${allRecords.length} résultat(s)`;
-      }
+      badge.innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
 
-      // Sélectionne la liste des IDs correspondants
-      grist.setSelectedRows(matchingIds);
+      // Construction du tableau de résultats dans le widget
+      const tbody = document.getElementById('results-table-body');
+      tbody.innerHTML = '';
 
-      // Met automatiquement le curseur sur le tout premier résultat
-      if (matchingIds.length > 0) {
-        grist.setCursorPos({ rowId: matchingIds[0] });
+      matchingRecords.forEach((rec, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'result-row';
+        tr.dataset.id = rec.id;
+        
+        if (selectedRowId === rec.id || (index === 0 && !selectedRowId)) {
+          tr.classList.add('selected');
+        }
+
+        tr.innerHTML = `
+          <td>${rec.NOM || ''}</td>
+          <td>${rec.PRENOM || ''}</td>
+          <td>${rec.NOM_Structure || ''}</td>
+          <td>${normaliserChaine(rec.Service)}</td>
+          <td>${rec.Ville || ''}</td>
+        `;
+
+        tr.onclick = () => selectionnerContact(rec.id);
+        tbody.appendChild(tr);
+      });
+
+      // Sélectionne le premier résultat automatiquement
+      if (matchingRecords.length > 0 && !selectedRowId) {
+        selectionnerContact(matchingRecords[0].id);
       }
     }
 
@@ -221,6 +278,7 @@
 
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
 
+      selectedRowId = null;
       appliquerFiltres();
     }
   </script>
