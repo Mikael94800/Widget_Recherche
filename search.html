@@ -154,7 +154,7 @@
       return texteChamp.includes(valeurRecherchee.toLowerCase());
     }
 
-    async function appliquerFiltres() {
+    function appliquerFiltres() {
       if (!allRecords || allRecords.length === 0) return;
 
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
@@ -204,16 +204,16 @@
         badge.innerText = `${matchingIds.length} / ${allRecords.length} résultat(s)`;
       }
 
-      // 1. Applique le filtre strict pour masquer les lignes hors résultats
-      await grist.setFilter({ id: matchingIds });
+      // Sélectionne la liste des IDs correspondants
+      grist.setSelectedRows(matchingIds);
 
-      // 2. Positionne le curseur sur le tout premier résultat pour actualiser la Fiche
+      // Met automatiquement le curseur sur le tout premier résultat
       if (matchingIds.length > 0) {
-        await grist.setCursorPos({ rowId: matchingIds[0] });
+        grist.setCursorPos({ rowId: matchingIds[0] });
       }
     }
 
-    async function reinitialiserFiltres() {
+    function reinitialiserFiltres() {
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
@@ -221,8 +221,6 @@
 
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
 
-      // Réinitialise le filtre dans Grist pour afficher tous les contacts
-      await grist.setFilter(null);
       appliquerFiltres();
     }
   </script>
