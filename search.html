@@ -204,8 +204,11 @@
         badge.innerText = `${matchingIds.length} / ${allRecords.length} résultat(s)`;
       }
 
-      // Sélectionne et transmet les résultats à Grist
+      // Applique la sélection ET force la position sur le premier résultat correspondant
       grist.setSelectedRows(matchingIds);
+      if (matchingIds.length > 0) {
+        grist.setCursorPos({ rowId: matchingIds[0] });
+      }
     }
 
     function reinitialiserFiltres() {
