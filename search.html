@@ -38,14 +38,18 @@
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 8px 14px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-copy:hover { background-color: #7c3aed; }
 
-    /* TABLEAU INTEGRE */
-    .table-container { max-height: 58vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
-    th { background-color: #f3f4f6; color: #374151; padding: 12px 10px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; }
-    td { padding: 11px 10px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
-    tr.result-row { cursor: pointer; user-select: none; }
+    /* TABLEAU INTEGRE ET REDIMENSIONNABLE */
+    .table-container { max-height: 58vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; table-layout: fixed; }
+    th { background-color: #f3f4f6; color: #374151; padding: 12px 10px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td { padding: 11px 10px; border-bottom: 1px solid #f3f4f6; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tr.result-row { cursor: pointer; }
     tr.result-row:hover { background-color: #f0fdf4; }
     tr.selected { background-color: #bae0ff !important; font-weight: 600; }
+
+    /* POIGNEE DE REDIMENSIONNEMENT (RESIZER) */
+    .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
+    .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
     /* FENETRE MODALE POUR DOUBLE-CLIC */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
@@ -175,6 +179,14 @@
   <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
+      <colgroup>
+        <col style="width: 140px;">
+        <col style="width: 140px;">
+        <col style="width: 220px;">
+        <col style="width: 130px;">
+        <col style="width: 130px;">
+        <col style="width: 240px;">
+      </colgroup>
       <thead>
         <tr>
           <th>Nom</th>
@@ -309,6 +321,45 @@
         };
 
         tbody.appendChild(tr);
+      });
+
+      initialiserRedimensionnementColonnes();
+    }
+
+    function initialiserRedimensionnementColonnes() {
+      const table = document.getElementById('main-table');
+      const headers = table.querySelectorAll('th');
+
+      headers.forEach(th => {
+        if (th.querySelector('.resizer')) return; // Éviter les doublons
+
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+
+        let x = 0;
+        let w = 0;
+
+        resizer.addEventListener('mousedown', function (e) {
+          x = e.clientX;
+          w = th.offsetWidth;
+          resizer.classList.add('resizing');
+
+          function mouseMoveHandler(e) {
+            const dx = e.clientX - x;
+            th.style.width = `${Math.max(50, w + dx)}px`;
+          }
+
+          function mouseUpHandler() {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+          }
+
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+          e.stopPropagation();
+        });
       });
     }
 
