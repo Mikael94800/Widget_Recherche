@@ -2,13 +2,13 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche & Filtrage Contacts</title>
+  <title>Recherche & Visionneuse Contacts</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { margin: 0; padding: 12px; background-color: transparent; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; }
     
-    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
+    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 16px; }
     .card-title { font-size: 15px; font-weight: 700; color: #1f2937; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .count-badge { background: #e6f4ff; color: #0958d9; font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
 
@@ -29,18 +29,39 @@
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
     .btn-reset:hover { background-color: #e5e7eb; }
 
-    /* TABLEAU DE RESULTATS INTEGRE */
-    .table-container { margin-top: 16px; max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+    /* LAYOUT DEUX COLONNES : TABLEAU & FICHE */
+    .results-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .results-container { grid-template-columns: 1fr; } }
+
+    /* TABLEAU INTEGRE */
+    .table-container { max-height: 480px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-    th { background-color: #f3f4f6; color: #374151; padding: 8px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; }
+    th { background-color: #f3f4f6; color: #374151; padding: 8px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 10; }
     td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
     tr.result-row { cursor: pointer; transition: background 0.15s; }
     tr.result-row:hover { background-color: #e6f4ff; }
     tr.selected { background-color: #bae0ff !important; font-weight: bold; }
+
+    /* VISIONNEUSE FICHE CONTACT */
+    .viewer-card { background: #ffffff; border-radius: 10px; padding: 16px; border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; justify-content: space-between; }
+    .viewer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f3f4f6; padding-bottom: 10px; margin-bottom: 12px; }
+    .viewer-title { font-size: 16px; font-weight: bold; color: #111827; }
+    .nav-controls { display: flex; gap: 8px; align-items: center; }
+    .btn-nav { background-color: #f3f4f6; border: 1px solid #d1d5db; padding: 4px 10px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; color: #374151; }
+    .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-nav:hover:not(:disabled) { background-color: #e5e7eb; }
+
+    .viewer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+    .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 8px; border-radius: 6px; border: 1px solid #f3f4f6; }
+    .viewer-field.full { grid-column: span 2; }
+    .viewer-label { font-size: 10px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 2px; }
+    .viewer-value { font-size: 13px; color: #111827; word-break: break-word; font-weight: 500; }
+    .no-result { text-align: center; color: #9ca3af; padding: 40px 0; font-style: italic; }
   </style>
 </head>
 <body>
 
+  <!-- FICHE DE RECHERCHE ET FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche & Filtres Multi-critères</span>
@@ -48,13 +69,11 @@
     </div>
 
     <div class="grid">
-      <!-- RECHERCHE TEXTE LIBRE -->
       <div class="field-group">
         <label>Recherche Texte</label>
         <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
 
-      <!-- SERVICE -->
       <div class="field-group">
         <label>Service (Origine)</label>
         <select id="filter-service" onchange="appliquerFiltres()">
@@ -68,7 +87,6 @@
         </select>
       </div>
 
-      <!-- STATUT JURIDIQUE -->
       <div class="field-group">
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()">
@@ -86,7 +104,6 @@
         </select>
       </div>
 
-      <!-- DOMAINE D'ACTIVITES -->
       <div class="field-group">
         <label>Domaine d'activités</label>
         <select id="filter-domaine" onchange="appliquerFiltres()">
@@ -110,7 +127,6 @@
         </select>
       </div>
 
-      <!-- LISTES DIFFUSION CINEMA -->
       <div class="field-group">
         <label>Diffusion Cinéma</label>
         <div class="checkbox-group" id="group-cinema">
@@ -121,7 +137,6 @@
         </div>
       </div>
 
-      <!-- LISTE DIFFUSION DCP -->
       <div class="field-group">
         <label>Diffusion DCP</label>
         <div class="checkbox-group" id="group-dcp">
@@ -136,7 +151,11 @@
       <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
       <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
+  </div>
 
+  <!-- SECTION RESULTATS : TABLEAU + FICHE VISIONNEUSE -->
+  <div class="results-container">
+    
     <!-- TABLEAU DE RESULTATS -->
     <div class="table-container">
       <table>
@@ -146,20 +165,38 @@
             <th>Prénom</th>
             <th>Structure</th>
             <th>Service</th>
-            <th>Ville</th>
           </tr>
         </thead>
         <tbody id="results-table-body">
-          <!-- Injecté dynamiquement par JS -->
+          <!-- Rempli en JS -->
         </tbody>
       </table>
+    </div>
+
+    <!-- VISIONNEUSE DE FICHE CONTACT -->
+    <div class="viewer-card">
+      <div>
+        <div class="viewer-header">
+          <span class="viewer-title" id="v-title">Fiche Contact</span>
+          <div class="nav-controls">
+            <button class="btn-nav" id="btn-prev" onclick="naviguer(-1)">◄ Précédent</button>
+            <span id="nav-indicator" style="font-size: 11px; font-weight: 600; color: #6b7280;">0 / 0</span>
+            <button class="btn-nav" id="btn-next" onclick="naviguer(1)">Suivant ►</button>
+          </div>
+        </div>
+
+        <div id="viewer-content" class="viewer-grid">
+          <!-- Les champs du contact s'affichent ici -->
+        </div>
+      </div>
     </div>
 
   </div>
 
   <script>
     let allRecords = [];
-    let selectedRowId = null;
+    let matchingRecords = [];
+    let currentIndex = 0;
 
     grist.ready({ requiredAccess: 'full' });
 
@@ -183,18 +220,6 @@
       return texteChamp.includes(valeurRecherchee.toLowerCase());
     }
 
-    function selectionnerContact(id) {
-      selectedRowId = id;
-      
-      // Met en surbrillance dans le tableau HTML
-      document.querySelectorAll('.result-row').forEach(row => {
-        row.classList.toggle('selected', row.dataset.id == id);
-      });
-
-      // Transmet l'ID au reste de l'interface Grist pour ouvrir la fiche
-      grist.setCursorPos({ rowId: id });
-    }
-
     function appliquerFiltres() {
       if (!allRecords || allRecords.length === 0) return;
 
@@ -206,7 +231,7 @@
       const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
       const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
 
-      const matchingRecords = allRecords.filter(rec => {
+      matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const champsCibles = [
             rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
@@ -239,34 +264,88 @@
       const badge = document.getElementById('result-count');
       badge.innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
 
-      // Construction du tableau de résultats dans le widget
+      currentIndex = 0;
+      afficherTableau();
+      afficherFicheCourante();
+    }
+
+    function afficherTableau() {
       const tbody = document.getElementById('results-table-body');
       tbody.innerHTML = '';
 
       matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         tr.className = 'result-row';
-        tr.dataset.id = rec.id;
-        
-        if (selectedRowId === rec.id || (index === 0 && !selectedRowId)) {
-          tr.classList.add('selected');
-        }
+        if (index === currentIndex) tr.classList.add('selected');
 
         tr.innerHTML = `
           <td>${rec.NOM || ''}</td>
           <td>${rec.PRENOM || ''}</td>
           <td>${rec.NOM_Structure || ''}</td>
           <td>${normaliserChaine(rec.Service)}</td>
-          <td>${rec.Ville || ''}</td>
         `;
 
-        tr.onclick = () => selectionnerContact(rec.id);
+        tr.onclick = () => {
+          currentIndex = index;
+          afficherTableau();
+          afficherFicheCourante();
+        };
         tbody.appendChild(tr);
       });
+    }
 
-      // Sélectionne le premier résultat automatiquement
-      if (matchingRecords.length > 0 && !selectedRowId) {
-        selectionnerContact(matchingRecords[0].id);
+    function afficherFicheCourante() {
+      const container = document.getElementById('viewer-content');
+      const navIndicator = document.getElementById('nav-indicator');
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
+
+      if (matchingRecords.length === 0) {
+        container.innerHTML = '<div class="no-result full">Aucun contact ne correspond à la recherche.</div>';
+        navIndicator.innerText = '0 / 0';
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        return;
+      }
+
+      const rec = matchingRecords[currentIndex];
+
+      // Mise à jour de la navigation
+      navIndicator.innerText = `${currentIndex + 1} / ${matchingRecords.length}`;
+      btnPrev.disabled = (currentIndex === 0);
+      btnNext.disabled = (currentIndex === matchingRecords.length - 1);
+
+      // Notification à Grist (positionne aussi le curseur global si besoin)
+      grist.setCursorPos({ rowId: rec.id });
+
+      // Remplissage de la Fiche
+      document.getElementById('v-title').innerText = `${rec.PRENOM || ''} ${rec.NOM || ''}`.trim() || 'Fiche Contact';
+
+      container.innerHTML = `
+        <div class="viewer-field"><span class="viewer-label">Structure</span><span class="viewer-value">${rec.NOM_Structure || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Service</span><span class="viewer-value">${normaliserChaine(rec.Service) || '-'}</span></div>
+        
+        <div class="viewer-field"><span class="viewer-label">Fonction</span><span class="viewer-value">${rec.Fonction_Profession || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><span class="viewer-value">${normaliserChaine(rec.STATUT_JURIDIQUE) || '-'}</span></div>
+
+        <div class="viewer-field"><span class="viewer-label">Email Principal</span><span class="viewer-value">${rec.EMAIL_PRINCIPAL || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Téléphone</span><span class="viewer-value">${rec.Telephone_Principal || '-'}</span></div>
+
+        <div class="viewer-field full"><span class="viewer-label">Adresse</span><span class="viewer-value">${rec.Adresse || ''} ${rec.Code_Postal || ''} ${rec.Ville || ''}</span></div>
+
+        <div class="viewer-field"><span class="viewer-label">Domaine d'activités</span><span class="viewer-value">${normaliserChaine(rec.DOMAINE_D_ACTIVITES) || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Diffusion Cinéma</span><span class="viewer-value">${normaliserChaine(rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma) || '-'}</span></div>
+
+        <div class="viewer-field full"><span class="viewer-label">Description / Commentaire</span><span class="viewer-value">${rec.Commentaire___Description || rec.Commentaire || '-'}</span></div>
+      `;
+    }
+
+    function naviguer(direction) {
+      const newIndex = currentIndex + direction;
+      if (newIndex >= 0 && newIndex < matchingRecords.length) {
+        currentIndex = newIndex;
+        afficherTableau();
+        afficherFicheCourante();
       }
     }
 
@@ -278,7 +357,6 @@
 
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
 
-      selectedRowId = null;
       appliquerFiltres();
     }
   </script>
