@@ -8,7 +8,7 @@
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { margin: 0; padding: 12px; background-color: #f8fafc; }
     
-    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 12px; }
+    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 20px; }
     .card-title { font-size: 15px; font-weight: 700; color: #1f2937; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .count-badge { background: #e6f4ff; color: #0958d9; font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
 
@@ -26,11 +26,11 @@
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
 
-    /* BARRE D'OUTILS DU TABLEAU */
-    .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 8px 12px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; }
+    /* BARRE D'OUTILS DU TABLEAU AVEC ESPACEMENT */
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; }
     .toolbar-group { display: flex; gap: 6px; align-items: center; }
     
-    .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer; color: #374151; }
+    .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer; color: #374151; }
     .btn-tool:hover { background: #e5e7eb; }
     
     .btn-export { background-color: #10b981; color: white; border: none; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; }
@@ -38,16 +38,16 @@
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-copy:hover { background-color: #7c3aed; }
 
-    /* TABLEAU INTEGRE */
-    .table-container { max-height: 420px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; }
+    /* TABLEAU INTEGRE PLUS GRAND */
+    .table-container { max-height: 58vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-    th { background-color: #f3f4f6; color: #374151; padding: 8px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; }
-    td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
+    th { background-color: #f3f4f6; color: #374151; padding: 10px 8px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; }
+    td { padding: 9px 8px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
     tr.result-row { cursor: pointer; user-select: none; }
     tr.result-row:hover { background-color: #f0fdf4; }
     tr.selected { background-color: #bae0ff !important; font-weight: 600; }
 
-    /* FENETRE MODALE (FICHE CONTACT AU DOUBLE CLICK) */
+    /* FENETRE MODALE POUR DOUBLE-CLIC */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 12px; width: 90%; max-width: 600px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 14px; }
@@ -155,7 +155,7 @@
     </div>
   </div>
 
-  <!-- BARRE D'OUTILS ET NAVIGATION DU TABLEAU -->
+  <!-- BARRE D'OUTILS ET NAVIGATION DU TABLEAU (AVEC ESPACE) -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -296,14 +296,12 @@
           <td>${rec.EMAIL_PRINCIPAL || ''}</td>
         `;
 
-        // Un clic sélectionne
         tr.onclick = () => {
           selectedIndex = index;
           majSelectionGraphique();
           grist.setCursorPos({ rowId: rec.id });
         };
 
-        // Double-clic ouvre la fiche modale
         tr.ondblclick = () => {
           selectedIndex = index;
           majSelectionGraphique();
@@ -327,7 +325,6 @@
         selectedIndex = newIndex;
         majSelectionGraphique();
         
-        // Fait défiler le tableau vers la ligne sélectionnée
         const rows = document.querySelectorAll('#results-table-body tr');
         if (rows[selectedIndex]) {
           rows[selectedIndex].scrollIntoView({ block: 'nearest' });
