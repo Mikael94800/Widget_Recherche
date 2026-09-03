@@ -28,7 +28,6 @@
     .btn-search:hover { background-color: #0958d9; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
     .btn-reset:hover { background-color: #e5e7eb; }
-    .btn-debug { background-color: #722ed1; color: white; border: none; padding: 6px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -36,14 +35,14 @@
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche & Filtres Multi-critères</span>
-      <span id="result-count" class="count-badge">Tous les contacts</span>
+      <span id="result-count" class="count-badge">Chargement...</span>
     </div>
 
     <div class="grid">
       <!-- RECHERCHE TEXTE LIBRE -->
       <div class="field-group">
         <label>Recherche Texte</label>
-        <input type="text" id="filter-text" placeholder="Nom, structure, ville, email..." oninput="appliquerFiltres()">
+        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
 
       <!-- SERVICE -->
@@ -65,16 +64,16 @@
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()">
           <option value="">-- Tous les statuts --</option>
-          <option value="1">Collectivités territoriales</option>
-          <option value="2">Association</option>
-          <option value="3">Bailleurs sociaux</option>
-          <option value="4">Entreprise</option>
-          <option value="5">Artiste</option>
-          <option value="6">Etablissement public</option>
-          <option value="7">Administration d'Etat</option>
-          <option value="8">Free-lance / indépendant</option>
-          <option value="9">Particulier</option>
-          <option value="10">Autre</option>
+          <option value="Collectivités territoriales">Collectivités territoriales</option>
+          <option value="Association">Association</option>
+          <option value="Bailleurs sociaux">Bailleurs sociaux</option>
+          <option value="Entreprise">Entreprise</option>
+          <option value="Artiste">Artiste</option>
+          <option value="Etablissement public">Etablissement public</option>
+          <option value="Administration d'Etat">Administration d'Etat</option>
+          <option value="Free-lance / indépendant">Free-lance / indépendant</option>
+          <option value="Particulier">Particulier</option>
+          <option value="Autre">Autre</option>
         </select>
       </div>
 
@@ -83,22 +82,22 @@
         <label>Domaine d'activités</label>
         <select id="filter-domaine" onchange="appliquerFiltres()">
           <option value="">-- Tous les domaines --</option>
-          <option value="1">Cinéma</option>
-          <option value="2">Patrimoine</option>
-          <option value="3">Politique culturelle</option>
-          <option value="4">Spectacle vivant</option>
-          <option value="5">Arts visuels</option>
-          <option value="6">Insertion</option>
-          <option value="7">Champs social</option>
-          <option value="8">Santé / Médico-social</option>
-          <option value="9">Sport</option>
-          <option value="10">Petite enfance</option>
-          <option value="11">Education / Périscolaire</option>
-          <option value="12">Enseignement supérieur</option>
-          <option value="13">Enseignement artistique</option>
-          <option value="14">Livre & lecture publique</option>
-          <option value="15">Environnement</option>
-          <option value="16">Autre</option>
+          <option value="Cinéma">Cinéma</option>
+          <option value="Patrimoine">Patrimoine</option>
+          <option value="Politique culturelle">Politique culturelle</option>
+          <option value="Spectacle vivant">Spectacle vivant</option>
+          <option value="Arts visuels">Arts visuels</option>
+          <option value="Insertion">Insertion</option>
+          <option value="Champs social">Champs social</option>
+          <option value="Santé / Médico-social">Santé / Médico-social</option>
+          <option value="Sport">Sport</option>
+          <option value="Petite enfance">Petite enfance</option>
+          <option value="Education / Périscolaire">Education / Périscolaire</option>
+          <option value="Enseignement supérieur">Enseignement supérieur</option>
+          <option value="Enseignement artistique">Enseignement artistique</option>
+          <option value="Livre & lecture publique">Livre & lecture publique</option>
+          <option value="Environnement">Environnement</option>
+          <option value="Autre">Autre</option>
         </select>
       </div>
 
@@ -106,10 +105,10 @@
       <div class="field-group">
         <label>Diffusion Cinéma</label>
         <div class="checkbox-group" id="group-cinema">
-          <label class="checkbox-item"><input type="checkbox" value="1" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="2" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="3" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="4" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
         </div>
       </div>
 
@@ -117,15 +116,14 @@
       <div class="field-group">
         <label>Diffusion DCP</label>
         <div class="checkbox-group" id="group-dcp">
-          <label class="checkbox-item"><input type="checkbox" value="1" onchange="appliquerFiltres()"> EAC</label>
-          <label class="checkbox-item"><input type="checkbox" value="2" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="3" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+          <label class="checkbox-item"><input type="checkbox" value="EAC" onchange="appliquerFiltres()"> EAC</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
         </div>
       </div>
     </div>
 
     <div class="actions">
-      <button class="btn-debug" onclick="afficherDiagnostic()">🔍 Diagnostic Champs</button>
       <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
       <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
@@ -141,14 +139,19 @@
       appliquerFiltres();
     });
 
-    function contientValeur(champ, target) {
-      if (!champ) return false;
-      const targetNum = parseInt(target, 10);
-
-      if (Array.isArray(champ)) {
-        return champ.some(val => val == target || val == targetNum);
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(" ");
       }
-      return champ == target || champ == targetNum;
+      if (typeof valeur === "object") return JSON.stringify(valeur);
+      return String(valeur);
+    }
+
+    function contientCritere(champData, valeurRecherchee) {
+      const texteChamp = normaliserChaine(champData).toLowerCase();
+      return texteChamp.includes(valeurRecherchee.toLowerCase());
     }
 
     function appliquerFiltres() {
@@ -163,42 +166,29 @@
       const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
 
       const matchingRecords = allRecords.filter(rec => {
-        // 1. RECHERCHE TEXTE LIBRE (Inspecte TOUTES les propriétés de l'enregistrement)
         if (textFilter) {
-          const valuesString = Object.values(rec)
-            .map(val => (val === null || val === undefined) ? '' : String(val))
-            .join(' ')
-            .toLowerCase();
-
-          if (!valuesString.includes(textFilter)) return false;
+          const champsCibles = [
+            rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
+            rec.EMAIL_PRINCIPAL, rec.EMAILS_SECONDAIRES, rec.Telephone_Principal, 
+            rec.Telephones_Secondaires, rec.Fonction_Profession, rec.Commentaire___Description, rec.Commentaire
+          ];
+          const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          if (!texteGlobal.includes(textFilter)) return false;
         }
 
-        // 2. FILTRE SERVICE
-        if (serviceFilter && rec.Service !== serviceFilter) return false;
+        if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
+        if (statutFilter && !contientCritere(rec.STATUT_JURIDIQUE, statutFilter)) return false;
+        if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
 
-        // 3. FILTRE STATUT JURIDIQUE
-        if (statutFilter) {
-          const valStatut = rec.STATUT_JURIDIQUE || rec.STATUT_JURIDIQUE_Ref;
-          if (!contientValeur(valStatut, statutFilter)) return false;
-        }
-
-        // 4. FILTRE DOMAINE D'ACTIVITES
-        if (domaineFilter) {
-          const valDomaine = rec.DOMAINE_D_ACTIVITES || rec.DOMAINE_D_ACTIVITES_Ref;
-          if (!contientValeur(valDomaine, domaineFilter)) return false;
-        }
-
-        // 5. FILTRE DIFFUSION CINEMA
         if (cinemaChecked.length > 0) {
-          const valCinema = rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma || rec.Listes_Diffusion_Cinema_Ref;
-          const matchCinema = cinemaChecked.some(val => contientValeur(valCinema, val));
+          const valCinema = rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma;
+          const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
           if (!matchCinema) return false;
         }
 
-        // 6. FILTRE DIFFUSION DCP
         if (dcpChecked.length > 0) {
-          const valDcp = rec.Liste_Diffusion_DCP || rec.Liste_Diffusion_Dcp || rec.Liste_Diffusion_DCP_Ref;
-          const matchDcp = dcpChecked.some(val => contientValeur(valDcp, val));
+          const valDcp = rec.Liste_Diffusion_DCP || rec.Liste_Diffusion_Dcp;
+          const matchDcp = dcpChecked.some(val => contientCritere(valDcp, val));
           if (!matchDcp) return false;
         }
 
@@ -211,10 +201,10 @@
       if (matchingIds.length === allRecords.length) {
         badge.innerText = `Tous les contacts (${allRecords.length})`;
       } else {
-        badge.innerText = `${matchingIds.length} / ${allRecords.length} trouvé(s)`;
+        badge.innerText = `${matchingIds.length} / ${allRecords.length} résultat(s)`;
       }
 
-      // Transmission des IDs filtrés à Grist
+      // Sélectionne et transmet les résultats à Grist
       grist.setSelectedRows(matchingIds);
     }
 
@@ -227,15 +217,6 @@
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
 
       appliquerFiltres();
-    }
-
-    function afficherDiagnostic() {
-      if (allRecords.length === 0) {
-        alert("Aucun enregistrement chargé dans Grist pour le moment.");
-        return;
-      }
-      const keys = Object.keys(allRecords[0]);
-      alert("Champs disponibles dans la table CONTACTS :\n\n" + keys.join("\n"));
     }
   </script>
 </body>
