@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Recherche & Filtrage Contacts</title>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { margin: 0; padding: 12px; background-color: transparent; }
+    
+    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
+    .card-title { font-size: 15px; font-weight: 700; color: #1f2937; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .count-badge { background: #e6f4ff; color: #0958d9; font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .field-group { display: flex; flex-direction: column; gap: 3px; }
+    label { font-size: 10px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
+    
+    input[type="text"], select { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; width: 100%; }
+    input:focus, select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
+    
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 4px; max-height: 85px; overflow-y: auto; }
+    .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #374151; cursor: pointer; }
+    .checkbox-item input { width: auto; cursor: pointer; }
+
+    .actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .btn-search { background-color: #1677ff; color: white; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    .btn-search:hover { background-color: #0958d9; }
+    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .btn-reset:hover { background-color: #e5e7eb; }
+  </style>
+</head>
+<body>
+
+  <div class="search-card">
+    <div class="card-title">
+      <span>🔍 Recherche & Filtres Multi-critères</span>
+      <span id="result-count" class="count-badge">Tous les contacts affichés</span>
+    </div>
+
+    <div class="grid">
+      <!-- RECHERCHE TEXTE LIBRE -->
+      <div class="field-group">
+        <label>Recherche Texte</label>
+        <input type="text" id="filter-text" placeholder="Nom, structure, ville, email..." onkeyup="appliquerFiltres()">
+      </div>
+
+      <!-- SERVICE -->
+      <div class="field-group">
+        <label>Service (Origine)</label>
+        <select id="filter-service" onchange="appliquerFiltres()">
+          <option value="">-- Tous les services --</option>
+          <option value="Arts visuels">Arts visuels</option>
+          <option value="Cinéma">Cinéma</option>
+          <option value="EAC">EAC</option>
+          <option value="Houdremont">Houdremont</option>
+          <option value="Patrimoine">Patrimoine</option>
+          <option value="Direction">Direction</option>
+        </select>
+      </div>
+
+      <!-- STATUT JURIDIQUE -->
+      <div class="field-group">
+        <label>Statut Juridique</label>
+        <select id="filter-statut" onchange="appliquerFiltres()">
+          <option value="">-- Tous les statuts --</option>
+          <option value="1">Collectivités territoriales</option>
+          <option value="2">Association</option>
+          <option value="3">Bailleurs sociaux</option>
+          <option value="4">Entreprise</option>
+          <option value="5">Artiste</option>
+          <option value="6">Etablissement public</option>
+          <option value="7">Administration d'Etat</option>
+          <option value="8">Free-lance / indépendant</option>
+          <option value="9">Particulier</option>
+          <option value="10">Autre</option>
+        </select>
+      </div>
+
+      <!-- DOMAINE D'ACTIVITES -->
+      <div class="field-group">
+        <label>Domaine d'activités</label>
+        <select id="filter-domaine" onchange="appliquerFiltres()">
+          <option value="">-- Tous les domaines --</option>
+          <option value="1">Cinéma</option>
+          <option value="2">Patrimoine</option>
+          <option value="3">Politique culturelle</option>
+          <option value="4">Spectacle vivant</option>
+          <option value="5">Arts visuels</option>
+          <option value="6">Insertion</option>
+          <option value="7">Champs social</option>
+          <option value="8">Santé / Médico-social</option>
+          <option value="9">Sport</option>
+          <option value="10">Petite enfance</option>
+          <option value="11">Education / Périscolaire</option>
+          <option value="12">Enseignement supérieur</option>
+          <option value="13">Enseignement artistique</option>
+          <option value="14">Livre & lecture publique</option>
+          <option value="15">Environnement</option>
+          <option value="16">Autre</option>
+        </select>
+      </div>
+
+      <!-- LISTES DIFFUSION CINEMA -->
+      <div class="field-group">
+        <label>Diffusion Cinéma</label>
+        <div class="checkbox-group" id="group-cinema">
+          <label class="checkbox-item"><input type="checkbox" value="1" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="2" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="3" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="4" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+        </div>
+      </div>
+
+      <!-- LISTE DIFFUSION DCP -->
+      <div class="field-group">
+        <label>Diffusion DCP</label>
+        <div class="checkbox-group" id="group-dcp">
+          <label class="checkbox-item"><input type="checkbox" value="1" onchange="appliquerFiltres()"> EAC</label>
+          <label class="checkbox-item"><input type="checkbox" value="2" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="3" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
+      <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
+    </div>
+  </div>
+
+  <script>
+    let allRecords = [];
+
+    // Connexion à l'API Grist
+    grist.ready({ requiredAccess: 'read table' });
+
+    // Récupération initiale des données de la table CONTACTS
+    grist.onRecords(function(records) {
+      allRecords = records;
+      appliquerFiltres();
+    });
+
+    function contientRef(champ, valTarget) {
+      if (!champ) return false;
+      const targetNum = parseInt(valTarget, 10);
+      
+      // Si la référence est stockée comme tableau d'IDs
+      if (Array.isArray(champ)) {
+        return champ.includes(targetNum) || champ.includes(valTarget);
+      }
+      // Si c'est un entier simple ou une chaîne
+      return champ == targetNum || champ == valTarget;
+    }
+
+    function appliquerFiltres() {
+      if (!allRecords || allRecords.length === 0) return;
+
+      const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
+      const serviceFilter = document.getElementById('filter-service').value;
+      const statutFilter = document.getElementById('filter-statut').value;
+      const domaineFilter = document.getElementById('filter-domaine').value;
+
+      // Récupération des cases à cocher cochées
+      const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
+      const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
+
+      const matchingRecords = allRecords.filter(rec => {
+        // 1. Filtre texte libre
+        if (textFilter) {
+          const contentToSearch = [
+            rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, 
+            rec.EMAIL_PRINCIPAL, rec.Telephone_Principal, rec.Fonction_Profession, rec.Commentaire_Description
+          ].map(v => (v || '').toString().toLowerCase()).join(' ');
+
+          if (!contentToSearch.includes(textFilter)) return false;
+        }
+
+        // 2. Filtre Service
+        if (serviceFilter && rec.Service !== serviceFilter) return false;
+
+        // 3. Filtre Statut Juridique
+        if (statutFilter && !contientRef(rec.STATUT_JURIDIQUE, statutFilter)) return false;
+
+        // 4. Filtre Domaine d'activités
+        if (domaineFilter && !contientRef(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
+
+        // 5. Filtre Diffusion Cinéma (Doit posséder au moins une des cases cochées)
+        if (cinemaChecked.length > 0) {
+          const matchCinema = cinemaChecked.some(val => contientRef(rec.Listes_Diffusion_Cinema, val));
+          if (!matchCinema) return false;
+        }
+
+        // 6. Filtre Diffusion DCP
+        if (dcpChecked.length > 0) {
+          const matchDcp = dcpChecked.some(val => contientRef(rec.Liste_Diffusion_DCP, val));
+          if (!matchDcp) return false;
+        }
+
+        return true;
+      });
+
+      const matchingIds = matchingRecords.map(r => r.id);
+
+      // Met à jour le compteur
+      const badge = document.getElementById('result-count');
+      if (matchingIds.length === allRecords.length) {
+        badge.innerText = `Tous les contacts (${allRecords.length})`;
+      } else {
+        badge.innerText = `${matchingIds.length} résultat(s) / ${allRecords.length}`;
+      }
+
+      // Action clé : transmet les IDs filtrés à la vue Grist liée
+      grist.setSelectedRows(matchingIds);
+    }
+
+    function reinitialiserFiltres() {
+      document.getElementById('filter-text').value = '';
+      document.getElementById('filter-service').value = '';
+      document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-domaine').value = '';
+
+      document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+      appliquerFiltres();
+    }
+  </script>
+</body>
+</html>
