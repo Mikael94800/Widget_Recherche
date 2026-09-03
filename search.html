@@ -23,11 +23,12 @@
     .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #374151; cursor: pointer; }
     .checkbox-item input { width: auto; cursor: pointer; }
 
-    .actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; align-items: center; }
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
     .btn-search:hover { background-color: #0958d9; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
     .btn-reset:hover { background-color: #e5e7eb; }
+    .btn-debug { background-color: #722ed1; color: white; border: none; padding: 6px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -35,14 +36,14 @@
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche & Filtres Multi-critères</span>
-      <span id="result-count" class="count-badge">Tous les contacts affichés</span>
+      <span id="result-count" class="count-badge">Tous les contacts</span>
     </div>
 
     <div class="grid">
       <!-- RECHERCHE TEXTE LIBRE -->
       <div class="field-group">
         <label>Recherche Texte</label>
-        <input type="text" id="filter-text" placeholder="Nom, structure, ville, email..." onkeyup="appliquerFiltres()">
+        <input type="text" id="filter-text" placeholder="Nom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
 
       <!-- SERVICE -->
@@ -124,6 +125,7 @@
     </div>
 
     <div class="actions">
+      <button class="btn-debug" onclick="afficherDiagnostic()">🔍 Diagnostic Champs</button>
       <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
       <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
@@ -132,25 +134,21 @@
   <script>
     let allRecords = [];
 
-    // Connexion à l'API Grist
-    grist.ready({ requiredAccess: 'read table' });
+    grist.ready({ requiredAccess: 'full' });
 
-    // Récupération initiale des données de la table CONTACTS
     grist.onRecords(function(records) {
       allRecords = records;
       appliquerFiltres();
     });
 
-    function contientRef(champ, valTarget) {
+    function contientValeur(champ, target) {
       if (!champ) return false;
-      const targetNum = parseInt(valTarget, 10);
-      
-      // Si la référence est stockée comme tableau d'IDs
+      const targetNum = parseInt(target, 10);
+
       if (Array.isArray(champ)) {
-        return champ.includes(targetNum) || champ.includes(valTarget);
+        return champ.some(val => val == target || val == targetNum);
       }
-      // Si c'est un entier simple ou une chaîne
-      return champ == targetNum || champ == valTarget;
+      return champ == target || champ == targetNum;
     }
 
     function appliquerFiltres() {
@@ -161,39 +159,46 @@
       const statutFilter = document.getElementById('filter-statut').value;
       const domaineFilter = document.getElementById('filter-domaine').value;
 
-      // Récupération des cases à cocher cochées
       const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
       const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
 
       const matchingRecords = allRecords.filter(rec => {
-        // 1. Filtre texte libre
+        // 1. RECHERCHE TEXTE LIBRE (Inspecte TOUTES les propriétés de l'enregistrement)
         if (textFilter) {
-          const contentToSearch = [
-            rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, 
-            rec.EMAIL_PRINCIPAL, rec.Telephone_Principal, rec.Fonction_Profession, rec.Commentaire_Description
-          ].map(v => (v || '').toString().toLowerCase()).join(' ');
+          const valuesString = Object.values(rec)
+            .map(val => (val === null || val === undefined) ? '' : String(val))
+            .join(' ')
+            .toLowerCase();
 
-          if (!contentToSearch.includes(textFilter)) return false;
+          if (!valuesString.includes(textFilter)) return false;
         }
 
-        // 2. Filtre Service
+        // 2. FILTRE SERVICE
         if (serviceFilter && rec.Service !== serviceFilter) return false;
 
-        // 3. Filtre Statut Juridique
-        if (statutFilter && !contientRef(rec.STATUT_JURIDIQUE, statutFilter)) return false;
+        // 3. FILTRE STATUT JURIDIQUE
+        if (statutFilter) {
+          const valStatut = rec.STATUT_JURIDIQUE || rec.STATUT_JURIDIQUE_Ref;
+          if (!contientValeur(valStatut, statutFilter)) return false;
+        }
 
-        // 4. Filtre Domaine d'activités
-        if (domaineFilter && !contientRef(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
+        // 4. FILTRE DOMAINE D'ACTIVITES
+        if (domaineFilter) {
+          const valDomaine = rec.DOMAINE_D_ACTIVITES || rec.DOMAINE_D_ACTIVITES_Ref;
+          if (!contientValeur(valDomaine, domaineFilter)) return false;
+        }
 
-        // 5. Filtre Diffusion Cinéma (Doit posséder au moins une des cases cochées)
+        // 5. FILTRE DIFFUSION CINEMA
         if (cinemaChecked.length > 0) {
-          const matchCinema = cinemaChecked.some(val => contientRef(rec.Listes_Diffusion_Cinema, val));
+          const valCinema = rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma || rec.Listes_Diffusion_Cinema_Ref;
+          const matchCinema = cinemaChecked.some(val => contientValeur(valCinema, val));
           if (!matchCinema) return false;
         }
 
-        // 6. Filtre Diffusion DCP
+        // 6. FILTRE DIFFUSION DCP
         if (dcpChecked.length > 0) {
-          const matchDcp = dcpChecked.some(val => contientRef(rec.Liste_Diffusion_DCP, val));
+          const valDcp = rec.Liste_Diffusion_DCP || rec.Liste_Diffusion_Dcp || rec.Liste_Diffusion_DCP_Ref;
+          const matchDcp = dcpChecked.some(val => contientValeur(valDcp, val));
           if (!matchDcp) return false;
         }
 
@@ -202,15 +207,14 @@
 
       const matchingIds = matchingRecords.map(r => r.id);
 
-      // Met à jour le compteur
       const badge = document.getElementById('result-count');
       if (matchingIds.length === allRecords.length) {
         badge.innerText = `Tous les contacts (${allRecords.length})`;
       } else {
-        badge.innerText = `${matchingIds.length} résultat(s) / ${allRecords.length}`;
+        badge.innerText = `${matchingIds.length} / ${allRecords.length} trouvé(s)`;
       }
 
-      // Action clé : transmet les IDs filtrés à la vue Grist liée
+      // Transmission des IDs filtrés à Grist
       grist.setSelectedRows(matchingIds);
     }
 
@@ -223,6 +227,15 @@
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
 
       appliquerFiltres();
+    }
+
+    function afficherDiagnostic() {
+      if (allRecords.length === 0) {
+        alert("Aucun enregistrement chargé dans Grist pour le moment.");
+        return;
+      }
+      const keys = Object.keys(allRecords[0]);
+      alert("Champs disponibles dans la table CONTACTS :\n\n" + keys.join("\n"));
     }
   </script>
 </body>
