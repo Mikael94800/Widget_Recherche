@@ -66,6 +66,9 @@
     .viewer-field.full { grid-column: span 2; }
     .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
     .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
+    
+    .error-input { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    .error-msg { font-size: 12px; color: #ef4444; margin-top: 3px; display: none; }
   </style>
 </head>
 <body>
@@ -254,21 +257,18 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      // Service
       const services = extraireValeursUniques('Service');
       const selService = document.getElementById('filter-service');
       const valServiceActuelle = selService.value;
       selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
       selService.value = valServiceActuelle;
 
-      // Statut Juridique
       const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
       const selStatut = document.getElementById('filter-statut');
       const valStatutActuelle = selStatut.value;
       selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
       selStatut.value = valStatutActuelle;
 
-      // Domaine d'activités
       const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
       const selDomaine = document.getElementById('filter-domaine');
       const valDomaineActuelle = selDomaine.value;
@@ -488,8 +488,17 @@
 
         <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" id="edit-fonction" value="${rec.Fonction_Profession || ''}"></div>
         
-        <div class="viewer-field"><span class="viewer-label">Email Principal</span><input type="text" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Emails Secondaires</span><input type="text" id="edit-emails-sec" value="${normaliserChaine(rec.EMAILS_SECONDAIRES)}"></div>
+        <div class="viewer-field">
+          <span class="viewer-label">Email Principal</span>
+          <input type="text" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}" oninput="validerChampEmailPrincipal(this)">
+          <div class="error-msg" id="err-email">Format d'e-mail principal invalide</div>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Emails Secondaires (séparés par ";")</span>
+          <input type="text" id="edit-emails-sec" value="${normaliserChaine(rec.EMAILS_SECONDAIRES)}" oninput="validerChampEmailsSecondaires(this)">
+          <div class="error-msg" id="err-emails-sec">Un ou plusieurs e-mails secondaires sont invalides</div>
+        </div>
         
         <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" id="edit-tel" value="${rec.Telephone_Principal || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Téléphones Secondaires</span><input type="text" id="edit-tel-sec" value="${normaliserChaine(rec.Telephones_Secondaires)}"></div>
@@ -506,6 +515,58 @@
       currentEditingId = null;
     }
 
+    // Fonction de vérification regex d'un email unique
+    function estEmailValide(email) {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    }
+
+    function validerChampEmailPrincipal(input) {
+      const val = input.value.trim();
+      const errDiv = document.getElementById('err-email');
+      if (val !== "" && !estEmailValide(val)) {
+        input.classList.add('error-input');
+        errDiv.style.display = 'block';
+        return false;
+      } else {
+        input.classList.remove('error-input');
+        errDiv.style.display = 'none';
+        return true;
+      }
+    }
+
+    function validerChampEmailsSecondaires(input) {
+      const val = input.value.trim();
+      const errDiv = document.getElementById('err-emails-sec');
+      if (val === "") {
+        input.classList.remove('error-input');
+        errDiv.style.display = 'none';
+        return true;
+      }
+
+      // Séparer par point-virgule ou virgule
+      const emails = val.split(/[;,]/);
+      let ivalide = true;
+
+      for (let e of emails) {
+        const clean = e.trim();
+        if (clean !== "" && !estEmailValide(clean)) {
+          ivalide = false;
+          break;
+        }
+      }
+
+      if (!ivalide) {
+        input.classList.add('error-input');
+        errDiv.style.display = 'block';
+        return false;
+      } else {
+        input.classList.remove('error-input');
+        errDiv.style.display = 'none';
+        return true;
+      }
+    }
+
     function convertirValeurReference(valeurBrute) {
       if (!valeurBrute) return null;
       if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") {
@@ -517,6 +578,17 @@
     async function sauvegarderContactModifie() {
       if (!currentEditingId) return;
 
+      const inputEmail = document.getElementById('edit-email');
+      const inputEmailsSec = document.getElementById('edit-emails-sec');
+
+      const emailPrincipalOk = validerChampEmailPrincipal(inputEmail);
+      const emailsSecOk = validerChampEmailsSecondaires(inputEmailsSec);
+
+      if (!emailPrincipalOk || !emailsSecOk) {
+        alert("Veuillez corriger les erreurs sur les adresses e-mail avant d'enregistrer.");
+        return;
+      }
+
       const champsModifies = {
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
@@ -525,8 +597,8 @@
         STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
         DOMAINE_D_ACTIVITES: convertirValeurReference(document.getElementById('edit-domaine').value),
         Fonction_Profession: document.getElementById('edit-fonction').value,
-        EMAIL_PRINCIPAL: document.getElementById('edit-email').value,
-        EMAILS_SECONDAIRES: document.getElementById('edit-emails-sec').value,
+        EMAIL_PRINCIPAL: inputEmail.value.trim(),
+        EMAILS_SECONDAIRES: inputEmailsSec.value.trim(),
         Telephone_Principal: document.getElementById('edit-tel').value,
         Telephones_Secondaires: document.getElementById('edit-tel-sec').value,
         Ville: document.getElementById('edit-ville').value,
