@@ -19,8 +19,8 @@
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    input[type="text"], select { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16.5px; outline: none; background-color: #fff; width: 100%; }
-    input:focus, select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
+    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; }
+    input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
     .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
@@ -56,7 +56,7 @@
 
     /* MODALE INTERNE */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-    .modal-card { background: #fff; border-radius: 12px; width: 92%; max-width: 750px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
+    .modal-card { background: #fff; border-radius: 12px; width: 92%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
     .modal-title { font-size: 20px; font-weight: bold; color: #111827; }
     .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; color: #6b7280; }
@@ -65,13 +65,12 @@
     .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
     .viewer-field.full { grid-column: span 2; }
     .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
-    .viewer-value-input { font-size: 15.5px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; background: #fff; color: #111827; outline: none; }
-    .viewer-value-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
 </head>
 <body>
 
+  <!-- RECHERCHE & FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
@@ -88,12 +87,6 @@
         <label>Service (Origine)</label>
         <select id="filter-service" onchange="appliquerFiltres()">
           <option value="">-- Tous les services --</option>
-          <option value="Arts visuels">Arts visuels</option>
-          <option value="Cinéma">Cinéma</option>
-          <option value="EAC">EAC</option>
-          <option value="Houdremont">Houdremont</option>
-          <option value="Patrimoine">Patrimoine</option>
-          <option value="Direction">Direction</option>
         </select>
       </div>
 
@@ -101,16 +94,6 @@
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()">
           <option value="">-- Tous les statuts --</option>
-          <option value="Collectivités territoriales">Collectivités territoriales</option>
-          <option value="Association">Association</option>
-          <option value="Bailleurs sociaux">Bailleurs sociaux</option>
-          <option value="Entreprise">Entreprise</option>
-          <option value="Artiste">Artiste</option>
-          <option value="Etablissement public">Etablissement public</option>
-          <option value="Administration d'Etat">Administration d'Etat</option>
-          <option value="Free-lance / indépendant">Free-lance / indépendant</option>
-          <option value="Particulier">Particulier</option>
-          <option value="Autre">Autre</option>
         </select>
       </div>
     </div>
@@ -130,22 +113,6 @@
         <label>Domaine d'activités</label>
         <select id="filter-domaine" onchange="appliquerFiltres()">
           <option value="">-- Tous les domaines --</option>
-          <option value="Cinéma">Cinéma</option>
-          <option value="Patrimoine">Patrimoine</option>
-          <option value="Politique culturelle">Politique culturelle</option>
-          <option value="Spectacle vivant">Spectacle vivant</option>
-          <option value="Arts visuels">Arts visuels</option>
-          <option value="Insertion">Insertion</option>
-          <option value="Champs social">Champs social</option>
-          <option value="Santé / Médico-social">Santé / Médico-social</option>
-          <option value="Sport">Sport</option>
-          <option value="Petite enfance">Petite enfance</option>
-          <option value="Education / Périscolaire">Education / Périscolaire</option>
-          <option value="Enseignement supérieur">Enseignement supérieur</option>
-          <option value="Enseignement artistique">Enseignement artistique</option>
-          <option value="Livre & lecture publique">Livre & lecture publique</option>
-          <option value="Environnement">Environnement</option>
-          <option value="Autre">Autre</option>
         </select>
       </div>
     </div>
@@ -177,6 +144,7 @@
     </div>
   </div>
 
+  <!-- BARRE D'OUTILS -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -194,6 +162,7 @@
     </div>
   </div>
 
+  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -217,10 +186,12 @@
         </tr>
       </thead>
       <tbody id="results-table-body">
-        </tbody>
+        <!-- Rempli en JS -->
+      </tbody>
     </table>
   </div>
 
+  <!-- MODALE INTERNE DE MODIFICATION -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -228,7 +199,8 @@
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
-        </div>
+        <!-- Rempli dynamiquement -->
+      </div>
       <div class="modal-footer">
         <button class="btn-reset" onclick="fermerModal()">Annuler</button>
         <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
@@ -247,6 +219,7 @@
 
     grist.onRecords(function(records) {
       allRecords = records;
+      peuplerListesDeroulantesFiltres();
       appliquerFiltres();
     });
 
@@ -263,6 +236,44 @@
     function contientCritere(champData, valeurRecherchee) {
       const texteChamp = normaliserChaine(champData).toLowerCase();
       return texteChamp.includes(valeurRecherchee.toLowerCase());
+    }
+
+    function extraireValeursUniques(cle) {
+      const valeursSet = new Set();
+      allRecords.forEach(r => {
+        const val = r[cle];
+        if (val !== undefined && val !== null && val !== "") {
+          const texte = normaliserChaine(val);
+          texte.split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) valeursSet.add(clean);
+          });
+        }
+      });
+      return Array.from(valeursSet).sort();
+    }
+
+    function peuplerListesDeroulantesFiltres() {
+      // Service
+      const services = extraireValeursUniques('Service');
+      const selService = document.getElementById('filter-service');
+      const valServiceActuelle = selService.value;
+      selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
+      selService.value = valServiceActuelle;
+
+      // Statut Juridique
+      const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
+      const selStatut = document.getElementById('filter-statut');
+      const valStatutActuelle = selStatut.value;
+      selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
+      selStatut.value = valStatutActuelle;
+
+      // Domaine d'activités
+      const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
+      const selDomaine = document.getElementById('filter-domaine');
+      const valDomaineActuelle = selDomaine.value;
+      selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
+      selDomaine.value = valDomaineActuelle;
     }
 
     function appliquerFiltres() {
@@ -429,21 +440,70 @@
       document.getElementById('main-table').style.fontSize = `${currentFontSize}px`;
     }
 
+    function genererOptionsSelect(listeValeurs, valeurActuelle) {
+      let options = '<option value="">-- Sélectionner --</option>';
+      // Si la valeur actuelle est un nombre (ID Grist) ou un objet, on gère proprement
+      const valStr = (valeurActuelle !== null && valeurActuelle !== undefined) ? String(valeurActuelle) : "";
+      
+      listeValeurs.forEach(item => {
+        // Supporte si l'élément est un ID simple ou une chaîne
+        const idVal = (typeof item === 'object' && item !== null) ? item.id : item;
+        const libelle = (typeof item === 'object' && item !== null) ? (item.label || item.NOM || item.Name || JSON.stringify(item)) : String(item);
+        
+        const selected = (String(idVal) === valStr || String(libelle) === valStr) ? 'selected' : '';
+        options += `<option value="${idVal}" ${selected}>${libelle}</option>`;
+      });
+      return options;
+    }
+
     function ouvrirModal(rec) {
       currentEditingId = rec.id;
-      // Sécurisation de la récupération des champs textuels modifiables de base
-      const fonctionValeur = rec.Fonction_Profession || rec.Fonction || '';
       
+      const structuresDispos = extraireValeursUniques('NOM_Structure');
+      const servicesDispos = extraireValeursUniques('Service');
+      const statutsDispos = extraireValeursUniques('STATUT_JURIDIQUE');
+      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE');
+      const domainesDispos = extraireValeursUniques('DOMAINE_D_ACTIVITES');
+
       document.getElementById('modal-content').innerHTML = `
-        <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" class="viewer-value-input" id="edit-nom" value="${rec.NOM || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" class="viewer-value-input" id="edit-prenom" value="${rec.PRENOM || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Structure (Texte)</span><input type="text" class="viewer-value-input" id="edit-structure" value="${rec.NOM_Structure || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Service</span><input type="text" class="viewer-value-input" id="edit-service" value="${normaliserChaine(rec.Service)}"></div>
-        <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" class="viewer-value-input" id="edit-fonction" value="${fonctionValeur}"></div>
-        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><input type="text" class="viewer-value-input" id="edit-statut" value="${normaliserChaine(rec.STATUT_JURIDIQUE)}"></div>
-        <div class="viewer-field"><span class="viewer-label">Email Principal</span><input type="text" class="viewer-value-input" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" class="viewer-value-input" id="edit-tel" value="${rec.Telephone_Principal || ''}"></div>
-        <div class="viewer-field full"><span class="viewer-label">Ville</span><input type="text" class="viewer-value-input" id="edit-ville" value="${rec.Ville || ''}"></div>
+        <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${rec.NOM || ''}"></div>
+        <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${rec.PRENOM || ''}"></div>
+        
+        <div class="viewer-field">
+          <span class="viewer-label">Structure</span>
+          <select id="edit-structure">${genererOptionsSelect(structuresDispos, rec.NOM_Structure)}</select>
+        </div>
+        
+        <div class="viewer-field">
+          <span class="viewer-label">Service</span>
+          <select id="edit-service">${genererOptionsSelect(servicesDispos, rec.Service)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Type de structure</span>
+          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Statut Juridique</span>
+          <select id="edit-statut">${genererOptionsSelect(statutsDispos, rec.STATUT_JURIDIQUE)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Domaine d'activités</span>
+          <select id="edit-domaine">${genererOptionsSelect(domainesDispos, rec.DOMAINE_D_ACTIVITES)}</select>
+        </div>
+
+        <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" id="edit-fonction" value="${rec.Fonction_Profession || ''}"></div>
+        
+        <div class="viewer-field"><span class="viewer-label">Email Principal</span><input type="text" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}"></div>
+        <div class="viewer-field"><span class="viewer-label">Emails Secondaires</span><input type="text" id="edit-emails-sec" value="${normaliserChaine(rec.EMAILS_SECONDAIRES)}"></div>
+        
+        <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" id="edit-tel" value="${rec.Telephone_Principal || ''}"></div>
+        <div class="viewer-field"><span class="viewer-label">Téléphones Secondaires</span><input type="text" id="edit-tel-sec" value="${normaliserChaine(rec.Telephones_Secondaires)}"></div>
+        
+        <div class="viewer-field"><span class="viewer-label">Ville</span><input type="text" id="edit-ville" value="${rec.Ville || ''}"></div>
+        <div class="viewer-field full"><span class="viewer-label">Commentaire</span><textarea id="edit-commentaire" rows="2">${rec.Commentaire || ''}</textarea></div>
       `;
 
       document.getElementById('modal-overlay').style.display = 'flex';
@@ -454,20 +514,33 @@
       currentEditingId = null;
     }
 
+    function convertirValeurReference(valeurBrute) {
+      if (!valeurBrute) return null;
+      // Si c'est un nombre ou une chaîne représentant un entier (ID Grist), on le convertit en nombre
+      if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") {
+        return Number(valeurBrute);
+      }
+      return valeurBrute;
+    }
+
     async function sauvegarderContactModifie() {
       if (!currentEditingId) return;
 
-      // On cible uniquement les champs textuels sûrs pour éviter l'erreur de colonne
       const champsModifies = {
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
-        NOM_Structure: document.getElementById('edit-structure').value,
-        Service: document.getElementById('edit-service').value,
+        NOM_Structure: convertirValeurReference(document.getElementById('edit-structure').value),
+        Service: convertirValeurReference(document.getElementById('edit-service').value),
+        TYPE_DE_STRUCTURE: convertirValeurReference(document.getElementById('edit-type-structure').value),
+        STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
+        DOMAINE_D_ACTIVITES: convertirValeurReference(document.getElementById('edit-domaine').value),
         Fonction_Profession: document.getElementById('edit-fonction').value,
-        STATUT_JURIDIQUE: document.getElementById('edit-statut').value,
         EMAIL_PRINCIPAL: document.getElementById('edit-email').value,
+        EMAILS_SECONDAIRES: document.getElementById('edit-emails-sec').value,
         Telephone_Principal: document.getElementById('edit-tel').value,
-        Ville: document.getElementById('edit-ville').value
+        Telephones_Secondaires: document.getElementById('edit-tel-sec').value,
+        Ville: document.getElementById('edit-ville').value,
+        Commentaire: document.getElementById('edit-commentaire').value
       };
 
       try {
