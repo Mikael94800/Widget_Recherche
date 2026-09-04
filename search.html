@@ -104,7 +104,9 @@
     <div class="filter-row-bottom">
       <div class="field-group">
         <label>Type de structure</label>
-        <input type="text" id="filter-type-structure" placeholder="Filtrer type structure..." oninput="appliquerFiltres()">
+        <select id="filter-type-structure" onchange="appliquerFiltres()">
+          <option value="">-- Tous les types --</option>
+        </select>
       </div>
 
       <div class="field-group">
@@ -257,18 +259,30 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
+      // Service
       const services = extraireValeursUniques('Service');
       const selService = document.getElementById('filter-service');
       const valServiceActuelle = selService.value;
       selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
       selService.value = valServiceActuelle;
 
+      // Statut Juridique
       const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
       const selStatut = document.getElementById('filter-statut');
       const valStatutActuelle = selStatut.value;
       selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
       selStatut.value = valStatutActuelle;
 
+      // Type de Structure (reconnaît les différentes variations possibles du nom de la colonne)
+      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : 
+                          (extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : 
+                          extraireValeursUniques('Type_de_structure'));
+      const selTypeStruct = document.getElementById('filter-type-structure');
+      const valTypeStructActuelle = selTypeStruct.value;
+      selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
+      selTypeStruct.value = valTypeStructActuelle;
+
+      // Domaine d'activités
       const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
       const selDomaine = document.getElementById('filter-domaine');
       const valDomaineActuelle = selDomaine.value;
@@ -282,7 +296,7 @@
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
-      const typeStructFilter = document.getElementById('filter-type-structure').value.toLowerCase().trim();
+      const typeStructFilter = document.getElementById('filter-type-structure').value;
       const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
       const domaineFilter = document.getElementById('filter-domaine').value;
 
@@ -290,6 +304,7 @@
       const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
 
       matchingRecords = allRecords.filter(rec => {
+        // Recherche textuelle globale multi-termes / expression exacte
         if (textFilter) {
           const champsCibles = [
             rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
@@ -297,7 +312,11 @@
             rec.Telephones_Secondaires, rec.Fonction_Profession, rec.Commentaire
           ];
           const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
-          if (!texteGlobal.includes(textFilter)) return false;
+          
+          // Découpage par mots pour permettre de chercher "jonglage" et de trouver indépendamment dans un nom, structure ou mail
+          const motsRecherche = textFilter.split(/\s+/);
+          const correspondanceGlobale = motsRecherche.every(mot => texteGlobal.includes(mot));
+          if (!correspondanceGlobale) return false;
         }
 
         if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
@@ -306,7 +325,7 @@
 
         if (typeStructFilter) {
           const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure);
-          if (!valTypeStruct.toLowerCase().includes(typeStructFilter)) return false;
+          if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         }
 
         if (fonctionFilter) {
@@ -459,7 +478,7 @@
       
       const servicesDispos = extraireValeursUniques('Service');
       const statutsDispos = extraireValeursUniques('STATUT_JURIDIQUE');
-      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE');
+      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT');
       const domainesDispos = extraireValeursUniques('DOMAINE_D_ACTIVITES');
 
       document.getElementById('modal-content').innerHTML = `
@@ -473,7 +492,7 @@
 
         <div class="viewer-field">
           <span class="viewer-label">Type de structure</span>
-          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE)}</select>
+          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT)}</select>
         </div>
 
         <div class="viewer-field">
@@ -515,7 +534,6 @@
       currentEditingId = null;
     }
 
-    // Fonction de vérification regex d'un email unique
     function estEmailValide(email) {
       const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return regex.test(email);
@@ -526,11 +544,11 @@
       const errDiv = document.getElementById('err-email');
       if (val !== "" && !estEmailValide(val)) {
         input.classList.add('error-input');
-        errDiv.style.display = 'block';
+        if (errDiv) errDiv.style.display = 'block';
         return false;
       } else {
         input.classList.remove('error-input');
-        errDiv.style.display = 'none';
+        if (errDiv) errDiv.style.display = 'none';
         return true;
       }
     }
@@ -540,11 +558,10 @@
       const errDiv = document.getElementById('err-emails-sec');
       if (val === "") {
         input.classList.remove('error-input');
-        errDiv.style.display = 'none';
+        if (errDiv) errDiv.style.display = 'none';
         return true;
       }
 
-      // Séparer par point-virgule ou virgule
       const emails = val.split(/[;,]/);
       let ivalide = true;
 
@@ -558,11 +575,11 @@
 
       if (!ivalide) {
         input.classList.add('error-input');
-        errDiv.style.display = 'block';
+        if (errDiv) errDiv.style.display = 'block';
         return false;
       } else {
         input.classList.remove('error-input');
-        errDiv.style.display = 'none';
+        if (errDiv) errDiv.style.display = 'none';
         return true;
       }
     }
