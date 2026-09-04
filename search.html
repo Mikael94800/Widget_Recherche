@@ -50,6 +50,9 @@
     tr.result-row:hover { background-color: #f0fdf4; }
     tr.selected { background-color: #bae0ff !important; font-weight: 600; }
 
+    .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 8px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .btn-action-modifier:hover { background-color: #bae6fd; }
+
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
@@ -69,6 +72,7 @@
 </head>
 <body>
 
+  <!-- RECHERCHE & FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
@@ -109,6 +113,16 @@
           <option value="Particulier">Particulier</option>
           <option value="Autre">Autre</option>
         </select>
+      </div>
+
+      <div class="field-group">
+        <label>Type de structure</label>
+        <input type="text" id="filter-type-structure" placeholder="Filtrer type structure..." oninput="appliquerFiltres()">
+      </div>
+
+      <div class="field-group">
+        <label>Fonction / Profession</label>
+        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
       </div>
 
       <div class="field-group">
@@ -160,6 +174,7 @@
     </div>
   </div>
 
+  <!-- BARRE D'OUTILS ET NAVIGATION DU TABLEAU -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -177,15 +192,17 @@
     </div>
   </div>
 
+  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
-        <col style="width: 140px;">
-        <col style="width: 140px;">
-        <col style="width: 220px;">
+        <col style="width: 120px;">
+        <col style="width: 120px;">
+        <col style="width: 180px;">
+        <col style="width: 110px;">
+        <col style="width: 110px;">
+        <col style="width: 180px;">
         <col style="width: 130px;">
-        <col style="width: 130px;">
-        <col style="width: 240px;">
       </colgroup>
       <thead>
         <tr>
@@ -195,13 +212,16 @@
           <th>Service</th>
           <th>Ville</th>
           <th>Email</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody id="results-table-body">
-        </tbody>
+        <!-- Généré dynamiquement -->
+      </tbody>
     </table>
   </div>
 
+  <!-- FENETRE MODALE POUR DOUBLE-CLIC -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -209,7 +229,8 @@
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
-        </div>
+        <!-- Rempli en JS -->
+      </div>
     </div>
   </div>
 
@@ -247,6 +268,8 @@
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
+      const typeStructFilter = document.getElementById('filter-type-structure').value.toLowerCase().trim();
+      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
       const domaineFilter = document.getElementById('filter-domaine').value;
 
       const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
@@ -266,6 +289,16 @@
         if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
         if (statutFilter && !contientCritere(rec.STATUT_JURIDIQUE, statutFilter)) return false;
         if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
+
+        if (typeStructFilter) {
+          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure);
+          if (!valTypeStruct.toLowerCase().includes(typeStructFilter)) return false;
+        }
+
+        if (fonctionFilter) {
+          const valFonction = normaliserChaine(rec.Fonction_Profession || rec.Fonction);
+          if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
+        }
 
         if (cinemaChecked.length > 0) {
           const valCinema = rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma;
@@ -303,7 +336,17 @@
           <td>${normaliserChaine(rec.Service)}</td>
           <td>${rec.Ville || ''}</td>
           <td>${rec.EMAIL_PRINCIPAL || ''}</td>
+          <td><button class="btn-action-modifier">Modifier le contact</button></td>
         `;
+
+        // Gestion du bouton Modifier pour basculer vers la page de modification
+        const btnModif = tr.querySelector('.btn-action-modifier');
+        btnModif.onclick = async (e) => {
+          e.stopPropagation();
+          await grist.setCursorPos({ rowId: rec.id });
+          // Remplacez 'p/2' par l'identifiant exact de votre page de modification si besoin
+          window.location.hash = "#p/2"; 
+        };
 
         tr.onclick = () => {
           selectedIndex = index;
@@ -390,11 +433,17 @@
     function ouvrirModal(rec) {
       document.getElementById('m-title').innerText = `${rec.PRENOM || ''} ${rec.NOM || ''}`.trim() || 'Fiche Contact';
       
+      // Récupération sécurisée du champ commentaire / description en testant les variantes d'appellation courantes
+      const commentaireValeur = rec.Commentaire___Description || rec.Commentaire || rec.DESCRIPTION___COMMENTAIRE || rec.DESCRIPTION_COMMENTAIRE || '-';
+      const typeStructValeur = rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure || '-';
+      const fonctionValeur = rec.Fonction_Profession || rec.Fonction || '-';
+
       document.getElementById('modal-content').innerHTML = `
         <div class="viewer-field"><span class="viewer-label">Structure</span><span class="viewer-value">${rec.NOM_Structure || '-'}</span></div>
         <div class="viewer-field"><span class="viewer-label">Service</span><span class="viewer-value">${normaliserChaine(rec.Service) || '-'}</span></div>
-        <div class="viewer-field"><span class="viewer-label">Fonction</span><span class="viewer-value">${rec.Fonction_Profession || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><span class="viewer-value">${fonctionValeur}</span></div>
         <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><span class="viewer-value">${normaliserChaine(rec.STATUT_JURIDIQUE) || '-'}</span></div>
+        <div class="viewer-field"><span class="viewer-label">Type de structure</span><span class="viewer-value">${normaliserChaine(typeStructValeur)}</span></div>
         <div class="viewer-field"><span class="viewer-label">Email Principal</span><span class="viewer-value">${rec.EMAIL_PRINCIPAL || '-'}</span></div>
         <div class="viewer-field"><span class="viewer-label">Emails Secondaires</span><span class="viewer-value">${normaliserChaine(rec.EMAILS_SECONDAIRES) || '-'}</span></div>
         <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><span class="viewer-value">${rec.Telephone_Principal || '-'}</span></div>
@@ -402,7 +451,7 @@
         <div class="viewer-field full"><span class="viewer-label">Adresse</span><span class="viewer-value">${rec.Adresse || ''} ${rec.Code_Postal || ''} ${rec.Ville || ''}</span></div>
         <div class="viewer-field"><span class="viewer-label">Domaine d'activités</span><span class="viewer-value">${normaliserChaine(rec.DOMAINE_D_ACTIVITES) || '-'}</span></div>
         <div class="viewer-field"><span class="viewer-label">Diffusion Cinéma</span><span class="viewer-value">${normaliserChaine(rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma) || '-'}</span></div>
-        <div class="viewer-field full"><span class="viewer-label">Description / Commentaire</span><span class="viewer-value">${rec.Commentaire___Description || rec.Commentaire || '-'}</span></div>
+        <div class="viewer-field full"><span class="viewer-label">Description / Commentaire</span><span class="viewer-value">${commentaireValeur}</span></div>
       `;
 
       document.getElementById('modal-overlay').style.display = 'flex';
@@ -501,6 +550,8 @@
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-type-structure').value = '';
+      document.getElementById('filter-fonction').value = '';
       document.getElementById('filter-domaine').value = '';
 
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
