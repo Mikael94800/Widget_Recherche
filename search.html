@@ -73,6 +73,7 @@
 </head>
 <body>
 
+  <!-- RECHERCHE & FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
@@ -148,6 +149,7 @@
     </div>
   </div>
 
+  <!-- BARRE D'OUTILS -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -165,6 +167,7 @@
     </div>
   </div>
 
+  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -188,10 +191,12 @@
         </tr>
       </thead>
       <tbody id="results-table-body">
-        </tbody>
+        <!-- Rempli en JS -->
+      </tbody>
     </table>
   </div>
 
+  <!-- MODALE INTERNE DE MODIFICATION -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -199,7 +204,8 @@
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
-        </div>
+        <!-- Rempli dynamiquement -->
+      </div>
       <div class="modal-footer">
         <button class="btn-reset" onclick="fermerModal()">Annuler</button>
         <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
@@ -267,9 +273,9 @@
       selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
       selStatut.value = valStatutActuelle;
 
-      // Type de Structure
-      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : 
-                          (extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : 
+      // Type de Structure (corrigé sur TYPE_DE_STRUCTURE_CONTACT)
+      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : 
+                          (extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : 
                           extraireValeursUniques('Type_de_structure'));
       const selTypeStruct = document.getElementById('filter-type-structure');
       const valTypeStructActuelle = selTypeStruct.value;
@@ -316,7 +322,7 @@
         if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
 
         if (typeStructFilter) {
-          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure);
+          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE || rec.Type_de_structure);
           if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         }
 
@@ -470,7 +476,7 @@
       
       const servicesDispos = extraireValeursUniques('Service');
       const statutsDispos = extraireValeursUniques('STATUT_JURIDIQUE');
-      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT');
+      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : extraireValeursUniques('TYPE_DE_STRUCTURE');
       const domainesDispos = extraireValeursUniques('DOMAINE_D_ACTIVITES');
 
       document.getElementById('modal-content').innerHTML = `
@@ -484,7 +490,7 @@
 
         <div class="viewer-field">
           <span class="viewer-label">Type de structure</span>
-          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT)}</select>
+          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE)}</select>
         </div>
 
         <div class="viewer-field">
@@ -578,7 +584,7 @@
 
     function convertirValeurReference(valeurBrute) {
       if (!valeurBrute) return null;
-      if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") {
+      if (!isNaN(valeurBrute) && String(valeurBrute).trim() !== "") {
         return Number(valeurBrute);
       }
       return valeurBrute;
@@ -602,7 +608,7 @@
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
         Service: convertirValeurReference(document.getElementById('edit-service').value),
-        TYPE_DE_STRUCTURE: convertirValeurReference(document.getElementById('edit-type-structure').value),
+        TYPE_DE_STRUCTURE_CONTACT: convertirValeurReference(document.getElementById('edit-type-structure').value),
         STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
         DOMAINE_D_ACTIVITES: convertirValeurReference(document.getElementById('edit-domaine').value),
         Fonction_Profession: document.getElementById('edit-fonction').value,
