@@ -442,11 +442,9 @@
 
     function genererOptionsSelect(listeValeurs, valeurActuelle) {
       let options = '<option value="">-- Sélectionner --</option>';
-      // Si la valeur actuelle est un nombre (ID Grist) ou un objet, on gère proprement
       const valStr = (valeurActuelle !== null && valeurActuelle !== undefined) ? String(valeurActuelle) : "";
       
       listeValeurs.forEach(item => {
-        // Supporte si l'élément est un ID simple ou une chaîne
         const idVal = (typeof item === 'object' && item !== null) ? item.id : item;
         const libelle = (typeof item === 'object' && item !== null) ? (item.label || item.NOM || item.Name || JSON.stringify(item)) : String(item);
         
@@ -459,7 +457,6 @@
     function ouvrirModal(rec) {
       currentEditingId = rec.id;
       
-      const structuresDispos = extraireValeursUniques('NOM_Structure');
       const servicesDispos = extraireValeursUniques('Service');
       const statutsDispos = extraireValeursUniques('STATUT_JURIDIQUE');
       const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE');
@@ -468,11 +465,6 @@
       document.getElementById('modal-content').innerHTML = `
         <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${rec.NOM || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${rec.PRENOM || ''}"></div>
-        
-        <div class="viewer-field">
-          <span class="viewer-label">Structure</span>
-          <select id="edit-structure">${genererOptionsSelect(structuresDispos, rec.NOM_Structure)}</select>
-        </div>
         
         <div class="viewer-field">
           <span class="viewer-label">Service</span>
@@ -516,7 +508,6 @@
 
     function convertirValeurReference(valeurBrute) {
       if (!valeurBrute) return null;
-      // Si c'est un nombre ou une chaîne représentant un entier (ID Grist), on le convertit en nombre
       if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") {
         return Number(valeurBrute);
       }
@@ -529,7 +520,6 @@
       const champsModifies = {
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
-        NOM_Structure: convertirValeurReference(document.getElementById('edit-structure').value),
         Service: convertirValeurReference(document.getElementById('edit-service').value),
         TYPE_DE_STRUCTURE: convertirValeurReference(document.getElementById('edit-type-structure').value),
         STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
@@ -609,14 +599,13 @@
         return;
       }
 
-      const entetes = ["Nom", "Prénom", "Structure", "Service", "Statut Juridique", "Domaine", "Ville", "Email Principal", "Emails Secondaires", "Téléphone Principal", "Téléphone Secondaire"];
+      const entetes = ["Nom", "Prénom", "Service", "Statut Juridique", "Domaine", "Ville", "Email Principal", "Emails Secondaires", "Téléphone Principal", "Téléphone Secondaire"];
       let csvContent = "\uFEFF" + entetes.join(";") + "\n";
 
       matchingRecords.forEach(r => {
         const ligne = [
           `"${(r.NOM || '').replace(/"/g, '""')}"`,
           `"${(r.PRENOM || '').replace(/"/g, '""')}"`,
-          `"${(r.NOM_Structure || '').replace(/"/g, '""')}"`,
           `"${normaliserChaine(r.Service).replace(/"/g, '""')}"`,
           `"${normaliserChaine(r.STATUT_JURIDIQUE).replace(/"/g, '""')}"`,
           `"${normaliserChaine(r.DOMAINE_D_ACTIVITES).replace(/"/g, '""')}"`,
