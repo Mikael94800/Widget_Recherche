@@ -339,13 +339,15 @@
           <td><button class="btn-action-modifier">Modifier le contact</button></td>
         `;
 
-        // Gestion du bouton Modifier pour basculer vers la page de modification
+        // Action du bouton Modifier : sélectionne le contact et scroll vers le formulaire en bas de page
         const btnModif = tr.querySelector('.btn-action-modifier');
         btnModif.onclick = async (e) => {
           e.stopPropagation();
           await grist.setCursorPos({ rowId: rec.id });
-          // Remplacez 'p/2' par l'identifiant exact de votre page de modification si besoin
-          window.location.hash = "#p/2"; 
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+          });
         };
 
         tr.onclick = () => {
@@ -433,7 +435,6 @@
     function ouvrirModal(rec) {
       document.getElementById('m-title').innerText = `${rec.PRENOM || ''} ${rec.NOM || ''}`.trim() || 'Fiche Contact';
       
-      // Récupération sécurisée du champ commentaire / description en testant les variantes d'appellation courantes
       const commentaireValeur = rec.Commentaire___Description || rec.Commentaire || rec.DESCRIPTION___COMMENTAIRE || rec.DESCRIPTION_COMMENTAIRE || '-';
       const typeStructValeur = rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure || '-';
       const fonctionValeur = rec.Fonction_Profession || rec.Fonction || '-';
