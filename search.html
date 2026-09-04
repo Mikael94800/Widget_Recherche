@@ -12,14 +12,18 @@
     .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
     .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    /* ORGANISATION DES LIGNES DE FILTRES */
+    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+    .filter-row-bottom { display: grid; grid-template-columns: 2fr 2fr 2fr; gap: 12px; margin-bottom: 12px; }
+    .checkboxes-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
     input[type="text"], select { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16.5px; outline: none; background-color: #fff; width: 100%; }
     input:focus, select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
-    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; height: auto; overflow-y: visible; }
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; height: auto; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
     .checkbox-item input[type="checkbox"] { transform: scale(1.1); }
 
@@ -79,7 +83,8 @@
       <span id="result-count" class="count-badge">Chargement...</span>
     </div>
 
-    <div class="grid">
+    <!-- PREMIÈRE LIGNE DE FILTRES -->
+    <div class="filter-row">
       <div class="field-group">
         <label>Recherche Texte</label>
         <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
@@ -114,7 +119,10 @@
           <option value="Autre">Autre</option>
         </select>
       </div>
+    </div>
 
+    <!-- SECONDE LIGNE DE FILTRES (Type de structure, Fonction, Domaines) -->
+    <div class="filter-row-bottom">
       <div class="field-group">
         <label>Type de structure</label>
         <input type="text" id="filter-type-structure" placeholder="Filtrer type structure..." oninput="appliquerFiltres()">
@@ -147,7 +155,10 @@
           <option value="Autre">Autre</option>
         </select>
       </div>
+    </div>
 
+    <!-- LISTES DE DIFFUSION -->
+    <div class="checkboxes-container">
       <div class="field-group">
         <label>Diffusion Cinéma</label>
         <div class="checkbox-group" id="group-cinema">
