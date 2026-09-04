@@ -12,7 +12,6 @@
     .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
     .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
 
-    /* ORGANISATION DES LIGNES DE FILTRES */
     .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
     .filter-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .checkboxes-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
@@ -23,7 +22,7 @@
     input[type="text"], select { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16.5px; outline: none; background-color: #fff; width: 100%; }
     input:focus, select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
-    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; height: auto; }
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
     .checkbox-item input[type="checkbox"] { transform: scale(1.1); }
 
@@ -31,7 +30,6 @@
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
 
-    /* BARRE D'OUTILS DU TABLEAU */
     .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
     .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     
@@ -39,13 +37,9 @@
     .btn-tool:hover { background: #e5e7eb; }
     
     .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-export:hover { background-color: #059669; }
     .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-csv:hover { background-color: #0369a1; }
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-copy:hover { background-color: #7c3aed; }
 
-    /* TABLEAU INTEGRE ET REDIMENSIONNABLE */
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
     th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -60,7 +54,7 @@
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
-    /* FENETRE MODALE DE MODIFICATION / DETAIL */
+    /* MODALE INTERNE */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 12px; width: 92%; max-width: 750px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
@@ -71,20 +65,19 @@
     .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
     .viewer-field.full { grid-column: span 2; }
     .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
-    .viewer-value-input { font-size: 15.5px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; background: #fff; color: #111827; }
+    .viewer-value-input { font-size: 15.5px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; background: #fff; color: #111827; outline: none; }
+    .viewer-value-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
 </head>
 <body>
 
-  <!-- RECHERCHE & FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
       <span id="result-count" class="count-badge">Chargement...</span>
     </div>
 
-    <!-- PREMIÈRE LIGNE DE FILTRES -->
     <div class="filter-row">
       <div class="field-group">
         <label>Recherche Texte</label>
@@ -122,7 +115,6 @@
       </div>
     </div>
 
-    <!-- SECONDE LIGNE DE FILTRES -->
     <div class="filter-row-bottom">
       <div class="field-group">
         <label>Type de structure</label>
@@ -158,7 +150,6 @@
       </div>
     </div>
 
-    <!-- LISTES DE DIFFUSION -->
     <div class="checkboxes-container">
       <div class="field-group">
         <label>Diffusion Cinéma</label>
@@ -186,7 +177,6 @@
     </div>
   </div>
 
-  <!-- BARRE D'OUTILS ET NAVIGATION DU TABLEAU -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -204,7 +194,6 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -228,21 +217,18 @@
         </tr>
       </thead>
       <tbody id="results-table-body">
-        <!-- Généré dynamiquement -->
-      </tbody>
+        </tbody>
     </table>
   </div>
 
-  <!-- FENETRE MODALE DE MODIFICATION DIRECTE -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title" id="m-title">Modifier le contact</span>
+        <span class="modal-title">Modifier le contact</span>
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
-        <!-- Rempli en JS -->
-      </div>
+        </div>
       <div class="modal-footer">
         <button class="btn-reset" onclick="fermerModal()">Annuler</button>
         <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
@@ -297,7 +283,7 @@
           const champsCibles = [
             rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
             rec.EMAIL_PRINCIPAL, rec.EMAILS_SECONDAIRES, rec.Telephone_Principal, 
-            rec.Telephones_Secondaires, rec.Fonction_Profession, rec.Commentaire___Description, rec.Commentaire
+            rec.Telephones_Secondaires, rec.Fonction_Profession, rec.Commentaire
           ];
           const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
           if (!texteGlobal.includes(textFilter)) return false;
@@ -445,22 +431,19 @@
 
     function ouvrirModal(rec) {
       currentEditingId = rec.id;
-      const typeStructValeur = rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure || '';
+      // Sécurisation de la récupération des champs textuels modifiables de base
       const fonctionValeur = rec.Fonction_Profession || rec.Fonction || '';
-      const commentaireValeur = rec.Commentaire___Description || rec.Commentaire || rec.DESCRIPTION___COMMENTAIRE || '';
-
+      
       document.getElementById('modal-content').innerHTML = `
         <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" class="viewer-value-input" id="edit-nom" value="${rec.NOM || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" class="viewer-value-input" id="edit-prenom" value="${rec.PRENOM || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Structure</span><input type="text" class="viewer-value-input" id="edit-structure" value="${rec.NOM_Structure || ''}"></div>
+        <div class="viewer-field"><span class="viewer-label">Structure (Texte)</span><input type="text" class="viewer-value-input" id="edit-structure" value="${rec.NOM_Structure || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Service</span><input type="text" class="viewer-value-input" id="edit-service" value="${normaliserChaine(rec.Service)}"></div>
         <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" class="viewer-value-input" id="edit-fonction" value="${fonctionValeur}"></div>
         <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><input type="text" class="viewer-value-input" id="edit-statut" value="${normaliserChaine(rec.STATUT_JURIDIQUE)}"></div>
-        <div class="viewer-field"><span class="viewer-label">Type de structure</span><input type="text" class="viewer-value-input" id="edit-typestruct" value="${normaliserChaine(typeStructValeur)}"></div>
         <div class="viewer-field"><span class="viewer-label">Email Principal</span><input type="text" class="viewer-value-input" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" class="viewer-value-input" id="edit-tel" value="${rec.Telephone_Principal || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Ville</span><input type="text" class="viewer-value-input" id="edit-ville" value="${rec.Ville || ''}"></div>
-        <div class="viewer-field full"><span class="viewer-label">Commentaire</span><input type="text" class="viewer-value-input" id="edit-commentaire" value="${commentaireValeur}"></div>
+        <div class="viewer-field full"><span class="viewer-label">Ville</span><input type="text" class="viewer-value-input" id="edit-ville" value="${rec.Ville || ''}"></div>
       `;
 
       document.getElementById('modal-overlay').style.display = 'flex';
@@ -474,6 +457,7 @@
     async function sauvegarderContactModifie() {
       if (!currentEditingId) return;
 
+      // On cible uniquement les champs textuels sûrs pour éviter l'erreur de colonne
       const champsModifies = {
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
@@ -481,16 +465,10 @@
         Service: document.getElementById('edit-service').value,
         Fonction_Profession: document.getElementById('edit-fonction').value,
         STATUT_JURIDIQUE: document.getElementById('edit-statut').value,
-        TYPE_DE_STRUCTURE: document.getElementById('edit-typestruct').value,
         EMAIL_PRINCIPAL: document.getElementById('edit-email').value,
         Telephone_Principal: document.getElementById('edit-tel').value,
         Ville: document.getElementById('edit-ville').value
       };
-
-      const valCommentaire = document.getElementById('edit-commentaire').value;
-      if (valCommentaire !== undefined) {
-        champsModifies['Commentaire'] = valCommentaire;
-      }
 
       try {
         await grist.selectedTable.update({ id: currentEditingId, fields: champsModifies });
