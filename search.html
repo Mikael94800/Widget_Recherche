@@ -484,9 +484,13 @@
         TYPE_DE_STRUCTURE: document.getElementById('edit-typestruct').value,
         EMAIL_PRINCIPAL: document.getElementById('edit-email').value,
         Telephone_Principal: document.getElementById('edit-tel').value,
-        Ville: document.getElementById('edit-ville').value,
-        Commentaire___Description: document.getElementById('edit-commentaire').value
+        Ville: document.getElementById('edit-ville').value
       };
+
+      const valCommentaire = document.getElementById('edit-commentaire').value;
+      if (valCommentaire !== undefined) {
+        champsModifies['Commentaire'] = valCommentaire;
+      }
 
       try {
         await grist.selectedTable.update({ id: currentEditingId, fields: champsModifies });
