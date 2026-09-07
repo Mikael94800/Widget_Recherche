@@ -36,10 +36,9 @@
     .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
     .btn-tool:hover { background: #e5e7eb; }
     
+    .btn-copy { background-color: #7c3aed; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-mail-cci { background-color: #7c3aed; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-mail-to { background-color: #4f46e5; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
@@ -162,8 +161,7 @@
     </div>
 
     <div class="toolbar-group">
-      <button class="btn-mail-cci" onclick="envoyerEmailSelection('cci')">✉️ Envoyer un e-mail à la sélection en cci</button>
-      <button class="btn-mail-to" onclick="envoyerEmailSelection('to')">✉️ Envoyer un email à la sélection</button>
+      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
       <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter Lots TXT</button>
       <button class="btn-csv" onclick="exporterCSV()">📥 Exporter (.csv)</button>
     </div>
@@ -644,24 +642,22 @@
           });
         }
       });
-      return listeEmails;
+      return Array.from(new Set(listeEmails)); // Évite les doublons
     }
 
-    function envoyerEmailSelection(type) {
+    function copierEmails() {
       const listeEmails = collecterTousLesEmails();
       if (listeEmails.length === 0) {
         alert("Aucune adresse e-mail dans les résultats actuels.");
         return;
       }
 
-      let lienMailto = "";
-      if (type === 'cci') {
-        lienMailto = `mailto:?bcc=${encodeURIComponent(listeEmails.join(';'))}`;
-      } else {
-        lienMailto = `mailto:${encodeURIComponent(listeEmails.join(';'))}`;
-      }
-
-      window.location.href = lienMailto;
+      const chaineEmails = listeEmails.join('; ');
+      navigator.clipboard.writeText(chaineEmails).then(() => {
+        alert(`✅ ${listeEmails.length} e-mails copiés dans le presse-papier avec succès !`);
+      }).catch(err => {
+        alert("Erreur lors de la copie : " + err);
+      });
     }
 
     function exporterEmailsTXT() {
