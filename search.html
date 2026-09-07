@@ -14,7 +14,7 @@
 
     .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
     .filter-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .checkboxes-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .checkboxes-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
 
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -133,10 +133,38 @@
       </div>
 
       <div class="field-group">
+        <label>Diffusion Direction</label>
+        <div class="checkbox-group" id="group-direction">
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
+          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
+        </div>
+      </div>
+
+      <div class="field-group">
         <label>Diffusion Houdremont</label>
         <div class="checkbox-group" id="group-houdremont">
-          <label class="checkbox-item"><input type="checkbox" value="Spectacle vivant" onchange="appliquerFiltres()"> Spectacle vivant</label>
-          <label class="checkbox-item"><input type="checkbox" value="Partenaires" onchange="appliquerFiltres()"> Partenaires</label>
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Diffusion Intervenant</label>
+        <div class="checkbox-group" id="group-intervenant">
+          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
+          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
         </div>
       </div>
     </div>
@@ -292,7 +320,9 @@
       const domaineFilter = document.getElementById('filter-domaine').value;
 
       const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
+      const directionChecked = Array.from(document.querySelectorAll('#group-direction input:checked')).map(cb => cb.value);
       const houdremontChecked = Array.from(document.querySelectorAll('#group-houdremont input:checked')).map(cb => cb.value);
+      const intervenantChecked = Array.from(document.querySelectorAll('#group-intervenant input:checked')).map(cb => cb.value);
 
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
@@ -326,10 +356,22 @@
           if (!matchCinema) return false;
         }
 
+        if (directionChecked.length > 0) {
+          const valDirection = rec['Listes_Diffusion_Direction'];
+          const matchDirection = directionChecked.some(val => contientCritere(valDirection, val));
+          if (!matchDirection) return false;
+        }
+
         if (houdremontChecked.length > 0) {
           const valHoudremont = rec['Listes_Diffusion_Houdremont'];
           const matchHoudremont = houdremontChecked.some(val => contientCritere(valHoudremont, val));
           if (!matchHoudremont) return false;
+        }
+
+        if (intervenantChecked.length > 0) {
+          const valIntervenant = rec['Listes_Diffusion_Intervenant'];
+          const matchIntervenant = intervenantChecked.some(val => contientCritere(valIntervenant, val));
+          if (!matchIntervenant) return false;
         }
 
         return true;
