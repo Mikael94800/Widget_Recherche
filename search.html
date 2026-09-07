@@ -36,9 +36,9 @@
     .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
     .btn-tool:hover { background: #e5e7eb; }
     
-    .btn-copy { background-color: #7c3aed; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
@@ -73,7 +73,6 @@
 </head>
 <body>
 
-  <!-- RECHERCHE & FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
@@ -122,8 +121,25 @@
       </div>
     </div>
 
-    <div class="checkboxes-container" id="filter-checkboxes-container">
-      <!-- Généré dynamiquement selon les droits utilisateur -->
+    <div class="checkboxes-container">
+      <div class="field-group">
+        <label>Diffusion Cinéma</label>
+        <div class="checkbox-group" id="group-cinema">
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Diffusion DCP</label>
+        <div class="checkbox-group" id="group-dcp">
+          <label class="checkbox-item"><input type="checkbox" value="EAC" onchange="appliquerFiltres()"> EAC</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+        </div>
+      </div>
     </div>
 
     <div class="actions">
@@ -132,7 +148,6 @@
     </div>
   </div>
 
-  <!-- BARRE D'OUTILS -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -150,7 +165,6 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -174,12 +188,10 @@
         </tr>
       </thead>
       <tbody id="results-table-body">
-        <!-- Rempli en JS -->
-      </tbody>
+        </tbody>
     </table>
   </div>
 
-  <!-- MODALE INTERNE DE MODIFICATION -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -187,8 +199,7 @@
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
-        <!-- Rempli dynamiquement -->
-      </div>
+        </div>
       <div class="modal-footer">
         <button class="btn-reset" onclick="fermerModal()">Annuler</button>
         <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
@@ -199,71 +210,17 @@
   <script>
     let allRecords = [];
     let matchingRecords = [];
-    let currentUserEmail = "";
-    let currentUserProfile = "Direction"; // Par défaut si non trouvé
     let selectedIndex = 0;
     let currentFontSize = 15.5;
     let currentEditingId = null;
 
-    grist.ready({ requiredAccess: 'full', parse: true });
-
-    // Récupération des tables (Contacts et Utilisateurs)
-    Promise.all([
-      grist.docApi.fetchTable('UTILISATEURS'),
-      grist.listSelectedTable() // ou on écoute les enregistrements de Contacts
-    ]).then(([utilisateurs]) => {
-      // Identifier l'utilisateur connecté via grist.user
-      grist.user.getCurrentUser().then(user => {
-        currentUserEmail = user ? user.email : "";
-        
-        // Chercher le service dans la table UTILISATEURS
-        const matchUser = utilisateurs.find(u => u.Email && u.Email.toLowerCase() === currentUserEmail.toLowerCase());
-        if (matchUser && matchUser.Service) {
-          currentUserProfile = matchUser.Service; // "Direction", "Cinéma", "Houdremont"
-        }
-        
-        initialiserInterfaceFiltresListes();
-      });
-    }).catch(err => {
-      console.log("Erreur initialisation multi-table, mode repli Direction :", err);
-      initialiserInterfaceFiltresListes();
-    });
+    grist.ready({ requiredAccess: 'full' });
 
     grist.onRecords(function(records) {
       allRecords = records;
       peuplerListesDeroulantesFiltres();
       appliquerFiltres();
     });
-
-    // Définition des listes de diffusion et filtrage selon le profil utilisateur
-    function getListesDiffusionVisibles() {
-      const toutesLesListes = [
-        { cat: "Diffusion Cinéma", items: ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle"] },
-        { cat: "Diffusion DCP", items: ["EAC", "Arts visuels", "Patrimoine & Archives"] },
-        { cat: "Diffusion Houdremont", items: ["Houdremont 1", "Houdremont 2"] } // Adaptez vos items Houdremont réels si besoin
-      ];
-
-      if (currentUserProfile === "Cinéma") {
-        return toutesLesListes.filter(l => l.cat === "Diffusion Cinéma" || l.cat === "Diffusion DCP");
-      } else if (currentUserProfile === "Houdremont") {
-        return toutesLesListes.filter(l => l.cat === "Diffusion Houdremont");
-      }
-      return toutesLesListes; // Direction voit tout
-    }
-
-    function initialiserInterfaceFiltresListes() {
-      const container = document.getElementById('filter-checkboxes-container');
-      const listes = getListesDiffusionVisibles();
-      
-      container.innerHTML = listes.map(group => `
-        <div class="field-group">
-          <label>${group.cat}</label>
-          <div class="checkbox-group" id="group-${group.cat.replace(/\s+/g, '-').toLowerCase()}">
-            ${group.items.map(item => `<label class="checkbox-item"><input type="checkbox" value="${item}" onchange="appliquerFiltres()"> ${item}</label>`).join('')}
-          </div>
-        </div>
-      `).join('');
-    }
 
     function normaliserChaine(valeur) {
       if (!valeur) return "";
@@ -296,37 +253,35 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
+      // Service
       const services = extraireValeursUniques('Service');
       const selService = document.getElementById('filter-service');
-      if(selService) {
-        const valServiceActuelle = selService.value;
-        selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
-        selService.value = valServiceActuelle;
-      }
+      const valServiceActuelle = selService.value;
+      selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
+      selService.value = valServiceActuelle;
 
+      // Statut Juridique
       const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
       const selStatut = document.getElementById('filter-statut');
-      if(selStatut) {
-        const valStatutActuelle = selStatut.value;
-        selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
-        selStatut.value = valStatutActuelle;
-      }
+      const valStatutActuelle = selStatut.value;
+      selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
+      selStatut.value = valStatutActuelle;
 
-      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : extraireValeursUniques('TYPE_DE_STRUCTURE');
+      // Type de Structure
+      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : 
+                          (extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : 
+                          extraireValeursUniques('Type_de_structure'));
       const selTypeStruct = document.getElementById('filter-type-structure');
-      if(selTypeStruct) {
-        const valTypeStructActuelle = selTypeStruct.value;
-        selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
-        selTypeStruct.value = valTypeStructActuelle;
-      }
+      const valTypeStructActuelle = selTypeStruct.value;
+      selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
+      selTypeStruct.value = valTypeStructActuelle;
 
+      // Domaine d'activités
       const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
       const selDomaine = document.getElementById('filter-domaine');
-      if(selDomaine) {
-        const valDomaineActuelle = selDomaine.value;
-        selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
-        selDomaine.value = valDomaineActuelle;
-      }
+      const valDomaineActuelle = selDomaine.value;
+      selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
+      selDomaine.value = valDomaineActuelle;
     }
 
     function appliquerFiltres() {
@@ -339,6 +294,9 @@
       const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
       const domaineFilter = document.getElementById('filter-domaine').value;
 
+      const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
+      const dcpChecked = Array.from(document.querySelectorAll('#group-dcp input:checked')).map(cb => cb.value);
+
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const champsCibles = [
@@ -347,8 +305,10 @@
             rec.Telephones_Secondaires, rec.Fonction_Profession, rec.Commentaire_Description
           ];
           const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          
           const motsRecherche = textFilter.split(/\s+/);
-          if (!motsRecherche.every(mot => texteGlobal.includes(mot))) return false;
+          const correspondanceGlobale = motsRecherche.every(mot => texteGlobal.includes(mot));
+          if (!correspondanceGlobale) return false;
         }
 
         if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
@@ -356,7 +316,7 @@
         if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
 
         if (typeStructFilter) {
-          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE);
+          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT || rec.Type_de_structure);
           if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         }
 
@@ -365,19 +325,16 @@
           if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
         }
 
-        // Vérification dynamique des checkboxes visibles selon profil
-        const listesVisibles = getListesDiffusionVisibles();
-        for (let group of listesVisibles) {
-          const groupId = 'group-' + group.cat.replace(/\s+/g, '-').toLowerCase();
-          const containerElem = document.getElementById(groupId);
-          if (containerElem) {
-            const checkedInputs = Array.from(containerElem.querySelectorAll('input:checked')).map(cb => cb.value);
-            if (checkedInputs.length > 0) {
-              const valRec = rec[group.cat.replace(/\s+/g, '_')] || rec.Listes_Diffusion_Cinema;
-              const match = checkedInputs.some(val => contientCritere(valRec, val));
-              if (!match) return false;
-            }
-          }
+        if (cinemaChecked.length > 0) {
+          const valCinema = rec.Listes_Diffusion_Cinema || rec.Listes_Diffusion_Cin_ma;
+          const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
+          if (!matchCinema) return false;
+        }
+
+        if (dcpChecked.length > 0) {
+          const valDcp = rec.Liste_Diffusion_DCP || rec.Liste_Diffusion_Dcp;
+          const matchDcp = dcpChecked.some(val => contientCritere(valDcp, val));
+          if (!matchDcp) return false;
         }
 
         return true;
@@ -407,22 +364,71 @@
           <td><button class="btn-action-modifier">Modifier</button></td>
         `;
 
-        tr.querySelector('.btn-action-modifier').onclick = (e) => {
+        const btnModif = tr.querySelector('.btn-action-modifier');
+        btnModif.onclick = (e) => {
           e.stopPropagation();
           selectedIndex = index;
           majSelectionGraphique();
           ouvrirModal(rec);
         };
 
-        tr.onclick = () => { selectedIndex = index; majSelectionGraphique(); };
-        tr.ondblclick = () => { selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
+        tr.onclick = () => {
+          selectedIndex = index;
+          majSelectionGraphique();
+        };
+
+        tr.ondblclick = () => {
+          selectedIndex = index;
+          majSelectionGraphique();
+          ouvrirModal(rec);
+        };
 
         tbody.appendChild(tr);
+      });
+
+      initialiserRedimensionnementColonnes();
+    }
+
+    function initialiserRedimensionnementColonnes() {
+      const table = document.getElementById('main-table');
+      const headers = table.querySelectorAll('th');
+
+      headers.forEach(th => {
+        if (th.querySelector('.resizer')) return;
+
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+
+        let x = 0;
+        let w = 0;
+
+        resizer.addEventListener('mousedown', function (e) {
+          x = e.clientX;
+          w = th.offsetWidth;
+          resizer.classList.add('resizing');
+
+          function mouseMoveHandler(e) {
+            const dx = e.clientX - x;
+            th.style.width = `${Math.max(50, w + dx)}px`;
+          }
+
+          function mouseUpHandler() {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+          }
+
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+          e.stopPropagation();
+        });
       });
     }
 
     function majSelectionGraphique() {
-      document.querySelectorAll('#results-table-body tr').forEach((row, idx) => {
+      const rows = document.querySelectorAll('#results-table-body tr');
+      rows.forEach((row, idx) => {
         row.classList.toggle('selected', idx === selectedIndex);
       });
     }
@@ -432,8 +438,11 @@
       if (newIndex >= 0 && newIndex < matchingRecords.length) {
         selectedIndex = newIndex;
         majSelectionGraphique();
+        
         const rows = document.querySelectorAll('#results-table-body tr');
-        if (rows[selectedIndex]) rows[selectedIndex].scrollIntoView({ block: 'nearest' });
+        if (rows[selectedIndex]) {
+          rows[selectedIndex].scrollIntoView({ block: 'nearest' });
+        }
       }
     }
 
@@ -445,9 +454,11 @@
     function genererOptionsSelect(listeValeurs, valeurActuelle) {
       let options = '<option value="">-- Sélectionner --</option>';
       const valStr = (valeurActuelle !== null && valeurActuelle !== undefined) ? String(valeurActuelle) : "";
+      
       listeValeurs.forEach(item => {
         const idVal = (typeof item === 'object' && item !== null) ? item.id : item;
-        const libelle = (typeof item === 'object' && item !== null) ? (item.label || item.NOM || item.Name) : String(item);
+        const libelle = (typeof item === 'object' && item !== null) ? (item.label || item.NOM || item.Name || JSON.stringify(item)) : String(item);
+        
         const selected = (String(idVal) === valStr || String(libelle) === valStr) ? 'selected' : '';
         options += `<option value="${idVal}" ${selected}>${libelle}</option>`;
       });
@@ -456,26 +467,57 @@
 
     function ouvrirModal(rec) {
       currentEditingId = rec.id;
+      
       const servicesDispos = extraireValeursUniques('Service');
       const statutsDispos = extraireValeursUniques('STATUT_JURIDIQUE');
-      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : extraireValeursUniques('TYPE_DE_STRUCTURE');
+      const typesStructDispos = extraireValeursUniques('TYPE_DE_STRUCTURE').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE') : extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT');
       const domainesDispos = extraireValeursUniques('DOMAINE_D_ACTIVITES');
 
       document.getElementById('modal-content').innerHTML = `
         <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${rec.NOM || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${rec.PRENOM || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Service</span><select id="edit-service">${genererOptionsSelect(servicesDispos, rec.Service)}</select></div>
-        <div class="viewer-field"><span class="viewer-label">Type de structure</span><select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE)}</select></div>
-        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><select id="edit-statut">${genererOptionsSelect(statutsDispos, rec.STATUT_JURIDIQUE)}</select></div>
-        <div class="viewer-field"><span class="viewer-label">Domaine d'activités</span><select id="edit-domaine">${genererOptionsSelect(domainesDispos, rec.DOMAINE_D_ACTIVITES)}</select></div>
+        
+        <div class="viewer-field">
+          <span class="viewer-label">Service</span>
+          <select id="edit-service">${genererOptionsSelect(servicesDispos, rec.Service)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Type de structure</span>
+          <select id="edit-type-structure">${genererOptionsSelect(typesStructDispos, rec.TYPE_DE_STRUCTURE || rec.TYPE_DE_STRUCTURE_CONTACT)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Statut Juridique</span>
+          <select id="edit-statut">${genererOptionsSelect(statutsDispos, rec.STATUT_JURIDIQUE)}</select>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Domaine d'activités</span>
+          <select id="edit-domaine">${genererOptionsSelect(domainesDispos, rec.DOMAINE_D_ACTIVITES)}</select>
+        </div>
+
         <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" id="edit-fonction" value="${rec.Fonction_Profession || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Email Principal</span><input type="text" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}"></div>
-        <div class="viewer-field"><span class="viewer-label">Emails Secondaires</span><input type="text" id="edit-emails-sec" value="${normaliserChaine(rec.EMAILS_SECONDAIRES)}"></div>
+        
+        <div class="viewer-field">
+          <span class="viewer-label">Email Principal</span>
+          <input type="text" id="edit-email" value="${rec.EMAIL_PRINCIPAL || ''}" oninput="validerChampEmailPrincipal(this)">
+          <div class="error-msg" id="err-email">Format d'e-mail principal invalide</div>
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Emails Secondaires (séparés par ";")</span>
+          <input type="text" id="edit-emails-sec" value="${normaliserChaine(rec.EMAILS_SECONDAIRES)}" oninput="validerChampEmailsSecondaires(this)">
+          <div class="error-msg" id="err-emails-sec">Un ou plusieurs e-mails secondaires sont invalides</div>
+        </div>
+        
         <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" id="edit-tel" value="${rec.Telephone_Principal || ''}"></div>
         <div class="viewer-field"><span class="viewer-label">Téléphones Secondaires</span><input type="text" id="edit-tel-sec" value="${normaliserChaine(rec.Telephones_Secondaires)}"></div>
+        
         <div class="viewer-field"><span class="viewer-label">Ville</span><input type="text" id="edit-ville" value="${rec.Ville || ''}"></div>
         <div class="viewer-field full"><span class="viewer-label">Commentaire</span><textarea id="edit-commentaire" rows="2">${rec.Commentaire_Description || ''}</textarea></div>
       `;
+
       document.getElementById('modal-overlay').style.display = 'flex';
     }
 
@@ -484,29 +526,94 @@
       currentEditingId = null;
     }
 
+    function estEmailValide(email) {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    }
+
+    function validerChampEmailPrincipal(input) {
+      const val = input.value.trim();
+      const errDiv = document.getElementById('err-email');
+      if (val !== "" && !estEmailValide(val)) {
+        input.classList.add('error-input');
+        if (errDiv) errDiv.style.display = 'block';
+        return false;
+      } else {
+        input.classList.remove('error-input');
+        if (errDiv) errDiv.style.display = 'none';
+        return true;
+      }
+    }
+
+    function validerChampEmailsSecondaires(input) {
+      const val = input.value.trim();
+      const errDiv = document.getElementById('err-emails-sec');
+      if (val === "") {
+        input.classList.remove('error-input');
+        if (errDiv) errDiv.style.display = 'none';
+        return true;
+      }
+
+      const emails = val.split(/[;,]/);
+      let ivalide = true;
+
+      for (let e of emails) {
+        const clean = e.trim();
+        if (clean !== "" && !estEmailValide(clean)) {
+          ivalide = false;
+          break;
+        }
+      }
+
+      if (!ivalide) {
+        input.classList.add('error-input');
+        if (errDiv) errDiv.style.display = 'block';
+        return false;
+      } else {
+        input.classList.remove('error-input');
+        if (errDiv) errDiv.style.display = 'none';
+        return true;
+      }
+    }
+
     function convertirValeurReference(valeurBrute) {
       if (!valeurBrute) return null;
-      if (!isNaN(valeurBrute) && String(valeurBrute).trim() !== "") return Number(valeurBrute);
+      if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") {
+        return Number(valeurBrute);
+      }
       return valeurBrute;
     }
 
     async function sauvegarderContactModifie() {
       if (!currentEditingId) return;
+
+      const inputEmail = document.getElementById('edit-email');
+      const inputEmailsSec = document.getElementById('edit-emails-sec');
+
+      const emailPrincipalOk = validerChampEmailPrincipal(inputEmail);
+      const emailsSecOk = validerChampEmailsSecondaires(inputEmailsSec);
+
+      if (!emailPrincipalOk || !emailsSecOk) {
+        alert("Veuillez corriger les erreurs sur les adresses e-mail avant d'enregistrer.");
+        return;
+      }
+
       const champsModifies = {
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
         Service: convertirValeurReference(document.getElementById('edit-service').value),
-        TYPE_DE_STRUCTURE_CONTACT: convertirValeurReference(document.getElementById('edit-type-structure').value),
+        TYPE_DE_STRUCTURE: convertirValeurReference(document.getElementById('edit-type-structure').value),
         STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
         DOMAINE_D_ACTIVITES: convertirValeurReference(document.getElementById('edit-domaine').value),
         Fonction_Profession: document.getElementById('edit-fonction').value,
-        EMAIL_PRINCIPAL: document.getElementById('edit-email').value.trim(),
-        EMAILS_SECONDAIRES: document.getElementById('edit-emails-sec').value.trim(),
+        EMAIL_PRINCIPAL: inputEmail.value.trim(),
+        EMAILS_SECONDAIRES: inputEmailsSec.value.trim(),
         Telephone_Principal: document.getElementById('edit-tel').value,
         Telephones_Secondaires: document.getElementById('edit-tel-sec').value,
         Ville: document.getElementById('edit-ville').value,
         Commentaire_Description: document.getElementById('edit-commentaire').value
       };
+
       try {
         await grist.selectedTable.update({ id: currentEditingId, fields: champsModifies });
         fermerModal();
@@ -518,53 +625,87 @@
     function collecterTousLesEmails() {
       let listeEmails = [];
       matchingRecords.forEach(r => {
-        if (r.EMAIL_PRINCIPAL && r.EMAIL_PRINCIPAL.trim().length > 0) listeEmails.push(r.EMAIL_PRINCIPAL.trim());
+        if (r.EMAIL_PRINCIPAL && r.EMAIL_PRINCIPAL.trim().length > 0) {
+          listeEmails.push(r.EMAIL_PRINCIPAL.trim());
+        }
         if (r.EMAILS_SECONDAIRES) {
-          normaliserChaine(r.EMAILS_SECONDAIRES).split(/[,;]/).forEach(e => {
-            if (e.trim().length > 0) listeEmails.push(e.trim());
+          const sec = normaliserChaine(r.EMAILS_SECONDAIRES);
+          sec.split(/[,;]/).forEach(e => {
+            const cleanEmail = e.trim();
+            if (cleanEmail.length > 0) listeEmails.push(cleanEmail);
           });
         }
       });
-      return Array.from(new Set(listeEmails));
+      return listeEmails;
     }
 
     function copierEmails() {
       const listeEmails = collecterTousLesEmails();
-      if (listeEmails.length === 0) { alert("Aucune adresse e-mail."); return; }
-      navigator.clipboard.writeText(listeEmails.join('; ')).then(() => alert(`✅ ${listeEmails.length} e-mails copiés !`));
+      if (listeEmails.length === 0) {
+        alert("Aucune adresse e-mail dans les résultats actuels.");
+        return;
+      }
+      navigator.clipboard.writeText(listeEmails.join('; ')).then(() => {
+        alert(`${listeEmails.length} email(s) copié(s) dans le presse-papier !`);
+      });
     }
 
     function exporterEmailsTXT() {
       const listeEmails = collecterTousLesEmails();
-      if (listeEmails.length === 0) return;
+      if (listeEmails.length === 0) {
+        alert("Aucune adresse e-mail à exporter.");
+        return;
+      }
+
       let contenuFichier = "";
       let lotCompteur = 1;
+      
       for (let i = 0; i < listeEmails.length; i += 30) {
-        contenuFichier += `--- Envoi ${lotCompteur} ---\n` + listeEmails.slice(i, i + 30).join('; ') + "\n\n";
+        const tranche = listeEmails.slice(i, i + 30);
+        contenuFichier += `--- Envoi ${lotCompteur} ---\n`;
+        contenuFichier += tranche.join('; ') + "\n\n";
         lotCompteur++;
       }
+
       const blob = new Blob([contenuFichier], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `emails_par_lots.txt`;
+      link.download = `emails_par_lots_${matchingRecords.length}_contacts.txt`;
       link.click();
     }
 
     function exporterCSV() {
-      if (matchingRecords.length === 0) return;
-      const entetes = ["Nom", "Prénom", "Service", "Statut Juridique", "Domaine", "Ville", "Email Principal"];
+      if (matchingRecords.length === 0) {
+        alert("Aucun résultat à exporter.");
+        return;
+      }
+
+      const entetes = ["Nom", "Prénom", "Service", "Statut Juridique", "Domaine", "Ville", "Email Principal", "Emails Secondaires", "Téléphone Principal", "Téléphone Secondaire"];
       let csvContent = "\uFEFF" + entetes.join(";") + "\n";
+
       matchingRecords.forEach(r => {
-        const ligne = [r.NOM||'', r.PRENOM||'', normaliserChaine(r.Service), normaliserChaine(r.STATUT_JURIDIQUE), normaliserChaine(r.DOMAINE_D_ACTIVITES), r.Ville||'', r.EMAIL_PRINCIPAL||''];
-        csvContent += ligne.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";") + "\n";
+        const ligne = [
+          `"${(r.NOM || '').replace(/"/g, '""')}"`,
+          `"${(r.PRENOM || '').replace(/"/g, '""')}"`,
+          `"${normaliserChaine(r.Service).replace(/"/g, '""')}"`,
+          `"${normaliserChaine(r.STATUT_JURIDIQUE).replace(/"/g, '""')}"`,
+          `"${normaliserChaine(r.DOMAINE_D_ACTIVITES).replace(/"/g, '""')}"`,
+          `"${(r.Ville || '').replace(/"/g, '""')}"`,
+          `"${(r.EMAIL_PRINCIPAL || '').replace(/"/g, '""')}"`,
+          `"${normaliserChaine(r.EMAILS_SECONDAIRES).replace(/"/g, '""')}"`,
+          `"${(r.Telephone_Principal || '').replace(/"/g, '""')}"`,
+          `"${normaliserChaine(r.Telephones_Secondaires).replace(/"/g, '""')}"`
+        ];
+        csvContent += ligne.join(";") + "\n";
       });
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `contacts_export.csv`;
+      link.download = `export_contacts_${matchingRecords.length}.csv`;
       link.click();
     }
-    
+
     function reinitialiserFiltres() {
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
@@ -572,7 +713,9 @@
       document.getElementById('filter-type-structure').value = '';
       document.getElementById('filter-fonction').value = '';
       document.getElementById('filter-domaine').value = '';
+
       document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
+
       appliquerFiltres();
     }
   </script>
