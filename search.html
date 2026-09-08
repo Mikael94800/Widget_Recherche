@@ -247,17 +247,13 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    // Tables annexes chargées depuis Grist pour lier les références
     let referenceTables = {
       structures: [],
       services: [],
-      statuts: [],
-      diffCinema: [],
-      diffDirection: [],
-      diffHoudremont: [],
-      diffIntervenant: []
+      statuts: []
     };
 
+    // Tolérance accrue sur la casse et le nom exact des colonnes Grist
     const KEYS = {
       NOM: ['NOM', 'Nom'],
       PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
@@ -271,18 +267,17 @@
       VILLE: ['Ville', 'VILLE'],
       EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
       EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires'],
-      TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal'],
+      TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Tel_Principal'],
       TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires'],
       DIFF_CINEMA: ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma', 'Diffusion_Cinema', 'Listes_Diffusion_Cinéma'],
-      DIFF_DIRECTION: ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction'],
-      DIFF_HOUDREMONT: ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont'],
-      DIFF_INTERVENANT: ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant'],
+      DIFF_DIRECTION: ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction', 'Diffusion_Direction'],
+      DIFF_HOUDREMONT: ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont', 'Diffusion_Houdremont'],
+      DIFF_INTERVENANT: ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant', 'Diffusion_Intervenant'],
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
     grist.ready({ requiredAccess: 'full' });
 
-    // Chargement dynamique des enregistrements et des tables liées
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
@@ -296,7 +291,6 @@
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
 
-        // Chargement des tables si existantes
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
         if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
 
@@ -306,7 +300,7 @@
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
       } catch(e) {
-        console.warn("Certaines tables de référence n'ont pas pu être chargées directement:", e);
+        console.warn("Certaines tables annexes n'ont pas pu être lues :", e);
       }
     }
 
@@ -318,12 +312,12 @@
       return "";
     }
 
-    function getExactKey(rec, keys) {
-      if (!rec) return keys[0];
+    function findExactExistingKey(rec, keys) {
+      if (!rec) return null;
       for (let k of keys) {
         if (k in rec) return k;
       }
-      return keys[0];
+      return null;
     }
 
     function normaliserChaine(valeur) {
@@ -550,7 +544,7 @@
       document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    /* MODALE DE MODIFICATION COMPLÈTE & DYNAMIQUE */
+    /* OUVERTURE DE LA MODALE */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
@@ -559,7 +553,6 @@
       const valStatut = normaliserChaine(getVal(rec, KEYS.STATUT));
       const valStructure = normaliserChaine(getVal(rec, KEYS.STRUCTURE));
 
-      // Génération de liste de choix dynamiques pour les références si disponibles
       const buildSelectOrInput = (id, valActuelle, listeReference, aliasKeys) => {
         const optionsList = Array.from(new Set([...listeReference, ...extraireValeursUniques(aliasKeys)]));
         if (optionsList.length > 0) {
@@ -620,7 +613,6 @@
       validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true);
     }
 
-    // Remplissage automatique de la Ville via Code Postal
     async function chercherVilleParCodePostal(cp) {
       const clean = cp.trim();
       if (/^\d{5}$/.test(clean)) {
@@ -631,12 +623,11 @@
             document.getElementById('edit-ville').value = data.features[0].properties.city;
           }
         } catch (e) {
-          console.error("Erreur lors de la récupération de la ville:", e);
+          console.error("Erreur de récupération de la ville:", e);
         }
       }
     }
 
-    // Contrôle instantané de la syntaxe e-mail
     function validerEmailTerrain(inputId, msgId, multiple) {
       const input = document.getElementById(inputId);
       const msg = document.getElementById(msgId);
@@ -676,30 +667,51 @@
       currentEditingRecord = null;
     }
 
-    // Sauvegarde sécurisée sans casser les références
+    /* SAUVEGARDE SÉCURISÉE AVEC FORMAT DE LISTE ET DÉTECTION STRICTE DES CLÉS GRIST */
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
-      const rec = currentEditingRecord;
+      const r = currentEditingRecord;
       const updatedFields = {};
 
-      updatedFields[getExactKey(rec, KEYS.NOM)] = document.getElementById('edit-nom').value;
-      updatedFields[getExactKey(rec, KEYS.PRENOM)] = document.getElementById('edit-prenom').value;
-      updatedFields[getExactKey(rec, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value;
-      updatedFields[getExactKey(rec, KEYS.FONCTION)] = document.getElementById('edit-fonction').value;
-      updatedFields[getExactKey(rec, KEYS.SERVICE)] = document.getElementById('edit-service').value;
-      updatedFields[getExactKey(rec, KEYS.STATUT)] = document.getElementById('edit-statut').value;
-      updatedFields[getExactKey(rec, KEYS.CODE_POSTAL)] = document.getElementById('edit-code-postal').value;
-      updatedFields[getExactKey(rec, KEYS.VILLE)] = document.getElementById('edit-ville').value;
-      updatedFields[getExactKey(rec, KEYS.EMAIL_PRINCIPAL)] = document.getElementById('edit-email-principal').value;
-      updatedFields[getExactKey(rec, KEYS.EMAILS_SECONDAIRES)] = document.getElementById('edit-emails-secondaires').value;
-      updatedFields[getExactKey(rec, KEYS.TEL_PRINCIPAL)] = document.getElementById('edit-tel-principal').value;
-      updatedFields[getExactKey(rec, KEYS.TELS_SECONDAIRES)] = document.getElementById('edit-tels-secondaires').value;
-      updatedFields[getExactKey(rec, KEYS.COMMENTAIRE)] = document.getElementById('edit-commentaire').value;
+      const mapSingleField = (aliasList, elementId) => {
+        const exactKey = findExactExistingKey(r, aliasList);
+        if (exactKey) {
+          const elem = document.getElementById(elementId);
+          if (elem) updatedFields[exactKey] = elem.value;
+        }
+      };
 
-      updatedFields[getExactKey(rec, KEYS.DIFF_CINEMA)] = document.getElementById('edit-diff-cinema').value;
-      updatedFields[getExactKey(rec, KEYS.DIFF_DIRECTION)] = document.getElementById('edit-diff-direction').value;
-      updatedFields[getExactKey(rec, KEYS.DIFF_HOUDREMONT)] = document.getElementById('edit-diff-houdremont').value;
-      updatedFields[getExactKey(rec, KEYS.DIFF_INTERVENANT)] = document.getElementById('edit-diff-intervenant').value;
+      mapSingleField(KEYS.NOM, 'edit-nom');
+      mapSingleField(KEYS.PRENOM, 'edit-prenom');
+      mapSingleField(KEYS.STRUCTURE, 'edit-structure');
+      mapSingleField(KEYS.FONCTION, 'edit-fonction');
+      mapSingleField(KEYS.SERVICE, 'edit-service');
+      mapSingleField(KEYS.STATUT, 'edit-statut');
+      mapSingleField(KEYS.CODE_POSTAL, 'edit-code-postal');
+      mapSingleField(KEYS.VILLE, 'edit-ville');
+      mapSingleField(KEYS.EMAIL_PRINCIPAL, 'edit-email-principal');
+      mapSingleField(KEYS.EMAILS_SECONDAIRES, 'edit-emails-secondaires');
+      mapSingleField(KEYS.TEL_PRINCIPAL, 'edit-tel-principal');
+      mapSingleField(KEYS.TELS_SECONDAIRES, 'edit-tels-secondaires');
+      mapSingleField(KEYS.COMMENTAIRE, 'edit-commentaire');
+
+      // Traitement des listes de diffusion : format ["L", "Option 1", "Option 2"]
+      const mapListField = (aliasList, elementId) => {
+        const exactKey = findExactExistingKey(r, aliasList);
+        if (exactKey) {
+          const elem = document.getElementById(elementId);
+          if (elem) {
+            const raw = elem.value || "";
+            const items = raw.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+            updatedFields[exactKey] = ['L', ...items];
+          }
+        }
+      };
+
+      mapListField(KEYS.DIFF_CINEMA, 'edit-diff-cinema');
+      mapListField(KEYS.DIFF_DIRECTION, 'edit-diff-direction');
+      mapListField(KEYS.DIFF_HOUDREMONT, 'edit-diff-houdremont');
+      mapListField(KEYS.DIFF_INTERVENANT, 'edit-diff-intervenant');
 
       try {
         await grist.docApi.applyUserActions([
