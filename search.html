@@ -2,77 +2,126 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche & Modification Contact</title>
+  <title>Recherche & Modification Multi-critères</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; }
-    
-    /* Carte Principale de Recherche */
-    .search-card { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; max-width: 1000px; margin: 0 auto; }
-    .card-title { font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 13.5px; }
 
-    .search-input-group { display: flex; gap: 8px; margin-bottom: 12px; }
-    input[type="text"], select, textarea { padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; width: 100%; background: #fff; }
+    .main-container { background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    .header-bar h2 { margin: 0; font-size: 18px; color: #1f2937; display: flex; align-items: center; gap: 8px; }
+    .badge-count { background: #e6f4ff; color: #0958d9; font-size: 13px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+    /* Blocs de Filtres */
+    .filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
+    
+    input[type="text"], select, textarea { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 13px; outline: none; background: #fff; width: 100%; }
     input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
 
-    .results-list { max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 12px; background: #fff; }
-    .result-item { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s; }
-    .result-item:hover { background-color: #f0f7ff; }
-    .result-item:last-child { border-bottom: none; }
-    
-    .contact-name { font-weight: 600; color: #111827; }
-    .contact-details { font-size: 12px; color: #6b7280; }
-    .no-results { padding: 12px; text-align: center; color: #9ca3af; font-style: italic; }
+    /* Actions Filtres */
+    .filter-actions { display: flex; justify-content: flex-end; gap: 8px; grid-column: span 3; margin-top: 4px; }
+    .btn-search { background: #0958d9; color: white; border: none; padding: 8px 16px; font-weight: 600; border-radius: 5px; cursor: pointer; }
+    .btn-search:hover { background: #003eb3; }
+    .btn-reset { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-weight: 600; border-radius: 5px; cursor: pointer; }
+    .btn-reset:hover { background: #e5e7eb; }
 
-    .btn-clear { background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-    .btn-clear:hover { background: #e5e7eb; }
+    /* Tableau de Résultats */
+    .table-container { overflow-x: auto; max-height: 380px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #f3f4f6; padding: 9px 12px; font-weight: 700; color: #374151; font-size: 12px; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
+    tr:hover { background-color: #f0f7ff; cursor: pointer; }
+    tr.selected-row { background-color: #e6f4ff; }
+
+    .btn-edit-row { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; padding: 3px 8px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 11px; }
+    .btn-edit-row:hover { background: #bae0ff; }
 
     /* Fenêtre Modale d'Édition */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-container { background: #ffffff; border-radius: 12px; max-width: 850px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 24px; border: 1px solid #e5e7eb; position: relative; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(2px); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-container { background: #ffffff; border-radius: 10px; max-width: 820px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); padding: 20px; border: 1px solid #e5e7eb; }
     
-    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 18px; }
-    .modal-header h3 { margin: 0; font-size: 18px; color: #111827; }
-    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; line-height: 1; }
-    .close-btn:hover { color: #111827; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 14px; }
+    .modal-header h3 { margin: 0; font-size: 17px; color: #111827; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; }
 
-    /* Layout Grille CSS Ajusté pour la Modale */
-    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-    .form-grid-full { grid-column: span 2; }
+    /* Grille Harmonisée CSS Modale */
+    .modal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .modal-grid-full { grid-column: span 2; }
     
-    .field-group { display: flex; flex-direction: column; gap: 5px; }
-    .field-group label { font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
+    .modal-section-title { grid-column: span 2; font-size: 12px; font-weight: 700; color: #0958d9; background: #e6f4ff; padding: 5px 8px; border-radius: 4px; margin-top: 4px; }
 
-    /* Section Subtitle pour regrouper les données */
-    .form-section-title { grid-column: span 2; font-size: 13px; font-weight: 700; color: #0958d9; background: #e6f4ff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; }
-
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 16px; }
-    .btn-save { background-color: #1677ff; color: white; border: none; padding: 10px 18px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+    .btn-save { background-color: #1677ff; color: white; border: none; padding: 8px 16px; font-weight: 600; border-radius: 5px; cursor: pointer; }
     .btn-save:hover { background-color: #0958d9; }
-    .btn-cancel { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 10px 18px; font-weight: 600; border-radius: 6px; cursor: pointer; }
-    .btn-cancel:hover { background-color: #e5e7eb; }
+    .btn-cancel { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; font-weight: 600; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- Interface Principale -->
-  <div class="search-card">
-    <div class="card-title">
-      <span>Recherche Multi-critères</span>
-      <button class="btn-clear" onclick="effacerRecherche()">Réinitialiser</button>
+  <div class="main-container">
+    <div class="header-bar">
+      <h2>🔍 Recherche Multi-critères</h2>
+      <span class="badge-count" id="count-badge">0 résultat(s)</span>
     </div>
 
-    <div class="search-input-group">
-      <input type="text" id="search-box" placeholder="Rechercher par nom, prénom, structure, email, ville..." oninput="filtrerContacts()">
+    <!-- Formulaire de Croisement des Critères -->
+    <div class="filter-grid">
+      <div class="filter-group">
+        <label>Recherche Texte</label>
+        <input type="text" id="filter-text" placeholder="Nom, prénom, email, ville..." oninput="filtrerData()">
+      </div>
+      <div class="filter-group">
+        <label>Service</label>
+        <select id="filter-service" onchange="filtrerData()"><option value="">-- Tous les services --</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Statut Juridique</label>
+        <select id="filter-statut" onchange="filtrerData()"><option value="">-- Tous les statuts --</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Type de Structure</label>
+        <select id="filter-type-struct" onchange="filtrerData()"><option value="">-- Tous les types --</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Domaine d'activités</label>
+        <select id="filter-domaine" onchange="filtrerData()"><option value="">-- Tous les domaines --</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Ville</label>
+        <select id="filter-ville" onchange="filtrerData()"><option value="">-- Toutes les villes --</option></select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
+        <button class="btn-search" onclick="filtrerData()">Rechercher</button>
+      </div>
     </div>
 
-    <div class="results-list" id="results-container">
-      <div class="no-results">Tapez un terme de recherche pour afficher les résultats...</div>
+    <!-- Tableau de Résultats -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Structure</th>
+            <th>Email Principal</th>
+            <th>Téléphone</th>
+            <th>Ville</th>
+            <th style="text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="7" style="text-align:center; color:#9ca3af;">Chargement des données...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Fenêtre Modale d'Édition -->
+  <!-- Modal Modification Contact -->
   <div class="modal-overlay" id="modal-edition">
     <div class="modal-container">
       <div class="modal-header">
@@ -80,55 +129,68 @@
         <button class="close-btn" onclick="fermerModal()">&times;</button>
       </div>
 
-      <div class="form-grid">
+      <div class="modal-grid">
         <!-- Identité -->
-        <div class="field-group">
+        <div class="filter-group">
           <label>Nom</label>
           <input type="text" id="edit-nom">
         </div>
-        <div class="field-group">
+        <div class="filter-group">
           <label>Prénom</label>
           <input type="text" id="edit-prenom">
         </div>
 
-        <div class="field-group form-grid-full">
-          <label>Nom Structure</label>
-          <input type="text" id="edit-nom-structure">
+        <div class="filter-group">
+          <label>Service</label>
+          <select id="edit-service"><option value="">-- Sélectionner --</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Type de structure</label>
+          <select id="edit-type-structure"><option value="">-- Sélectionner --</option></select>
         </div>
 
-        <div class="field-group">
+        <div class="filter-group">
+          <label>Statut Juridique</label>
+          <select id="edit-statut"><option value="">-- Sélectionner --</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Domaine d'activités</label>
+          <select id="edit-domaine"><option value="">-- Sélectionner --</option></select>
+        </div>
+
+        <div class="filter-group">
           <label>Fonction / Profession</label>
           <input type="text" id="edit-fonction">
         </div>
-        <div class="field-group">
+        <div class="filter-group">
           <label>Ville</label>
           <input type="text" id="edit-ville">
         </div>
 
-        <!-- Section Coordonnées Principales & Secondaires -->
-        <div class="form-section-title">Coordonnées de communication</div>
+        <!-- Section Coordonnées (Principales & Secondaires) -->
+        <div class="modal-section-title">Coordonnées de communication</div>
 
-        <div class="field-group">
-          <label>Email principal</label>
+        <div class="filter-group">
+          <label>Email Principal</label>
           <input type="text" id="edit-email-principal">
         </div>
-        <div class="field-group">
-          <label>Emails secondaires</label>
+        <div class="filter-group">
+          <label>Emails Secondaires</label>
           <input type="text" id="edit-emails-secondaires">
         </div>
 
-        <div class="field-group">
-          <label>Téléphone principal</label>
+        <div class="filter-group">
+          <label>Téléphone Principal</label>
           <input type="text" id="edit-tel-principal">
         </div>
-        <div class="field-group">
-          <label>Téléphones secondaires</label>
+        <div class="filter-group">
+          <label>Téléphones Secondaires</label>
           <input type="text" id="edit-telephones-secondaires">
         </div>
 
-        <!-- Section Divers -->
-        <div class="field-group form-grid-full">
-          <label>Commentaire / Description</label>
+        <!-- Remarques -->
+        <div class="filter-group modal-grid-full">
+          <label>Commentaire</label>
           <textarea id="edit-commentaire" rows="3"></textarea>
         </div>
       </div>
@@ -142,56 +204,118 @@
 
   <script>
     let allRecords = [];
+    let currentFilteredRecords = [];
     let currentContactId = null;
 
     grist.ready({ requiredAccess: 'full' });
 
     grist.onRecords(function(records) {
       allRecords = records;
+      alimenterSelectFiltres();
+      filtrerData();
     });
 
-    function filtrerContacts() {
-      const query = document.getElementById('search-box').value.toLowerCase().trim();
-      const container = document.getElementById('results-container');
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) return valeur.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(", ");
+      return String(valeur);
+    }
 
-      if (query === '') {
-        container.innerHTML = '<div class="no-results">Tapez un terme de recherche pour afficher les résultats...</div>';
-        return;
-      }
+    function extraireValeursUniques(cle) {
+      const setVals = new Set();
+      allRecords.forEach(r => {
+        const val = r[cle];
+        if (val !== undefined && val !== null && val !== "") {
+          normaliserChaine(val).split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) setVals.add(clean);
+          });
+        }
+      });
+      return Array.from(setVals).sort();
+    }
 
-      const resultats = allRecords.filter(r => {
+    function remplirSelect(idEl, liste) {
+      const select = document.getElementById(idEl);
+      const val = select.value;
+      const optionDefaut = select.options[0].text;
+      select.innerHTML = `<option value="">${optionDefaut}</option>` + liste.map(v => `<option value="${v}">${v}</option>`).join('');
+      select.value = val;
+    }
+
+    function alimenterSelectFiltres() {
+      remplirSelect('filter-service', extraireValeursUniques('Service'));
+      remplirSelect('filter-statut', extraireValeursUniques('STATUT_JURIDIQUE'));
+      
+      const types = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? 
+                    extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : 
+                    extraireValeursUniques('TYPE_DE_STRUCTURE');
+      remplirSelect('filter-type-struct', types);
+      remplirSelect('filter-domaine', extraireValeursUniques('DOMAINE_D_ACTIVITES'));
+      remplirSelect('filter-ville', extraireValeursUniques('Ville'));
+
+      // Modale
+      remplirSelect('edit-service', extraireValeursUniques('Service'));
+      remplirSelect('edit-statut', extraireValeursUniques('STATUT_JURIDIQUE'));
+      remplirSelect('edit-type-structure', types);
+      remplirSelect('edit-domaine', extraireValeursUniques('DOMAINE_D_ACTIVITES'));
+    }
+
+    function filtrerData() {
+      const txt = document.getElementById('filter-text').value.toLowerCase().trim();
+      const srv = document.getElementById('filter-service').value;
+      const stt = document.getElementById('filter-statut').value;
+      const typ = document.getElementById('filter-type-struct').value;
+      const dom = document.getElementById('filter-domaine').value;
+      const vil = document.getElementById('filter-ville').value;
+
+      currentFilteredRecords = allRecords.filter(r => {
         const nom = (r.NOM || '').toLowerCase();
         const prenom = (r.PRENOM || '').toLowerCase();
-        const structure = (r.NOM_Structure || '').toLowerCase();
+        const struct = (r.NOM_Structure || '').toLowerCase();
         const email = (r.EMAIL_PRINCIPAL || '').toLowerCase();
-        const emailsSec = (r.EMAILS_SECONDAIRES || '').toLowerCase();
-        const ville = (r.Ville || '').toLowerCase();
+        const emailSec = (r.EMAILS_SECONDAIRES || '').toLowerCase();
+        const villeR = (r.Ville || '').toLowerCase();
 
-        return nom.includes(query) || 
-               prenom.includes(query) || 
-               structure.includes(query) || 
-               email.includes(query) || 
-               emailsSec.includes(query) ||
-               ville.includes(query);
+        const matchTxt = !txt || nom.includes(txt) || prenom.includes(txt) || struct.includes(txt) || email.includes(txt) || emailSec.includes(txt) || villeR.includes(txt);
+        const matchSrv = !srv || normaliserChaine(r.Service).includes(srv);
+        const matchStt = !stt || normaliserChaine(r.STATUT_JURIDIQUE).includes(stt);
+        const matchTyp = !typ || normaliserChaine(r.TYPE_DE_STRUCTURE_CONTACT || r.TYPE_DE_STRUCTURE).includes(typ);
+        const matchDom = !dom || normaliserChaine(r.DOMAINE_D_ACTIVITES).includes(dom);
+        const matchVil = !vil || normaliserChaine(r.Ville).includes(vil);
+
+        return matchTxt && matchSrv && matchStt && matchTyp && matchDom && matchVil;
       });
 
-      if (resultats.length === 0) {
-        container.innerHTML = '<div class="no-results">Aucun contact trouvé.</div>';
+      afficherTableau(currentFilteredRecords);
+    }
+
+    function afficherTableau(donnees) {
+      const tbody = document.getElementById('table-body');
+      document.getElementById('count-badge').textContent = `${donnees.length} résultat(s)`;
+
+      if (donnees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#9ca3af;">Aucun contact correspondant.</td></tr>';
         return;
       }
 
-      container.innerHTML = resultats.map(r => `
-        <div class="result-item" onclick="selectionnerContact(${r.id})" ondblclick="ouvrirModalModification(${r.id})">
-          <div>
-            <div class="contact-name">${r.NOM ? r.NOM.toUpperCase() : ''} ${r.PRENOM || ''}</div>
-            <div class="contact-details">${r.NOM_Structure || 'Aucune structure'} - ${r.Ville || 'Ville non renseignée'}</div>
-          </div>
-          <div class="contact-details">${r.EMAIL_PRINCIPAL || ''}</div>
-        </div>
+      tbody.innerHTML = donnees.map(r => `
+        <tr onclick="selectionnerLigne(${r.id})" ondblclick="ouvrirModalModification(${r.id})">
+          <td><strong>${r.NOM ? r.NOM.toUpperCase() : ''}</strong></td>
+          <td>${r.PRENOM || ''}</td>
+          <td>${r.NOM_Structure || '-'}</td>
+          <td>${r.EMAIL_PRINCIPAL || ''}</td>
+          <td>${r.Telephone_Principal || ''}</td>
+          <td>${r.Ville || ''}</td>
+          <td style="text-align: center;">
+            <button class="btn-edit-row" onclick="event.stopPropagation(); ouvrirModalModification(${r.id})">Modifier</button>
+          </td>
+        </tr>
       `).join('');
     }
 
-    function selectionnerContact(id) {
+    function selectionnerLigne(id) {
       grist.setSelectedRecord(id);
     }
 
@@ -201,17 +325,19 @@
 
       currentContactId = id;
 
-      // Remplissage des champs de la modale
       document.getElementById('edit-nom').value = contact.NOM || '';
       document.getElementById('edit-prenom').value = contact.PRENOM || '';
-      document.getElementById('edit-nom-structure').value = contact.NOM_Structure || '';
+      document.getElementById('edit-service').value = normaliserChaine(contact.Service);
+      document.getElementById('edit-statut').value = normaliserChaine(contact.STATUT_JURIDIQUE);
+      document.getElementById('edit-type-structure').value = normaliserChaine(contact.TYPE_DE_STRUCTURE_CONTACT || contact.TYPE_DE_STRUCTURE);
+      document.getElementById('edit-domaine').value = normaliserChaine(contact.DOMAINE_D_ACTIVITES);
       document.getElementById('edit-fonction').value = contact.Fonction_Profession || '';
       document.getElementById('edit-ville').value = contact.Ville || '';
       document.getElementById('edit-email-principal').value = contact.EMAIL_PRINCIPAL || '';
       document.getElementById('edit-tel-principal').value = contact.Telephone_Principal || '';
       document.getElementById('edit-commentaire').value = contact.Commentaire_Description || '';
 
-      // Mapping avec les Col IDs exacts vus sur les captures
+      // Integration exacte des Col IDs demandés
       document.getElementById('edit-emails-secondaires').value = contact.EMAILS_SECONDAIRES || '';
       document.getElementById('edit-telephones-secondaires').value = contact.Telephones_Secondaires || '';
 
@@ -223,37 +349,47 @@
       currentContactId = null;
     }
 
+    function convertirValeurReference(valeurBrute) {
+      if (!valeurBrute) return null;
+      if (!isNaN(valeurBrute) && valeurBrute.trim() !== "") return Number(valeurBrute);
+      return valeurBrute;
+    }
+
     async function enregistrerModifications() {
       if (!currentContactId) return;
 
-      const donneesMisesAJour = {
+      const maj = {
         id: currentContactId,
         NOM: document.getElementById('edit-nom').value || null,
         PRENOM: document.getElementById('edit-prenom').value || null,
-        NOM_Structure: document.getElementById('edit-nom-structure').value || null,
+        Service: convertirValeurReference(document.getElementById('edit-service').value),
+        STATUT_JURIDIQUE: convertirValeurReference(document.getElementById('edit-statut').value),
+        TYPE_DE_STRUCTURE_CONTACT: convertirValeurReference(document.getElementById('edit-type-structure').value),
+        DOMAINE_D_ACTIVITES: convertirValeurReference(document.getElementById('edit-domaine').value),
         Fonction_Profession: document.getElementById('edit-fonction').value || null,
         Ville: document.getElementById('edit-ville').value || null,
         EMAIL_PRINCIPAL: document.getElementById('edit-email-principal').value || null,
         Telephone_Principal: document.getElementById('edit-tel-principal').value || null,
         Commentaire_Description: document.getElementById('edit-commentaire').value || null,
 
-        // Col IDs exacts pour l'enregistrement
+        // Clés exactes transmises à Grist
         EMAILS_SECONDAIRES: document.getElementById('edit-emails-secondaires').value || null,
         Telephones_Secondaires: document.getElementById('edit-telephones-secondaires').value || null
       };
 
       try {
-        await grist.selectedTable.update([donneesMisesAJour]);
+        await grist.selectedTable.update([maj]);
         alert("Modifications enregistrées avec succès !");
         fermerModal();
-      } catch (erreur) {
-        alert("Erreur lors de la mise à jour : " + erreur.message);
+      } catch (err) {
+        alert("Erreur lors de la mise à jour : " + err.message);
       }
     }
 
-    function effacerRecherche() {
-      document.getElementById('search-box').value = '';
-      filtrerContacts();
+    function reinitialiserFiltres() {
+      document.getElementById('filter-text').value = '';
+      document.querySelectorAll('.filter-grid select').forEach(s => s.value = '');
+      filtrerData();
     }
   </script>
 </body>
