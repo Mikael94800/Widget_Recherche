@@ -2,182 +2,825 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche et Édition de Contact</title>
+  <title>Recherche & Navigation Contacts</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 15px; background: #f9f9f9; color: #333; }
-    .filter-section { background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; }
-    .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .form-group { flex: 1; min-width: 180px; }
-    .form-group label { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 15.5px; }
     
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 0.9em; }
-    th { background: #f1f3f4; }
-    tr:hover { background: #f8f9fa; cursor: pointer; }
+    .search-card { background: #ffffff; border-radius: 10px; padding: 20px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 20px; }
+    .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+
+    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+    .filter-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .checkboxes-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
-    .btn-group { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
-    button { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; }
-    .btn-primary { background: #0b57d0; color: #fff; }
-    .btn-secondary { background: #e0e0e0; color: #333; }
+    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; }
+    input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
+    
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
+    .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
+    .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
+    .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    
+    .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
+    .btn-tool:hover { background: #e5e7eb; }
+    
+    .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
+    .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
+    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    th.no-sort { cursor: default; }
+    th:hover:not(.no-sort) { background-color: #e5e7eb; }
+    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+    tr.result-row { cursor: pointer; }
+    tr.result-row:hover { background-color: #f0fdf4; }
+    tr.selected { background-color: #e6f4ff !important; }
+    tr.checked-row { background-color: #bae0ff !important; font-weight: 500; }
+
+    .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .btn-action-modifier:hover { background-color: #bae6fd; }
+
+    .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
+
+    .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
+    .resizer:hover, .resizer.resizing { background-color: #1677ff; }
+
+    /* MODALE DE MODIFICATION */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+    .modal-card { background: #fff; border-radius: 12px; width: 92%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
+    .modal-title { font-size: 20px; font-weight: bold; color: #111827; }
+    .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; color: #6b7280; }
+    
+    .viewer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .viewer-field.full { grid-column: span 2; }
+    .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+    .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
 </head>
 <body>
 
-  <!-- RECHERCHE -->
-  <div class="filter-section">
-    <div class="form-row">
-      <div class="form-group">
-        <label>Recherche globale :</label>
-        <input type="text" id="searchInput" placeholder="Nom, prénom, ville..." oninput="filterData()">
+  <!-- CARTE DE RECHERCHE ET FILTRES -->
+  <div class="search-card">
+    <div class="card-title">
+      <span>🔍 Recherche Multi-critères</span>
+      <span id="result-count" class="count-badge">Chargement...</span>
+    </div>
+
+    <div class="filter-row">
+      <div class="field-group">
+        <label>Recherche Texte</label>
+        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
+
+      <div class="field-group">
+        <label>Service (Origine)</label>
+        <select id="filter-service" onchange="appliquerFiltres()">
+          <option value="">-- Tous les services --</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label>Statut Juridique</label>
+        <select id="filter-statut" onchange="appliquerFiltres()">
+          <option value="">-- Tous les statuts --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-row-bottom">
+      <div class="field-group">
+        <label>Type de structure</label>
+        <select id="filter-type-structure" onchange="appliquerFiltres()">
+          <option value="">-- Tous les types --</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label>Fonction / Profession</label>
+        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
+      </div>
+
+      <div class="field-group">
+        <label>Domaine d'activités</label>
+        <select id="filter-domaine" onchange="appliquerFiltres()">
+          <option value="">-- Tous les domaines --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="checkboxes-container">
+      <div class="field-group">
+        <label>Diffusion Cinéma</label>
+        <div class="checkbox-group" id="group-cinema">
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Diffusion Direction</label>
+        <div class="checkbox-group" id="group-direction">
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
+          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Diffusion Houdremont</label>
+        <div class="checkbox-group" id="group-houdremont">
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Diffusion Intervenant</label>
+        <div class="checkbox-group" id="group-intervenant">
+          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
+          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
+      <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
   </div>
 
-  <!-- TABLEAU DES RESULTATS -->
-  <table id="contactsTable">
-    <thead>
-      <tr>
-        <th>Nom</th>
-        <th>Prénom</th>
-        <th>Code Postal</th>
-        <th>Ville</th>
-        <th>Téléphone</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <!-- TOOLBAR TABLEAU DE RÉSULTATS -->
+  <div class="table-toolbar">
+    <div class="toolbar-group">
+      <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
+      <button class="btn-tool" onclick="naviguerTableau(1)">▼ Suivant</button>
+      <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
+      <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
+      <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
+      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Ctrl+Clic : multiple | Double-clic : éditer)</i></span>
+    </div>
 
-  <!-- MODALE D'ÉDITION -->
-  <div id="editModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Éditer le contact</h3>
-      <input type="hidden" id="editRecordId">
+    <div class="toolbar-group">
+      <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
+      <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
       
-      <div class="form-row">
-        <div class="form-group">
-          <label>Code Postal :</label>
-          <input type="text" id="editCodePostal">
-        </div>
-        <div class="form-group">
-          <label>Ville :</label>
-          <input type="text" id="editVille">
-        </div>
-      </div>
+      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
+      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
+      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
+    </div>
+  </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Téléphone Principal :</label>
-          <input type="text" id="editTelPrincipal">
-        </div>
-        <div class="form-group">
-          <label>Téléphones Secondaires :</label>
-          <input type="text" id="editTelSecondaire">
-        </div>
-      </div>
+  <!-- TABLEAU DE RÉSULTATS -->
+  <div class="table-container">
+    <table id="main-table">
+      <colgroup>
+        <col style="width: 120px;">
+        <col style="width: 120px;">
+        <col style="width: 170px;">
+        <col style="width: 120px;">
+        <col style="width: 110px;">
+        <col style="width: 170px;">
+        <col style="width: 45px;">
+        <col style="width: 90px;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th onclick="trierTableau('NOM')">Nom <span class="sort-icon" id="sort-NOM">↕</span></th>
+          <th onclick="trierTableau('PRENOM')">Prénom <span class="sort-icon" id="sort-PRENOM">↕</span></th>
+          <th onclick="trierTableau('NOM_Structure')">Structure <span class="sort-icon" id="sort-NOM_Structure">↕</span></th>
+          <th onclick="trierTableau('Service')">Service <span class="sort-icon" id="sort-Service">↕</span></th>
+          <th onclick="trierTableau('Ville')">Ville <span class="sort-icon" id="sort-Ville">↕</span></th>
+          <th onclick="trierTableau('EMAIL_PRINCIPAL')">Email <span class="sort-icon" id="sort-EMAIL_PRINCIPAL">↕</span></th>
+          <th class="no-sort" style="text-align: center;"><input type="checkbox" id="select-all" onchange="toutSelectionner(this)" title="Tout sélectionner / Désélectionner"></th>
+          <th class="no-sort">Action</th>
+        </tr>
+      </thead>
+      <tbody id="results-table-body">
+      </tbody>
+    </table>
+  </div>
 
-      <div class="form-group">
-        <label>Commentaire :</label>
-        <textarea id="editCommentaire" rows="3"></textarea>
+  <!-- MODALE D'ÉDITION DE CONTACT -->
+  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Modifier le contact</span>
+        <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
-
-      <div class="btn-group">
-        <button class="btn-secondary" onclick="closeModal()">Annuler</button>
-        <button class="btn-primary" onclick="saveRecord()">Enregistrer les modifications</button>
+      <div class="viewer-grid" id="modal-content">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-reset" onclick="fermerModal()">Annuler</button>
+        <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
       </div>
     </div>
   </div>
 
   <script>
     let allRecords = [];
+    let matchingRecords = [];
+    let selectedIndex = 0;
+    let lastClickedIndex = null;
+    let currentFontSize = 15.5;
+    let currentEditingRecord = null;
+
+    let sortColumn = null;
+    let sortAscending = true;
+
+    let selectedIds = new Set();
 
     grist.ready({ requiredAccess: 'full' });
 
     grist.onRecords(function(records) {
       allRecords = records;
-      renderTable(allRecords);
+      peuplerListesDeroulantesFiltres();
+      appliquerFiltres();
     });
 
-    function renderTable(data) {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(", ");
+      }
+      if (typeof valeur === "object") return JSON.stringify(valeur);
+      return String(valeur);
+    }
+
+    function contientCritere(champData, valeurRecherchee) {
+      const texteChamp = normaliserChaine(champData).toLowerCase();
+      return texteChamp.includes(valeurRecherchee.toLowerCase());
+    }
+
+    function extraireValeursUniques(cle) {
+      const valeursSet = new Set();
+      allRecords.forEach(r => {
+        const val = r[cle];
+        if (val !== undefined && val !== null && val !== "") {
+          const texte = normaliserChaine(val);
+          texte.split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) valeursSet.add(clean);
+          });
+        }
+      });
+      return Array.from(valeursSet).sort();
+    }
+
+    function peuplerListesDeroulantesFiltres() {
+      const services = extraireValeursUniques('Service');
+      const selService = document.getElementById('filter-service');
+      const valServiceActuelle = selService.value;
+      selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
+      selService.value = valServiceActuelle;
+
+      const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
+      const selStatut = document.getElementById('filter-statut');
+      const valStatutActuelle = selStatut.value;
+      selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
+      selStatut.value = valStatutActuelle;
+
+      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : extraireValeursUniques('TYPE_DE_STRUCTURE');
+      const selTypeStruct = document.getElementById('filter-type-structure');
+      const valTypeStructActuelle = selTypeStruct.value;
+      selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
+      selTypeStruct.value = valTypeStructActuelle;
+
+      const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
+      const selDomaine = document.getElementById('filter-domaine');
+      const valDomaineActuelle = selDomaine.value;
+      selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
+      selDomaine.value = valDomaineActuelle;
+    }
+
+    function appliquerFiltres() {
+      if (!allRecords || allRecords.length === 0) return;
+
+      const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
+      const serviceFilter = document.getElementById('filter-service').value;
+      const statutFilter = document.getElementById('filter-statut').value;
+      const typeStructFilter = document.getElementById('filter-type-structure').value;
+      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
+      const domaineFilter = document.getElementById('filter-domaine').value;
+
+      const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
+      const directionChecked = Array.from(document.querySelectorAll('#group-direction input:checked')).map(cb => cb.value);
+      const houdremontChecked = Array.from(document.querySelectorAll('#group-houdremont input:checked')).map(cb => cb.value);
+      const intervenantChecked = Array.from(document.querySelectorAll('#group-intervenant input:checked')).map(cb => cb.value);
+
+      matchingRecords = allRecords.filter(rec => {
+        if (textFilter) {
+          const champsCibles = [
+            rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
+            rec.EMAIL_PRINCIPAL, rec.EMAILS_SECONDAIRES, rec.Telephone_Principal, rec.Telephones_Secondaires,
+            rec.Fonction_Profession, rec.Commentaire_Description
+          ];
+          const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          const motsRecherche = textFilter.split(/\s+/);
+          const correspondanceGlobale = motsRecherche.every(mot => texteGlobal.includes(mot));
+          if (!correspondanceGlobale) return false;
+        }
+
+        if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
+        if (statutFilter && !contientCritere(rec.STATUT_JURIDIQUE, statutFilter)) return false;
+        if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
+
+        if (typeStructFilter) {
+          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE);
+          if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
+        }
+
+        if (fonctionFilter) {
+          const valFonction = normaliserChaine(rec.Fonction_Profession);
+          if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
+        }
+
+        // Correction de la clé technique pour éviter la rupture du widget
+        if (cinemaChecked.length > 0) {
+          const valCinema = rec.Listes_Diffusion_Cinema || rec['Listes Diffusion Cinéma'];
+          const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
+          if (!matchCinema) return false;
+        }
+
+        if (directionChecked.length > 0) {
+          const valDirection = rec.Listes_Diffusion_Direction;
+          const matchDirection = directionChecked.some(val => contientCritere(valDirection, val));
+          if (!matchDirection) return false;
+        }
+
+        if (houdremontChecked.length > 0) {
+          const valHoudremont = rec.Listes_Diffusion_Houdremont;
+          const matchHoudremont = houdremontChecked.some(val => contientCritere(valHoudremont, val));
+          if (!matchHoudremont) return false;
+        }
+
+        if (intervenantChecked.length > 0) {
+          const valIntervenant = rec.Listes_Diffusion_Intervenant;
+          const matchIntervenant = intervenantChecked.some(val => contientCritere(valIntervenant, val));
+          if (!matchIntervenant) return false;
+        }
+
+        return true;
+      });
+
+      if (sortColumn) {
+        effectuerTriDonnees();
+      }
+
+      document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
+      selectedIndex = 0;
+      lastClickedIndex = null;
+      afficherTableau();
+    }
+
+    function trierTableau(colonne) {
+      if (sortColumn === colonne) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = colonne;
+        sortAscending = true;
+      }
+
+      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
+        const elem = document.getElementById(`sort-${col}`);
+        if (elem) {
+          if (col === sortColumn) {
+            elem.innerText = sortAscending ? '▲' : '▼';
+            elem.style.color = '#1677ff';
+          } else {
+            elem.innerText = '↕';
+            elem.style.color = '#6b7280';
+          }
+        }
+      });
+
+      effectuerTriDonnees();
+      afficherTableau();
+    }
+
+    function effectuerTriDonnees() {
+      matchingRecords.sort((a, b) => {
+        let valA = normaliserChaine(a[sortColumn]).toLowerCase();
+        let valB = normaliserChaine(b[sortColumn]).toLowerCase();
+
+        if (valA < valB) return sortAscending ? -1 : 1;
+        if (valA > valB) return sortAscending ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function reinitialiserFiltres() {
+      document.getElementById('filter-text').value = '';
+      document.getElementById('filter-service').value = '';
+      document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-type-structure').value = '';
+      document.getElementById('filter-fonction').value = '';
+      document.getElementById('filter-domaine').value = '';
+      document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
       
-      data.forEach(rec => {
+      sortColumn = null;
+      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
+        const elem = document.getElementById(`sort-${col}`);
+        if (elem) {
+          elem.innerText = '↕';
+          elem.style.color = '#6b7280';
+        }
+      });
+
+      selectedIds.clear();
+      lastClickedIndex = null;
+      majBoutonsSelection();
+
+      appliquerFiltres();
+    }
+
+    function afficherTableau() {
+      const tbody = document.getElementById('results-table-body');
+      tbody.innerHTML = '';
+
+      const selectAllCb = document.getElementById('select-all');
+      if (selectAllCb) {
+        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
+      }
+
+      matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
-        tr.ondblclick = () => openModal(rec);
+        tr.className = 'result-row';
         
+        const isChecked = selectedIds.has(rec.id);
+        if (isChecked) tr.classList.add('checked-row');
+        if (index === selectedIndex) tr.classList.add('selected');
+
         tr.innerHTML = `
-          <td>${rec.Nom || ''}</td>
-          <td>${rec.Prénom || rec.Prenom || ''}</td>
-          <td>${rec.Code_Postal || ''}</td>
+          <td>${rec.NOM || ''}</td>
+          <td>${rec.PRENOM || ''}</td>
+          <td>${rec.NOM_Structure || ''}</td>
+          <td>${normaliserChaine(rec.Service)}</td>
           <td>${rec.Ville || ''}</td>
-          <td>${rec.Téléphone_Principal || rec.Telephone_Principal || ''}</td>
-          <td><button class="btn-secondary" onclick="openModalById(${rec.id})">Modifier</button></td>
+          <td>${rec.EMAIL_PRINCIPAL || ''}</td>
+          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
+          <td><button class="btn-action-modifier">Modifier</button></td>
         `;
+
+        const checkbox = tr.querySelector('.row-checkbox');
+        checkbox.onclick = (e) => {
+          e.stopPropagation();
+          gererClicLigne(index, e, true);
+        };
+
+        const btnModif = tr.querySelector('.btn-action-modifier');
+        btnModif.onclick = (e) => {
+          e.stopPropagation();
+          selectedIndex = index;
+          majSelectionGraphique();
+          ouvrirModal(rec);
+        };
+
+        tr.onclick = (e) => {
+          gererClicLigne(index, e, false);
+        };
+
+        tr.ondblclick = () => {
+          selectedIndex = index;
+          majSelectionGraphique();
+          ouvrirModal(rec);
+        };
+
         tbody.appendChild(tr);
       });
+
+      initialiserRedimensionnementColonnes();
     }
 
-    function filterData() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      const filtered = allRecords.filter(r => {
-        const text = `${r.Nom || ''} ${r.Prénom || r.Prenom || ''} ${r.Code_Postal || ''} ${r.Ville || ''}`.toLowerCase();
-        return text.includes(q);
+    function gererClicLigne(indexIndex, event, isDirectCheckboxClick) {
+      const recActuel = matchingRecords[indexIndex];
+
+      if (event.shiftKey && lastClickedIndex !== null) {
+        const start = Math.min(lastClickedIndex, indexIndex);
+        const end = Math.max(lastClickedIndex, indexIndex);
+        for (let i = start; i <= end; i++) {
+          selectedIds.add(matchingRecords[i].id);
+        }
+      } else if (event.ctrlKey || event.metaKey) {
+        if (selectedIds.has(recActuel.id)) {
+          selectedIds.delete(recActuel.id);
+        } else {
+          selectedIds.add(recActuel.id);
+        }
+        lastClickedIndex = indexIndex;
+      } else {
+        if (isDirectCheckboxClick) {
+          if (selectedIds.has(recActuel.id)) {
+            selectedIds.delete(recActuel.id);
+          } else {
+            selectedIds.add(recActuel.id);
+          }
+        } else {
+          if (selectedIds.has(recActuel.id)) {
+            selectedIds.delete(recActuel.id);
+          } else {
+            selectedIds.add(recActuel.id);
+          }
+        }
+        lastClickedIndex = indexIndex;
+      }
+
+      selectedIndex = indexIndex;
+      majBoutonsSelection();
+      majRenduTableauApresSelection();
+    }
+
+    function majRenduTableauApresSelection() {
+      const rows = document.querySelectorAll('#results-table-body tr');
+      const selectAllCb = document.getElementById('select-all');
+
+      if (selectAllCb) {
+        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
+      }
+
+      rows.forEach((row, idx) => {
+        const rec = matchingRecords[idx];
+        const isChecked = selectedIds.has(rec.id);
+        
+        const cb = row.querySelector('.row-checkbox');
+        if (cb) cb.checked = isChecked;
+
+        row.classList.toggle('checked-row', isChecked);
+        row.classList.toggle('selected', idx === selectedIndex);
       });
-      renderTable(filtered);
     }
 
-    function openModalById(id) {
-      const rec = allRecords.find(r => r.id === id);
-      if (rec) openModal(rec);
+    function majSelectionGraphique() {
+      const rows = document.querySelectorAll('#results-table-body tr');
+      rows.forEach((row, idx) => {
+        row.classList.toggle('selected', idx === selectedIndex);
+      });
     }
 
-    function openModal(rec) {
-      document.getElementById('editRecordId').value = rec.id;
-      document.getElementById('editCodePostal').value = rec.Code_Postal || '';
-      document.getElementById('editVille').value = rec.Ville || '';
-      document.getElementById('editTelPrincipal').value = rec.Téléphone_Principal || rec.Telephone_Principal || '';
-      document.getElementById('editTelSecondaire').value = rec.Téléphones_Secondaires || rec.Telephones_Secondaires || '';
-      document.getElementById('editCommentaire').value = rec.Commentaire || '';
+    function toutSelectionner(masterCheckbox) {
+      const isChecked = masterCheckbox.checked;
+      matchingRecords.forEach(r => {
+        if (isChecked) {
+          selectedIds.add(r.id);
+        } else {
+          selectedIds.delete(r.id);
+        }
+      });
       
-      document.getElementById('editModal').style.display = 'flex';
+      majBoutonsSelection();
+      majRenduTableauApresSelection();
     }
 
-    function closeModal() {
-      document.getElementById('editModal').style.display = 'none';
+    function majBoutonsSelection() {
+      const nbSelect = selectedIds.size;
+      const btnTxt = document.getElementById('btn-export-selected-txt');
+      const btnCsv = document.getElementById('btn-export-selected-csv');
+
+      if (nbSelect > 0) {
+        btnTxt.style.display = 'inline-block';
+        btnCsv.style.display = 'inline-block';
+        btnTxt.innerText = `📩 Exporter mails sélect. TXT (${nbSelect})`;
+        btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${nbSelect})`;
+      } else {
+        btnTxt.style.display = 'none';
+        btnCsv.style.display = 'none';
+      }
     }
 
-    async function saveRecord() {
-      const id = parseInt(document.getElementById('editRecordId').value, 10);
-      if (!id) return;
+    function naviguerTableau(direction) {
+      if (matchingRecords.length === 0) return;
+      selectedIndex = Math.max(0, Math.min(matchingRecords.length - 1, selectedIndex + direction));
+      majSelectionGraphique();
+      
+      const rows = document.querySelectorAll('#results-table-body tr');
+      if (rows[selectedIndex]) {
+        rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
 
-      const current = allRecords.find(r => r.id === id) || {};
+    function changerZoom(delta) {
+      currentFontSize = Math.max(12, Math.min(22, currentFontSize + delta));
+      document.querySelector('table').style.fontSize = `${currentFontSize}px`;
+    }
 
-      const fields = {
-        Code_Postal: document.getElementById('editCodePostal').value,
-        Ville: document.getElementById('editVille').value,
-        Téléphone_Principal: document.getElementById('editTelPrincipal').value,
-        Téléphones_Secondaires: document.getElementById('editTelSecondaire').value,
-        Commentaire: document.getElementById('editCommentaire').value
+    /* MODALE AVEC AJOUT CODE POSTAL & CLÉ CINÉMA CORRECTE */
+    function ouvrirModal(rec) {
+      currentEditingRecord = rec;
+      const container = document.getElementById('modal-content');
+      
+      container.innerHTML = `
+        <div class="viewer-field">
+          <span class="viewer-label">Nom</span>
+          <input type="text" id="edit-nom" value="${rec.NOM || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Prénom</span>
+          <input type="text" id="edit-prenom" value="${rec.PRENOM || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Structure</span>
+          <input type="text" id="edit-structure" value="${rec.NOM_Structure || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Code Postal</span>
+          <input type="text" id="edit-code-postal" value="${rec.Code_Postal || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Ville</span>
+          <input type="text" id="edit-ville" value="${rec.Ville || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Email Principal</span>
+          <input type="text" id="edit-email-principal" value="${rec.EMAIL_PRINCIPAL || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Téléphone Principal</span>
+          <input type="text" id="edit-tel-principal" value="${rec.Telephone_Principal || ''}">
+        </div>
+
+        <div class="viewer-field full">
+          <span class="viewer-label">Commentaire / Description</span>
+          <textarea id="edit-commentaire" rows="3">${rec.Commentaire_Description || ''}</textarea>
+        </div>
+      `;
+
+      document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function fermerModal(event) {
+      if (event && event.target !== document.getElementById('modal-overlay') && !event.target.classList.contains('btn-close') && !event.target.classList.contains('btn-reset')) return;
+      document.getElementById('modal-overlay').style.display = 'none';
+      currentEditingRecord = null;
+    }
+
+    async function sauvegarderContactModifie() {
+      if (!currentEditingRecord) return;
+
+      const updatedFields = {
+        NOM: document.getElementById('edit-nom').value,
+        PRENOM: document.getElementById('edit-prenom').value,
+        NOM_Structure: document.getElementById('edit-structure').value,
+        Code_Postal: document.getElementById('edit-code-postal').value,
+        Ville: document.getElementById('edit-ville').value,
+        EMAIL_PRINCIPAL: document.getElementById('edit-email-principal').value,
+        Telephone_Principal: document.getElementById('edit-tel-principal').value,
+        Commentaire_Description: document.getElementById('edit-commentaire').value
       };
 
-      // Conservation explicite de la colonne avec la bonne clé technique (sans accents / espaces)
-      if (current.Listes_Diffusion_Cinema !== undefined) {
-        fields.Listes_Diffusion_Cinema = current.Listes_Diffusion_Cinema;
+      // Conservation de la clé technique 'Listes_Diffusion_Cinema' sans espaces pour préserver le widget de création
+      const cinemaVal = currentEditingRecord.Listes_Diffusion_Cinema || currentEditingRecord['Listes Diffusion Cinéma'];
+      if (cinemaVal !== undefined) {
+        updatedFields.Listes_Diffusion_Cinema = cinemaVal;
       }
 
       try {
         await grist.docApi.applyUserActions([
-          ['UpdateRecord', 'CONTACTS', id, fields]
+          ['UpdateRecord', 'CONTACTS', currentEditingRecord.id, updatedFields]
         ]);
-        closeModal();
-      } catch (e) {
-        alert("Erreur lors de l'enregistrement : " + e.message);
+        document.getElementById('modal-overlay').style.display = 'none';
+        currentEditingRecord = null;
+      } catch (err) {
+        alert("Erreur lors de la mise à jour : " + err.message);
       }
+    }
+
+    /* EXPORTS ET OUTILS */
+    function copierEmails() {
+      const emails = matchingRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('; ');
+      if (!emails) {
+        alert('Aucun email disponible dans la liste actuelle.');
+        return;
+      }
+      navigator.clipboard.writeText(emails).then(() => {
+        alert(`${matchingRecords.length} email(s) copié(s) dans le presse-papier.`);
+      });
+    }
+
+    function exporterEmailsTXT() {
+      const emails = matchingRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('\n');
+      telechargerFichier(emails, 'emails_contacts.txt', 'text/plain');
+    }
+
+    function exporterMailsSelectionnesTXT() {
+      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
+      const emails = selectedRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('\n');
+      telechargerFichier(emails, 'emails_selectionnes.txt', 'text/plain');
+    }
+
+    function exporterCSV() {
+      genererEtTelechargerCSV(matchingRecords, 'export_contacts.csv');
+    }
+
+    function exporterFichesSelectionneesCSV() {
+      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
+      genererEtTelechargerCSV(selectedRecords, 'export_contacts_selection.csv');
+    }
+
+    function genererEtTelechargerCSV(recordsList, filename) {
+      if (recordsList.length === 0) {
+        alert('Aucune donnée à exporter.');
+        return;
+      }
+      const headers = ["ID", "Nom", "Prénom", "Structure", "Code Postal", "Ville", "Email Principal", "Téléphone"];
+      const rows = recordsList.map(r => [
+        r.id,
+        `"${(r.NOM || '').replace(/"/g, '""')}"`,
+        `"${(r.PRENOM || '').replace(/"/g, '""')}"`,
+        `"${(r.NOM_Structure || '').replace(/"/g, '""')}"`,
+        `"${(r.Code_Postal || '').replace(/"/g, '""')}"`,
+        `"${(r.Ville || '').replace(/"/g, '""')}"`,
+        `"${(r.EMAIL_PRINCIPAL || '').replace(/"/g, '""')}"`,
+        `"${(r.Telephone_Principal || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
+      telechargerFichier(csvContent, filename, 'text/csv;charset=utf-8;');
+    }
+
+    function telechargerFichier(contenu, nomFichier, typeMime) {
+      const blob = new Blob([contenu], { type: typeMime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nomFichier;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function initialiserRedimensionnementColonnes() {
+      const table = document.getElementById('main-table');
+      const headers = table.querySelectorAll('th');
+
+      headers.forEach(th => {
+        if (th.querySelector('.resizer')) return;
+
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+
+        let x = 0;
+        let w = 0;
+
+        resizer.addEventListener('mousedown', function (e) {
+          e.stopPropagation();
+          x = e.clientX;
+          w = th.offsetWidth;
+          resizer.classList.add('resizing');
+
+          const mouseMoveHandler = function (e) {
+            const dx = e.clientX - x;
+            th.style.width = `${w + dx}px`;
+          };
+
+          const mouseUpHandler = function () {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+          };
+
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+        });
+      });
     }
   </script>
 </body>
