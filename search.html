@@ -39,10 +39,14 @@
     .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
-    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    th.no-sort { cursor: default; }
+    th:hover:not(.no-sort) { background-color: #e5e7eb; }
     td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tr.result-row { cursor: pointer; }
     tr.result-row:hover { background-color: #f0fdf4; }
@@ -50,6 +54,8 @@
 
     .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-action-modifier:hover { background-color: #bae6fd; }
+
+    .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
 
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
@@ -184,13 +190,18 @@
       <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
       <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
       <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 14.5px; color: #6b7280; margin-left: 8px;"><i>(Double-clic sur une ligne pour modifier la fiche)</i></span>
+      <span style="font-size: 14.5px; color: #6b7280; margin-left: 8px;"><i>(Double-clic sur une ligne pour modifier)</i></span>
     </div>
 
     <div class="toolbar-group">
+      <!-- Boutons dynamiques pour les éléments sélectionnés -->
+      <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
+      <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
+      
+      <!-- Boutons globaux -->
       <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
-      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter Lots TXT</button>
-      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter (.csv)</button>
+      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
+      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
     </div>
   </div>
 
@@ -200,21 +211,23 @@
       <colgroup>
         <col style="width: 120px;">
         <col style="width: 120px;">
-        <col style="width: 180px;">
+        <col style="width: 170px;">
+        <col style="width: 120px;">
         <col style="width: 110px;">
-        <col style="width: 110px;">
-        <col style="width: 180px;">
-        <col style="width: 100px;">
+        <col style="width: 170px;">
+        <col style="width: 45px;">
+        <col style="width: 90px;">
       </colgroup>
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Prénom</th>
-          <th>Structure</th>
-          <th>Service</th>
-          <th>Ville</th>
-          <th>Email</th>
-          <th>Action</th>
+          <th onclick="trierTableau('NOM')">Nom <span class="sort-icon" id="sort-NOM">↕</span></th>
+          <th onclick="trierTableau('PRENOM')">Prénom <span class="sort-icon" id="sort-PRENOM">↕</span></th>
+          <th onclick="trierTableau('NOM_Structure')">Structure <span class="sort-icon" id="sort-NOM_Structure">↕</span></th>
+          <th onclick="trierTableau('Service')">Service <span class="sort-icon" id="sort-Service">↕</span></th>
+          <th onclick="trierTableau('Ville')">Ville <span class="sort-icon" id="sort-Ville">↕</span></th>
+          <th onclick="trierTableau('EMAIL_PRINCIPAL')">Email <span class="sort-icon" id="sort-EMAIL_PRINCIPAL">↕</span></th>
+          <th class="no-sort" style="text-align: center;"><input type="checkbox" id="select-all" onchange="toutSelectionner(this)" title="Tout sélectionner / Désélectionner"></th>
+          <th class="no-sort">Action</th>
         </tr>
       </thead>
       <tbody id="results-table-body">
@@ -244,6 +257,13 @@
     let selectedIndex = 0;
     let currentFontSize = 15.5;
     let currentEditingId = null;
+
+    // Gestion du tri
+    let sortColumn = null;
+    let sortAscending = true;
+
+    // Sélection de fiches
+    let selectedIds = new Set();
 
     // Valeurs par défaut des listes de diffusion
     const OPTIONS_CINEMA = ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle"];
@@ -388,9 +408,50 @@
         return true;
       });
 
+      if (sortColumn) {
+        effectuerTriDonnees();
+      }
+
       document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
       selectedIndex = 0;
       afficherTableau();
+    }
+
+    function trierTableau(colonne) {
+      if (sortColumn === colonne) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = colonne;
+        sortAscending = true;
+      }
+
+      // Mettre à jour les icônes
+      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
+        const elem = document.getElementById(`sort-${col}`);
+        if (elem) {
+          if (col === sortColumn) {
+            elem.innerText = sortAscending ? '▲' : '▼';
+            elem.style.color = '#1677ff';
+          } else {
+            elem.innerText = '↕';
+            elem.style.color = '#6b7280';
+          }
+        }
+      });
+
+      effectuerTriDonnees();
+      afficherTableau();
+    }
+
+    function effectuerTriDonnees() {
+      matchingRecords.sort((a, b) => {
+        let valA = normaliserChaine(a[sortColumn]).toLowerCase();
+        let valB = normaliserChaine(b[sortColumn]).toLowerCase();
+
+        if (valA < valB) return sortAscending ? -1 : 1;
+        if (valA > valB) return sortAscending ? 1 : -1;
+        return 0;
+      });
     }
 
     function reinitialiserFiltres() {
@@ -401,6 +462,19 @@
       document.getElementById('filter-fonction').value = '';
       document.getElementById('filter-domaine').value = '';
       document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
+      
+      sortColumn = null;
+      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
+        const elem = document.getElementById(`sort-${col}`);
+        if (elem) {
+          elem.innerText = '↕';
+          elem.style.color = '#6b7280';
+        }
+      });
+
+      selectedIds.clear();
+      majBoutonsSelection();
+
       appliquerFiltres();
     }
 
@@ -408,10 +482,17 @@
       const tbody = document.getElementById('results-table-body');
       tbody.innerHTML = '';
 
+      const selectAllCb = document.getElementById('select-all');
+      if (selectAllCb) {
+        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
+      }
+
       matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         tr.className = 'result-row';
         if (index === selectedIndex) tr.classList.add('selected');
+
+        const isChecked = selectedIds.has(rec.id);
 
         tr.innerHTML = `
           <td>${rec.NOM || ''}</td>
@@ -420,6 +501,7 @@
           <td>${normaliserChaine(rec.Service)}</td>
           <td>${rec.Ville || ''}</td>
           <td>${rec.EMAIL_PRINCIPAL || ''}</td>
+          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); basculerSelectionItem(${rec.id}, this.checked)"></td>
           <td><button class="btn-action-modifier">Modifier</button></td>
         `;
 
@@ -448,6 +530,50 @@
       initialiserRedimensionnementColonnes();
     }
 
+    function basculerSelectionItem(id, isChecked) {
+      if (isChecked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      majBoutonsSelection();
+
+      const selectAllCb = document.getElementById('select-all');
+      if (selectAllCb) {
+        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
+      }
+    }
+
+    function toutSelectionner(masterCheckbox) {
+      const isChecked = masterCheckbox.checked;
+      matchingRecords.forEach(r => {
+        if (isChecked) {
+          selectedIds.add(r.id);
+        } else {
+          selectedIds.delete(r.id);
+        }
+      });
+      
+      document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
+      majBoutonsSelection();
+    }
+
+    function majBoutonsSelection() {
+      const nbSelect = selectedIds.size;
+      const btnTxt = document.getElementById('btn-export-selected-txt');
+      const btnCsv = document.getElementById('btn-export-selected-csv');
+
+      if (nbSelect > 0) {
+        btnTxt.style.display = 'inline-block';
+        btnCsv.style.display = 'inline-block';
+        btnTxt.innerText = `📩 Exporter mails sélect. TXT (${nbSelect})`;
+        btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${nbSelect})`;
+      } else {
+        btnTxt.style.display = 'none';
+        btnCsv.style.display = 'none';
+      }
+    }
+
     function initialiserRedimensionnementColonnes() {
       const table = document.getElementById('main-table');
       const headers = table.querySelectorAll('th');
@@ -469,7 +595,7 @@
 
           function mouseMoveHandler(e) {
             const dx = e.clientX - x;
-            th.style.width = `${Math.max(50, w + dx)}px`;
+            th.style.width = `${Math.max(35, w + dx)}px`;
           }
 
           function mouseUpHandler() {
@@ -694,9 +820,10 @@
       }
     }
 
-    function collecterTousLesEmails() {
+    function collecterTousLesEmails(recordsListe) {
       let listeEmails = [];
-      matchingRecords.forEach(r => {
+      const source = recordsListe || matchingRecords;
+      source.forEach(r => {
         if (r.EMAIL_PRINCIPAL && r.EMAIL_PRINCIPAL.trim().length > 0) {
           listeEmails.push(r.EMAIL_PRINCIPAL.trim());
         }
@@ -716,35 +843,77 @@
       });
     }
 
-    function exporterEmailsTXT() {
-      const emails = collecterTousLesEmails();
-      if (emails.length === 0) {
-        alert("Aucun e-mail à exporter.");
+    function genererEtTelechargerLotsTXT(emailsList, nomFichier) {
+      if (emailsList.length === 0) {
+        alert("Aucun e-mail valide à exporter.");
         return;
       }
-      const blob = new Blob([emails.join('\n')], { type: 'text/plain;charset=utf-8;' });
+
+      let contenuTXT = "";
+      const tailleLot = 30;
+      let totalLots = Math.ceil(emailsList.length / tailleLot);
+
+      for (let i = 0; i < totalLots; i++) {
+        let lot = emailsList.slice(i * tailleLot, (i + 1) * tailleLot);
+        contenuTXT += `=== LOT ${i + 1} / ${totalLots} (${lot.length} adresses) ===\n`;
+        contenuTXT += lot.join('; ') + "\n\n";
+      }
+
+      const blob = new Blob([contenuTXT], { type: 'text/plain;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'emails_contacts.txt';
+      a.download = nomFichier;
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    function exporterCSV() {
-      if (matchingRecords.length === 0) {
+    function exporterEmailsTXT() {
+      const emails = collecterTousLesEmails();
+      genererEtTelechargerLotsTXT(emails, 'tous_les_emails.txt');
+    }
+
+    function exporterMailsSelectionnesTXT() {
+      const recsSélect = allRecords.filter(r => selectedIds.has(r.id));
+      const emails = collecterTousLesEmails(recsSélect);
+      genererEtTelechargerLotsTXT(emails, 'emails_selectionnes.txt');
+    }
+
+    function exporterCSVGenerique(recordsSource, nomFichier) {
+      if (recordsSource.length === 0) {
         alert("Aucun résultat à exporter.");
         return;
       }
-      const entetes = ["Nom", "Prénom", "Structure", "Service", "Ville", "Email Principal", "Téléphone Principal"];
-      const lignes = matchingRecords.map(r => [
+
+      const entetes = [
+        "Nom", "Prénom", "Structure", "Service", "Type Structure", 
+        "Statut Juridique", "Domaine Activités", "Fonction", "Ville", 
+        "Code Postal", "Adresse", "Email Principal", "Emails Secondaires", 
+        "Téléphone Principal", "Téléphones Secondaires", "Listes Cinéma", 
+        "Listes Direction", "Listes Houdremont", "Listes Intervenant", "Commentaire"
+      ];
+
+      const lignes = recordsSource.map(r => [
         `"${(r.NOM || '').replace(/"/g, '""')}"`,
         `"${(r.PRENOM || '').replace(/"/g, '""')}"`,
         `"${(r.NOM_Structure || '').replace(/"/g, '""')}"`,
         `"${normaliserChaine(r.Service).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r.TYPE_DE_STRUCTURE_CONTACT || r.TYPE_DE_STRUCTURE).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r.STATUT_JURIDIQUE).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r.DOMAINE_D_ACTIVITES).replace(/"/g, '""')}"`,
+        `"${(r.Fonction_Profession || '').replace(/"/g, '""')}"`,
         `"${(r.Ville || '').replace(/"/g, '""')}"`,
+        `"${(r.Code_Postal || '').replace(/"/g, '""')}"`,
+        `"${(r.Adresse || '').replace(/"/g, '""')}"`,
         `"${(r.EMAIL_PRINCIPAL || '').replace(/"/g, '""')}"`,
-        `"${(r.Telephone_Principal || '').replace(/"/g, '""')}"`
+        `"${(r.EMAILS_SECONDAIRES || '').replace(/"/g, '""')}"`,
+        `"${(r.Telephone_Principal || '').replace(/"/g, '""')}"`,
+        `"${(r.Telephones_Secondaires || '').replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r['Listes Diffusion Cinéma']).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r['Listes_Diffusion_Direction']).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r['Listes_Diffusion_Houdremont']).replace(/"/g, '""')}"`,
+        `"${normaliserChaine(r['Listes_Diffusion_Intervenant']).replace(/"/g, '""')}"`,
+        `"${(r.Commentaire_Description || '').replace(/"/g, '""')}"`
       ].join(';'));
 
       const contenu = '\uFEFF' + [entetes.join(';'), ...lignes].join('\n');
@@ -752,9 +921,18 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'export_contacts.csv';
+      a.download = nomFichier;
       a.click();
       URL.revokeObjectURL(url);
+    }
+
+    function exporterCSV() {
+      exporterCSVGenerique(matchingRecords, 'toutes_les_fiches.csv');
+    }
+
+    function exporterFichesSelectionneesCSV() {
+      const recsSélect = allRecords.filter(r => selectedIds.has(r.id));
+      exporterCSVGenerique(recsSélect, 'fiches_selectionnees.csv');
     }
   </script>
 </body>
