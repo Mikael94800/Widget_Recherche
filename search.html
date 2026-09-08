@@ -2,136 +2,148 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche & Édition de Contact</title>
-  <!-- Grist API -->
+  <title>Recherche et Édition de Contact</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-      color: #333;
-    }
-    .form-group {
-      margin-bottom: 12px;
-    }
-    .form-group label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
-    .form-group input, .form-group textarea {
-      width: 100%;
-      padding: 6px 8px;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal-content {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 600px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 15px;
-    }
-    button {
-      padding: 8px 16px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-    }
-    .btn-save { background-color: #0b57d0; color: #fff; }
-    .btn-cancel { background-color: #f1f3f4; color: #333; }
+    body { font-family: Arial, sans-serif; margin: 15px; background: #f9f9f9; color: #333; }
+    .filter-section { background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 180px; }
+    .form-group label { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 0.9em; }
+    th { background: #f1f3f4; }
+    tr:hover { background: #f8f9fa; cursor: pointer; }
+    
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
+    .btn-group { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+    button { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-primary { background: #0b57d0; color: #fff; }
+    .btn-secondary { background: #e0e0e0; color: #333; }
   </style>
 </head>
 <body>
+
+  <!-- RECHERCHE -->
+  <div class="filter-section">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Recherche globale :</label>
+        <input type="text" id="searchInput" placeholder="Nom, prénom, ville..." oninput="filterData()">
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLEAU DES RESULTATS -->
+  <table id="contactsTable">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Code Postal</th>
+        <th>Ville</th>
+        <th>Téléphone</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
 
   <!-- MODALE D'ÉDITION -->
   <div id="editModal" class="modal-overlay">
     <div class="modal-content">
       <h3>Éditer le contact</h3>
+      <input type="hidden" id="editRecordId">
       
-      <form id="editForm">
-        <input type="hidden" id="recordId" />
-
+      <div class="form-row">
         <div class="form-group">
-          <label for="codePostal">Code Postal :</label>
-          <input type="text" id="codePostal" name="Code_Postal" placeholder="ex: 93120" />
+          <label>Code Postal :</label>
+          <input type="text" id="editCodePostal">
         </div>
-
         <div class="form-group">
-          <label for="telPrincipal">Téléphone principal :</label>
-          <input type="text" id="telPrincipal" name="Téléphone_Principal" />
+          <label>Ville :</label>
+          <input type="text" id="editVille">
         </div>
+      </div>
 
+      <div class="form-row">
         <div class="form-group">
-          <label for="telSecondaire">Téléphones secondaires :</label>
-          <input type="text" id="telSecondaire" name="Téléphones_Secondaires" />
+          <label>Téléphone Principal :</label>
+          <input type="text" id="editTelPrincipal">
         </div>
-
         <div class="form-group">
-          <label for="commentaire">Commentaire :</label>
-          <textarea id="commentaire" name="Commentaire" rows="3"></textarea>
+          <label>Téléphones Secondaires :</label>
+          <input type="text" id="editTelSecondaire">
         </div>
+      </div>
 
-        <div class="buttons">
-          <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
-          <button type="button" class="btn-save" onclick="saveRecord()">Enregistrer les modifications</button>
-        </div>
-      </form>
+      <div class="form-group">
+        <label>Commentaire :</label>
+        <textarea id="editCommentaire" rows="3"></textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn-primary" onclick="saveRecord()">Enregistrer les modifications</button>
+      </div>
     </div>
   </div>
 
   <script>
-    let currentRecord = null;
+    let allRecords = [];
 
-    // Initialisation Grist API
-    grist.ready({
-      requiredAccess: 'full'
+    grist.ready({ requiredAccess: 'full' });
+
+    grist.onRecords(function(records) {
+      allRecords = records;
+      renderTable(allRecords);
     });
 
-    // Écoute de la sélection/ouverture de fiche dans Grist
-    grist.onRecord(function(record) {
-      currentRecord = record;
-    });
-
-    // Fonction pour ouvrir la modale (au double-clic ou clic sur "Modifier")
-    function openModal(record) {
-      if (!record) record = currentRecord;
-      if (!record) return;
-
-      document.getElementById('recordId').value = record.id;
+    function renderTable(data) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
       
-      // Injection de la valeur du Code Postal
-      document.getElementById('codePostal').value = record.Code_Postal || '';
-      
-      // Injection des autres champs si présents
-      if (document.getElementById('telPrincipal')) {
-        document.getElementById('telPrincipal').value = record.Téléphone_Principal || record.Telephone_Principal || '';
-      }
-      if (document.getElementById('telSecondaire')) {
-        document.getElementById('telSecondaire').value = record.Téléphones_Secondaires || record.Telephones_Secondaires || '';
-      }
-      if (document.getElementById('commentaire')) {
-        document.getElementById('commentaire').value = record.Commentaire || '';
-      }
+      data.forEach(rec => {
+        const tr = document.createElement('tr');
+        tr.ondblclick = () => openModal(rec);
+        
+        tr.innerHTML = `
+          <td>${rec.Nom || ''}</td>
+          <td>${rec.Prénom || rec.Prenom || ''}</td>
+          <td>${rec.Code_Postal || ''}</td>
+          <td>${rec.Ville || ''}</td>
+          <td>${rec.Téléphone_Principal || rec.Telephone_Principal || ''}</td>
+          <td><button class="btn-secondary" onclick="openModalById(${rec.id})">Modifier</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
+    function filterData() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allRecords.filter(r => {
+        const text = `${r.Nom || ''} ${r.Prénom || r.Prenom || ''} ${r.Code_Postal || ''} ${r.Ville || ''}`.toLowerCase();
+        return text.includes(q);
+      });
+      renderTable(filtered);
+    }
+
+    function openModalById(id) {
+      const rec = allRecords.find(r => r.id === id);
+      if (rec) openModal(rec);
+    }
+
+    function openModal(rec) {
+      document.getElementById('editRecordId').value = rec.id;
+      document.getElementById('editCodePostal').value = rec.Code_Postal || '';
+      document.getElementById('editVille').value = rec.Ville || '';
+      document.getElementById('editTelPrincipal').value = rec.Téléphone_Principal || rec.Telephone_Principal || '';
+      document.getElementById('editTelSecondaire').value = rec.Téléphones_Secondaires || rec.Telephones_Secondaires || '';
+      document.getElementById('editCommentaire').value = rec.Commentaire || '';
+      
       document.getElementById('editModal').style.display = 'flex';
     }
 
@@ -139,33 +151,32 @@
       document.getElementById('editModal').style.display = 'none';
     }
 
-    // Sauvegarde vers Grist
     async function saveRecord() {
-      const recId = parseInt(document.getElementById('recordId').value, 10);
-      if (!recId) return;
+      const id = parseInt(document.getElementById('editRecordId').value, 10);
+      if (!id) return;
 
-      // Construction de l'objet de mise à jour avec les ID Python exacts des colonnes
-      const updatedFields = {
-        id: recId,
-        fields: {
-          Code_Postal: document.getElementById('codePostal').value,
-          Commentaire: document.getElementById('commentaire').value
-        }
+      const current = allRecords.find(r => r.id === id) || {};
+
+      const fields = {
+        Code_Postal: document.getElementById('editCodePostal').value,
+        Ville: document.getElementById('editVille').value,
+        Téléphone_Principal: document.getElementById('editTelPrincipal').value,
+        Téléphones_Secondaires: document.getElementById('editTelSecondaire').value,
+        Commentaire: document.getElementById('editCommentaire').value
       };
 
-      // Si vous gérez les Listes de Diffusion Cinéma dans la modale :
-      // Utilisation explicite de l'ID technique Python 'Listes_Diffusion_Cinema' sans accents/espaces
-      if (currentRecord && currentRecord.Listes_Diffusion_Cinema !== undefined) {
-        updatedFields.fields.Listes_Diffusion_Cinema = currentRecord.Listes_Diffusion_Cinema;
+      // Conservation explicite de la colonne avec la bonne clé technique (sans accents / espaces)
+      if (current.Listes_Diffusion_Cinema !== undefined) {
+        fields.Listes_Diffusion_Cinema = current.Listes_Diffusion_Cinema;
       }
 
       try {
         await grist.docApi.applyUserActions([
-          ['UpdateRecord', 'CONTACTS', recId, updatedFields.fields]
+          ['UpdateRecord', 'CONTACTS', id, fields]
         ]);
         closeModal();
-      } catch (err) {
-        alert("Erreur lors de l'enregistrement : " + err.message);
+      } catch (e) {
+        alert("Erreur lors de l'enregistrement : " + e.message);
       }
     }
   </script>
