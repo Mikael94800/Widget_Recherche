@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche & Navigation Contacts</title>
+  <title>Gestion Contacts Grist</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -12,19 +12,23 @@
     .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
     .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
 
-    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-    .filter-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .filter-row, .filter-row-bottom { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
     .checkboxes-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
 
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; }
+    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; transition: border-color 0.2s; }
     input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
+    input.invalid-email { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    input.valid-email { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
+    .email-msg { font-size: 11.5px; margin-top: 2px; font-weight: 600; }
+    .email-msg.error { color: #dc2626; }
+    .email-msg.success { color: #16a34a; }
+
     .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
-    .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
 
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
@@ -39,33 +43,22 @@
     .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
-    .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
-    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-    th.no-sort { cursor: default; }
-    th:hover:not(.no-sort) { background-color: #e5e7eb; }
-    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; }
+    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tr.result-row { cursor: pointer; }
     tr.result-row:hover { background-color: #f0fdf4; }
     tr.selected { background-color: #e6f4ff !important; }
-    tr.checked-row { background-color: #bae0ff !important; font-weight: 500; }
 
     .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-    .btn-action-modifier:hover { background-color: #bae6fd; }
-
-    .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
-
-    .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
-    .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-    .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
+    .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
     .modal-title { font-size: 20px; font-weight: bold; color: #111827; }
-    .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; color: #6b7280; }
+    .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; }
     
     .viewer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
@@ -89,40 +82,28 @@
         <label>Recherche Texte</label>
         <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
-
       <div class="field-group">
         <label>Service (Origine)</label>
-        <select id="filter-service" onchange="appliquerFiltres()">
-          <option value="">-- Tous les services --</option>
-        </select>
+        <select id="filter-service" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
       </div>
-
       <div class="field-group">
         <label>Statut Juridique</label>
-        <select id="filter-statut" onchange="appliquerFiltres()">
-          <option value="">-- Tous les statuts --</option>
-        </select>
+        <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
       </div>
     </div>
 
     <div class="filter-row-bottom">
       <div class="field-group">
         <label>Type de structure</label>
-        <select id="filter-type-structure" onchange="appliquerFiltres()">
-          <option value="">-- Tous les types --</option>
-        </select>
+        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
       </div>
-
       <div class="field-group">
         <label>Fonction / Profession</label>
-        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
+        <input type="text" id="filter-fonction" placeholder="Filtrer..." oninput="appliquerFiltres()">
       </div>
-
       <div class="field-group">
         <label>Domaine d'activités</label>
-        <select id="filter-domaine" onchange="appliquerFiltres()">
-          <option value="">-- Tous les domaines --</option>
-        </select>
+        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
       </div>
     </div>
 
@@ -136,40 +117,29 @@
           <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
         </div>
       </div>
-
       <div class="field-group">
         <label>Diffusion Direction</label>
         <div class="checkbox-group" id="group-direction">
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> PEAC Maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> PEAC Élémentaire</label>
           <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
           <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
-          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
         </div>
       </div>
-
       <div class="field-group">
         <label>Diffusion Houdremont</label>
         <div class="checkbox-group" id="group-houdremont">
           <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
           <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
           <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
         </div>
       </div>
-
       <div class="field-group">
         <label>Diffusion Intervenant</label>
         <div class="checkbox-group" id="group-intervenant">
           <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
           <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
           <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
         </div>
       </div>
     </div>
@@ -184,48 +154,20 @@
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
       <button class="btn-tool" onclick="naviguerTableau(1)">▼ Suivant</button>
-      <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
-      <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
-      <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Ctrl+Clic : multiple | Double-clic : éditer)</i></span>
     </div>
-
     <div class="toolbar-group">
-      <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
-      <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
-      
-      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
-      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
-      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
+      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails</button>
     </div>
   </div>
 
   <div class="table-container">
     <table id="main-table">
-      <colgroup>
-        <col style="width: 120px;">
-        <col style="width: 120px;">
-        <col style="width: 170px;">
-        <col style="width: 120px;">
-        <col style="width: 110px;">
-        <col style="width: 170px;">
-        <col style="width: 45px;">
-        <col style="width: 90px;">
-      </colgroup>
       <thead>
         <tr>
-          <th onclick="trierTableau('NOM')">Nom <span class="sort-icon" id="sort-NOM">↕</span></th>
-          <th onclick="trierTableau('PRENOM')">Prénom <span class="sort-icon" id="sort-PRENOM">↕</span></th>
-          <th onclick="trierTableau('NOM_Structure')">Structure <span class="sort-icon" id="sort-NOM_Structure">↕</span></th>
-          <th onclick="trierTableau('Service')">Service <span class="sort-icon" id="sort-Service">↕</span></th>
-          <th onclick="trierTableau('Ville')">Ville <span class="sort-icon" id="sort-Ville">↕</span></th>
-          <th onclick="trierTableau('EMAIL_PRINCIPAL')">Email <span class="sort-icon" id="sort-EMAIL_PRINCIPAL">↕</span></th>
-          <th class="no-sort" style="text-align: center;"><input type="checkbox" id="select-all" onchange="toutSelectionner(this)" title="Tout sélectionner / Désélectionner"></th>
-          <th class="no-sort">Action</th>
+          <th>Nom</th><th>Prénom</th><th>Structure</th><th>Service</th><th>Ville</th><th>Email</th><th>Action</th>
         </tr>
       </thead>
-      <tbody id="results-table-body">
-      </tbody>
+      <tbody id="results-table-body"></tbody>
     </table>
   </div>
 
@@ -235,8 +177,7 @@
         <span class="modal-title">Modifier la fiche contact</span>
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
-      <div class="viewer-grid" id="modal-content">
-      </div>
+      <div class="viewer-grid" id="modal-content"></div>
       <div class="modal-footer">
         <button class="btn-reset" onclick="fermerModal()">Annuler</button>
         <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
@@ -248,14 +189,28 @@
     let allRecords = [];
     let matchingRecords = [];
     let selectedIndex = 0;
-    let lastClickedIndex = null;
-    let currentFontSize = 15.5;
     let currentEditingRecord = null;
 
-    let sortColumn = null;
-    let sortAscending = true;
-
-    let selectedIds = new Set();
+    // Définition tolérante des alias des colonnes
+    const ALIASES = {
+      NOM: ['NOM', 'Nom'],
+      PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
+      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
+      FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction', 'Fonction_ou_Profession'],
+      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)', 'SERVICE'],
+      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique', 'Statut'],
+      CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP', 'CodePostal'],
+      VILLE: ['Ville', 'VILLE', 'Commune'],
+      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email', 'Email_Principal'],
+      EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires', 'Emails_Secondaires'],
+      TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal', 'Tel_Principal'],
+      TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires', 'Telephones_Secondaires'],
+      DIFF_CINEMA: ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma', 'Diffusion_Cinema', 'Listes_Diffusion_Cinéma'],
+      DIFF_DIRECTION: ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction', 'Diffusion_Direction'],
+      DIFF_HOUDREMONT: ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont', 'Diffusion_Houdremont'],
+      DIFF_INTERVENANT: ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant', 'Diffusion_Intervenant'],
+      COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire', 'Description']
+    };
 
     grist.ready({ requiredAccess: 'full' });
 
@@ -265,12 +220,19 @@
       appliquerFiltres();
     });
 
-    function getVal(rec, keys) {
+    // Extraction robuste de la clé exacte présente dans la donnée Grist
+    function findKey(rec, aliasList) {
+      if (!rec) return aliasList[0];
+      for (let k of aliasList) {
+        if (k in rec) return k;
+      }
+      return aliasList[0];
+    }
+
+    function getVal(rec, aliasList) {
       if (!rec) return "";
-      for (let k of keys) {
-        if (rec[k] !== undefined && rec[k] !== null) {
-          return rec[k];
-        }
+      for (let k of aliasList) {
+        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
       }
       return "";
     }
@@ -279,25 +241,22 @@
       if (!valeur) return "";
       if (typeof valeur === "string") return valeur;
       if (Array.isArray(valeur)) {
-        return valeur.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(", ");
+        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
       }
-      if (typeof valeur === "object") return JSON.stringify(valeur);
+      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
       return String(valeur);
     }
 
     function contientCritere(champData, valeurRecherchee) {
-      const texteChamp = normaliserChaine(champData).toLowerCase();
-      return texteChamp.includes(valeurRecherchee.toLowerCase());
+      return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
     }
 
-    function extraireValeursUniques(cles) {
+    function extraireValeursUniques(aliasList) {
       const valeursSet = new Set();
-      const keysArray = Array.isArray(cles) ? cles : [cles];
       allRecords.forEach(r => {
-        const val = getVal(r, keysArray);
-        if (val !== undefined && val !== null && val !== "") {
-          const texte = normaliserChaine(val);
-          texte.split(/[,;]/).forEach(v => {
+        const val = getVal(r, aliasList);
+        if (val) {
+          normaliserChaine(val).split(/[,;]/).forEach(v => {
             const clean = v.trim();
             if (clean) valeursSet.add(clean);
           });
@@ -307,488 +266,172 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      const services = extraireValeursUniques(['Service']);
-      const selService = document.getElementById('filter-service');
-      const valServiceActuelle = selService.value;
-      selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
-      selService.value = valServiceActuelle;
-
-      const statuts = extraireValeursUniques(['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']);
-      const selStatut = document.getElementById('filter-statut');
-      const valStatutActuelle = selStatut.value;
-      selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
-      selStatut.value = valStatutActuelle;
-
-      const typesStruct = extraireValeursUniques(['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure', 'Type_de_structure']);
-      const selTypeStruct = document.getElementById('filter-type-structure');
-      const valTypeStructActuelle = selTypeStruct.value;
-      selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
-      selTypeStruct.value = valTypeStructActuelle;
-
-      const domaines = extraireValeursUniques(['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites']);
-      const selDomaine = document.getElementById('filter-domaine');
-      const valDomaineActuelle = selDomaine.value;
-      selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
-      selDomaine.value = valDomaineActuelle;
+      const alimenter = (id, alias) => {
+        const sel = document.getElementById(id);
+        const valActuelle = sel.value;
+        const options = extraireValeursUniques(alias);
+        sel.innerHTML = '<option value="">-- Tous --</option>' + options.map(s => `<option value="${s}">${s}</option>`).join('');
+        sel.value = valActuelle;
+      };
+      alimenter('filter-service', ALIASES.SERVICE);
+      alimenter('filter-statut', ALIASES.STATUT);
     }
 
     function appliquerFiltres() {
-      if (!allRecords || allRecords.length === 0) return;
-
+      if (!allRecords.length) return;
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
-      const typeStructFilter = document.getElementById('filter-type-structure').value;
-      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
-      const domaineFilter = document.getElementById('filter-domaine').value;
-
-      const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
-      const directionChecked = Array.from(document.querySelectorAll('#group-direction input:checked')).map(cb => cb.value);
-      const houdremontChecked = Array.from(document.querySelectorAll('#group-houdremont input:checked')).map(cb => cb.value);
-      const intervenantChecked = Array.from(document.querySelectorAll('#group-intervenant input:checked')).map(cb => cb.value);
 
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
-          const champsCibles = [
-            getVal(rec, ['NOM', 'Nom']),
-            getVal(rec, ['PRENOM', 'Prénom', 'Prenom']),
-            getVal(rec, ['NOM_Structure', 'Structure', 'NOM Structure']),
-            getVal(rec, ['Ville']),
-            getVal(rec, ['Code_Postal', 'Code Postal']),
-            getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']),
-            getVal(rec, ['EMAILS_SECONDAIRES', 'Emails Secondaires']),
-            getVal(rec, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']),
-            getVal(rec, ['Telephones_Secondaires', 'Téléphones Secondaires', 'Telephones Secondaires']),
-            getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']),
-            getVal(rec, ['Commentaire_Description', 'Commentaire / Description', 'Commentaire'])
-          ];
-          const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
-          const motsRecherche = textFilter.split(/\s+/);
-          const correspondanceGlobale = motsRecherche.every(mot => texteGlobal.includes(mot));
-          if (!correspondanceGlobale) return false;
+          const texteGlobal = [
+            getVal(rec, ALIASES.NOM), getVal(rec, ALIASES.PRENOM), getVal(rec, ALIASES.STRUCTURE),
+            getVal(rec, ALIASES.VILLE), getVal(rec, ALIASES.EMAIL_PRINCIPAL)
+          ].map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          if (!textFilter.split(/\s+/).every(mot => texteGlobal.includes(mot))) return false;
         }
-
-        if (serviceFilter && !contientCritere(getVal(rec, ['Service']), serviceFilter)) return false;
-        if (statutFilter && !contientCritere(getVal(rec, ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']), statutFilter)) return false;
-        if (domaineFilter && !contientCritere(getVal(rec, ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites']), domaineFilter)) return false;
-
-        if (typeStructFilter) {
-          const valTypeStruct = normaliserChaine(getVal(rec, ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure']));
-          if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
-        }
-
-        if (fonctionFilter) {
-          const valFonction = normaliserChaine(getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']));
-          if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
-        }
-
-        if (cinemaChecked.length > 0) {
-          const valCinema = getVal(rec, ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma', 'Diffusion_Cinema']);
-          const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
-          if (!matchCinema) return false;
-        }
-
-        if (directionChecked.length > 0) {
-          const valDirection = getVal(rec, ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction']);
-          const matchDirection = directionChecked.some(val => contientCritere(valDirection, val));
-          if (!matchDirection) return false;
-        }
-
-        if (houdremontChecked.length > 0) {
-          const valHoudremont = getVal(rec, ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont']);
-          const matchHoudremont = houdremontChecked.some(val => contientCritere(valHoudremont, val));
-          if (!matchHoudremont) return false;
-        }
-
-        if (intervenantChecked.length > 0) {
-          const valIntervenant = getVal(rec, ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant']);
-          const matchIntervenant = intervenantChecked.some(val => contientCritere(valIntervenant, val));
-          if (!matchIntervenant) return false;
-        }
-
+        if (serviceFilter && !contientCritere(getVal(rec, ALIASES.SERVICE), serviceFilter)) return false;
+        if (statutFilter && !contientCritere(getVal(rec, ALIASES.STATUT), statutFilter)) return false;
         return true;
       });
 
-      if (sortColumn) {
-        effectuerTriDonnees();
-      }
-
       document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
-      selectedIndex = 0;
-      lastClickedIndex = null;
       afficherTableau();
-    }
-
-    function trierTableau(colonne) {
-      if (sortColumn === colonne) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = colonne;
-        sortAscending = true;
-      }
-
-      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
-        const elem = document.getElementById(`sort-${col}`);
-        if (elem) {
-          if (col === sortColumn) {
-            elem.innerText = sortAscending ? '▲' : '▼';
-            elem.style.color = '#1677ff';
-          } else {
-            elem.innerText = '↕';
-            elem.style.color = '#6b7280';
-          }
-        }
-      });
-
-      effectuerTriDonnees();
-      afficherTableau();
-    }
-
-    function effectuerTriDonnees() {
-      const fieldMap = {
-        'NOM': ['NOM', 'Nom'],
-        'PRENOM': ['PRENOM', 'Prénom', 'Prenom'],
-        'NOM_Structure': ['NOM_Structure', 'Structure', 'NOM Structure'],
-        'Service': ['Service'],
-        'Ville': ['Ville'],
-        'EMAIL_PRINCIPAL': ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']
-      };
-
-      const keysToUse = fieldMap[sortColumn] || [sortColumn];
-
-      matchingRecords.sort((a, b) => {
-        let valA = normaliserChaine(getVal(a, keysToUse)).toLowerCase();
-        let valB = normaliserChaine(getVal(b, keysToUse)).toLowerCase();
-
-        if (valA < valB) return sortAscending ? -1 : 1;
-        if (valA > valB) return sortAscending ? 1 : -1;
-        return 0;
-      });
     }
 
     function reinitialiserFiltres() {
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
-      document.getElementById('filter-type-structure').value = '';
-      document.getElementById('filter-fonction').value = '';
-      document.getElementById('filter-domaine').value = '';
-      document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
-      
-      sortColumn = null;
-      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
-        const elem = document.getElementById(`sort-${col}`);
-        if (elem) {
-          elem.innerText = '↕';
-          elem.style.color = '#6b7280';
-        }
-      });
-
-      selectedIds.clear();
-      lastClickedIndex = null;
-      majBoutonsSelection();
-
       appliquerFiltres();
     }
 
     function afficherTableau() {
       const tbody = document.getElementById('results-table-body');
       tbody.innerHTML = '';
-
-      const selectAllCb = document.getElementById('select-all');
-      if (selectAllCb) {
-        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
-      }
-
       matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         tr.className = 'result-row';
-        
-        const isChecked = selectedIds.has(rec.id);
-        if (isChecked) tr.classList.add('checked-row');
         if (index === selectedIndex) tr.classList.add('selected');
 
-        const nom = getVal(rec, ['NOM', 'Nom']);
-        const prenom = getVal(rec, ['PRENOM', 'Prénom', 'Prenom']);
-        const struct = getVal(rec, ['NOM_Structure', 'Structure', 'NOM Structure']);
-        const service = getVal(rec, ['Service']);
-        const ville = getVal(rec, ['Ville']);
-        const email = getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']);
-
         tr.innerHTML = `
-          <td>${nom}</td>
-          <td>${prenom}</td>
-          <td>${struct}</td>
-          <td>${normaliserChaine(service)}</td>
-          <td>${ville}</td>
-          <td>${email}</td>
-          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
+          <td>${getVal(rec, ALIASES.NOM)}</td>
+          <td>${getVal(rec, ALIASES.PRENOM)}</td>
+          <td>${getVal(rec, ALIASES.STRUCTURE)}</td>
+          <td>${normaliserChaine(getVal(rec, ALIASES.SERVICE))}</td>
+          <td>${getVal(rec, ALIASES.VILLE)}</td>
+          <td>${getVal(rec, ALIASES.EMAIL_PRINCIPAL)}</td>
           <td><button class="btn-action-modifier">Modifier</button></td>
         `;
 
-        const checkbox = tr.querySelector('.row-checkbox');
-        checkbox.onclick = (e) => {
+        tr.querySelector('.btn-action-modifier').onclick = (e) => {
           e.stopPropagation();
-          gererClicLigne(index, e, true);
-        };
-
-        const btnModif = tr.querySelector('.btn-action-modifier');
-        btnModif.onclick = (e) => {
-          e.stopPropagation();
-          selectedIndex = index;
-          majSelectionGraphique();
           ouvrirModal(rec);
         };
-
-        tr.onclick = (e) => {
-          gererClicLigne(index, e, false);
-        };
-
-        tr.ondblclick = () => {
-          selectedIndex = index;
-          majSelectionGraphique();
-          ouvrirModal(rec);
-        };
-
         tbody.appendChild(tr);
       });
-
-      initialiserRedimensionnementColonnes();
     }
 
-    function gererClicLigne(indexIndex, event, isDirectCheckboxClick) {
-      const recActuel = matchingRecords[indexIndex];
-
-      if (event.shiftKey && lastClickedIndex !== null) {
-        const start = Math.min(lastClickedIndex, indexIndex);
-        const end = Math.max(lastClickedIndex, indexIndex);
-        for (let i = start; i <= end; i++) {
-          selectedIds.add(matchingRecords[i].id);
-        }
-      } else if (event.ctrlKey || event.metaKey) {
-        if (selectedIds.has(recActuel.id)) {
-          selectedIds.delete(recActuel.id);
-        } else {
-          selectedIds.add(recActuel.id);
-        }
-        lastClickedIndex = indexIndex;
-      } else {
-        if (isDirectCheckboxClick) {
-          if (selectedIds.has(recActuel.id)) {
-            selectedIds.delete(recActuel.id);
-          } else {
-            selectedIds.add(recActuel.id);
-          }
-        } else {
-          if (selectedIds.has(recActuel.id)) {
-            selectedIds.delete(recActuel.id);
-          } else {
-            selectedIds.add(recActuel.id);
-          }
-        }
-        lastClickedIndex = indexIndex;
-      }
-
-      selectedIndex = indexIndex;
-      majBoutonsSelection();
-      majRenduTableauApresSelection();
-    }
-
-    function majRenduTableauApresSelection() {
-      const rows = document.querySelectorAll('#results-table-body tr');
-      const selectAllCb = document.getElementById('select-all');
-
-      if (selectAllCb) {
-        selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
-      }
-
-      rows.forEach((row, idx) => {
-        const rec = matchingRecords[idx];
-        const isChecked = selectedIds.has(rec.id);
-        
-        const cb = row.querySelector('.row-checkbox');
-        if (cb) cb.checked = isChecked;
-
-        row.classList.toggle('checked-row', isChecked);
-        row.classList.toggle('selected', idx === selectedIndex);
-      });
-    }
-
-    function majSelectionGraphique() {
-      const rows = document.querySelectorAll('#results-table-body tr');
-      rows.forEach((row, idx) => {
-        row.classList.toggle('selected', idx === selectedIndex);
-      });
-    }
-
-    function toutSelectionner(masterCheckbox) {
-      const isChecked = masterCheckbox.checked;
-      matchingRecords.forEach(r => {
-        if (isChecked) {
-          selectedIds.add(r.id);
-        } else {
-          selectedIds.delete(r.id);
-        }
-      });
-      
-      majBoutonsSelection();
-      majRenduTableauApresSelection();
-    }
-
-    function majBoutonsSelection() {
-      const nbSelect = selectedIds.size;
-      const btnTxt = document.getElementById('btn-export-selected-txt');
-      const btnCsv = document.getElementById('btn-export-selected-csv');
-
-      if (nbSelect > 0) {
-        btnTxt.style.display = 'inline-block';
-        btnCsv.style.display = 'inline-block';
-        btnTxt.innerText = `📩 Exporter mails sélect. TXT (${nbSelect})`;
-        btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${nbSelect})`;
-      } else {
-        btnTxt.style.display = 'none';
-        btnCsv.style.display = 'none';
-      }
-    }
-
-    function naviguerTableau(direction) {
-      if (matchingRecords.length === 0) return;
-      selectedIndex = Math.max(0, Math.min(matchingRecords.length - 1, selectedIndex + direction));
-      majSelectionGraphique();
-      
-      const rows = document.querySelectorAll('#results-table-body tr');
-      if (rows[selectedIndex]) {
-        rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }
-
-    function changerZoom(delta) {
-      currentFontSize = Math.max(12, Math.min(22, currentFontSize + delta));
-      document.querySelector('table').style.fontSize = `${currentFontSize}px`;
-    }
-
-    /* MODALE D'ÉDITION AVEC SUPPORT DES NOMS DE COLONNES AVEC ET SANS ESPACES */
+    /* MODALE DE MODIFICATION AVEC SÉCURISATION DES RÉFÉRENCES, VILLE AUTO & EMAILS */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
 
-      const nom = getVal(rec, ['NOM', 'Nom']);
-      const prenom = getVal(rec, ['PRENOM', 'Prénom', 'Prenom']);
-      const structure = getVal(rec, ['NOM_Structure', 'NOM Structure', 'Structure']);
-      const fonction = getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']);
-      const service = getVal(rec, ['Service']);
-      const statut = getVal(rec, ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']);
-
-      const codePostal = getVal(rec, ['Code_Postal', 'Code Postal']);
-      const ville = getVal(rec, ['Ville']);
-      const emailPrincipal = getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']);
-      const emailsSecondaires = getVal(rec, ['EMAILS_SECONDAIRES', 'Emails Secondaires']);
-      const telPrincipal = getVal(rec, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']);
-      const telsSecondaires = getVal(rec, ['Telephones_Secondaires', 'Téléphones Secondaires', 'Telephones Secondaires']);
-
-      const strCinema = normaliserChaine(getVal(rec, ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma']));
-      const strDirection = normaliserChaine(getVal(rec, ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction']));
-      const strHoudremont = normaliserChaine(getVal(rec, ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont']));
-      const strIntervenant = normaliserChaine(getVal(rec, ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant']));
-
-      const commentaire = getVal(rec, ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']);
-
       container.innerHTML = `
         <div class="modal-section-title">👤 Identité & Structure</div>
-        
-        <div class="viewer-field">
-          <span class="viewer-label">Nom</span>
-          <input type="text" id="edit-nom" value="${nom}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Prénom</span>
-          <input type="text" id="edit-prenom" value="${prenom}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Structure</span>
-          <input type="text" id="edit-structure" value="${structure}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Fonction / Profession</span>
-          <input type="text" id="edit-fonction" value="${fonction}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Service (Origine)</span>
-          <input type="text" id="edit-service" value="${normaliserChaine(service)}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Statut Juridique</span>
-          <input type="text" id="edit-statut" value="${normaliserChaine(statut)}">
-        </div>
+        <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${getVal(rec, ALIASES.NOM)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${getVal(rec, ALIASES.PRENOM)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Structure</span><input type="text" id="edit-structure" value="${getVal(rec, ALIASES.STRUCTURE)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Fonction</span><input type="text" id="edit-fonction" value="${getVal(rec, ALIASES.FONCTION)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Service</span><input type="text" id="edit-service" value="${normaliserChaine(getVal(rec, ALIASES.SERVICE))}"></div>
+        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><input type="text" id="edit-statut" value="${normaliserChaine(getVal(rec, ALIASES.STATUT))}"></div>
 
         <div class="modal-section-title">📍 Adresse & Coordonnées</div>
-
         <div class="viewer-field">
           <span class="viewer-label">Code Postal</span>
-          <input type="text" id="edit-code-postal" value="${codePostal}">
+          <input type="text" id="edit-code-postal" value="${getVal(rec, ALIASES.CODE_POSTAL)}" oninput="chercherVilleParCodePostal(this.value)">
         </div>
-
         <div class="viewer-field">
           <span class="viewer-label">Ville</span>
-          <input type="text" id="edit-ville" value="${ville}">
+          <input type="text" id="edit-ville" value="${getVal(rec, ALIASES.VILLE)}">
         </div>
-
         <div class="viewer-field">
           <span class="viewer-label">Email Principal</span>
-          <input type="text" id="edit-email-principal" value="${emailPrincipal}">
+          <input type="text" id="edit-email-principal" value="${getVal(rec, ALIASES.EMAIL_PRINCIPAL)}" oninput="validerEmailTerrain('edit-email-principal', 'msg-email-principal', false)">
+          <div id="msg-email-principal" class="email-msg"></div>
         </div>
-
         <div class="viewer-field">
           <span class="viewer-label">Emails Secondaires</span>
-          <input type="text" id="edit-emails-secondaires" value="${emailsSecondaires}">
+          <input type="text" id="edit-emails-secondaires" value="${getVal(rec, ALIASES.EMAILS_SECONDAIRES)}" oninput="validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true)">
+          <div id="msg-emails-secondaires" class="email-msg"></div>
         </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Téléphone Principal</span>
-          <input type="text" id="edit-tel-principal" value="${telPrincipal}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Téléphones Secondaires</span>
-          <input type="text" id="edit-tels-secondaires" value="${telsSecondaires}">
-        </div>
+        <div class="viewer-field"><span class="viewer-label">Tél. Principal</span><input type="text" id="edit-tel-principal" value="${getVal(rec, ALIASES.TEL_PRINCIPAL)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Tél. Secondaires</span><input type="text" id="edit-tels-secondaires" value="${getVal(rec, ALIASES.TELS_SECONDAIRES)}"></div>
 
         <div class="modal-section-title">📢 Listes de Diffusion</div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Diffusion Cinéma</span>
-          <input type="text" id="edit-diff-cinema" value="${strCinema}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Diffusion Direction</span>
-          <input type="text" id="edit-diff-direction" value="${strDirection}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Diffusion Houdremont</span>
-          <input type="text" id="edit-diff-houdremont" value="${strHoudremont}">
-        </div>
-
-        <div class="viewer-field">
-          <span class="viewer-label">Diffusion Intervenant</span>
-          <input type="text" id="edit-diff-intervenant" value="${strIntervenant}">
-        </div>
+        <div class="viewer-field"><span class="viewer-label">Diffusion Cinéma</span><input type="text" id="edit-diff-cinema" value="${normaliserChaine(getVal(rec, ALIASES.DIFF_CINEMA))}"></div>
+        <div class="viewer-field"><span class="viewer-label">Diffusion Direction</span><input type="text" id="edit-diff-direction" value="${normaliserChaine(getVal(rec, ALIASES.DIFF_DIRECTION))}"></div>
+        <div class="viewer-field"><span class="viewer-label">Diffusion Houdremont</span><input type="text" id="edit-diff-houdremont" value="${normaliserChaine(getVal(rec, ALIASES.DIFF_HOUDREMONT))}"></div>
+        <div class="viewer-field"><span class="viewer-label">Diffusion Intervenant</span><input type="text" id="edit-diff-intervenant" value="${normaliserChaine(getVal(rec, ALIASES.DIFF_INTERVENANT))}"></div>
 
         <div class="modal-section-title">📝 Remarques</div>
-
-        <div class="viewer-field full">
-          <span class="viewer-label">Commentaire / Description</span>
-          <textarea id="edit-commentaire" rows="3">${commentaire}</textarea>
-        </div>
+        <div class="viewer-field full"><span class="viewer-label">Commentaire</span><textarea id="edit-commentaire" rows="3">${getVal(rec, ALIASES.COMMENTAIRE)}</textarea></div>
       `;
 
       document.getElementById('modal-overlay').style.display = 'flex';
+      validerEmailTerrain('edit-email-principal', 'msg-email-principal', false);
+      validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true);
+    }
+
+    // Auto-complétion automatique de la Ville via l'API Adresse
+    async function chercherVilleParCodePostal(cp) {
+      const codePropre = cp.trim();
+      if (/^\d{5}$/.test(codePropre)) {
+        try {
+          const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${codePropre}&type=municipality&limit=1`);
+          const data = await res.json();
+          if (data.features && data.features.length > 0) {
+            document.getElementById('edit-ville').value = data.features[0].properties.city;
+          }
+        } catch (e) {
+          console.error("Erreur de récupération de la ville:", e);
+        }
+      }
+    }
+
+    // Validation syntaxique des emails
+    function validerEmailTerrain(inputId, msgId, autoriserMultiple) {
+      const input = document.getElementById(inputId);
+      const msg = document.getElementById(msgId);
+      const val = input.value.trim();
+
+      if (!val) {
+        input.className = '';
+        msg.innerText = '';
+        return true;
+      }
+
+      const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      let estValide = true;
+
+      if (autoriserMultiple) {
+        const emails = val.split(/[,;]/).map(e => e.trim()).filter(e => e !== '');
+        estValide = emails.every(e => regexEmail.test(e));
+      } else {
+        estValide = regexEmail.test(val);
+      }
+
+      if (estValide) {
+        input.className = 'valid-email';
+        msg.className = 'email-msg success';
+        msg.innerText = '✓ Format email valide';
+      } else {
+        input.className = 'invalid-email';
+        msg.className = 'email-msg error';
+        msg.innerText = '✕ Adresse email invalide';
+      }
+      return estValide;
     }
 
     function fermerModal(event) {
@@ -797,28 +440,31 @@
       currentEditingRecord = null;
     }
 
-    /* SAUVEGARDE DE LA SÉLECTION AVEC NOMS DE COLONNES AVEC ESPACES */
+    // Sauvegarde en résolvant dynamiquement le vrai nom des colonnes du tableau
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
 
-      const updatedFields = {
-        "NOM": document.getElementById('edit-nom').value,
-        "PRENOM": document.getElementById('edit-prenom').value,
-        "NOM Structure": document.getElementById('edit-structure').value,
-        "Fonction / Profession": document.getElementById('edit-fonction').value,
-        "Code Postal": document.getElementById('edit-code-postal').value,
-        "Ville": document.getElementById('edit-ville').value,
-        "EMAIL PRINCIPAL": document.getElementById('edit-email-principal').value,
-        "EMAILS SECONDAIRES": document.getElementById('edit-emails-secondaires').value,
-        "Téléphone Principal": document.getElementById('edit-tel-principal').value,
-        "Téléphones Secondaires": document.getElementById('edit-tels-secondaires').value,
-        "Commentaire / Description": document.getElementById('edit-commentaire').value,
-        
-        "Listes Diffusion Cinéma": document.getElementById('edit-diff-cinema').value,
-        "Listes Diffusion Direction": document.getElementById('edit-diff-direction').value,
-        "Listes Diffusion Houdremont": document.getElementById('edit-diff-houdremont').value,
-        "Listes Diffusion Intervenant": document.getElementById('edit-diff-intervenant').value
-      };
+      const r = currentEditingRecord;
+      const updatedFields = {};
+
+      updatedFields[findKey(r, ALIASES.NOM)] = document.getElementById('edit-nom').value;
+      updatedFields[findKey(r, ALIASES.PRENOM)] = document.getElementById('edit-prenom').value;
+      updatedFields[findKey(r, ALIASES.STRUCTURE)] = document.getElementById('edit-structure').value;
+      updatedFields[findKey(r, ALIASES.FONCTION)] = document.getElementById('edit-fonction').value;
+      updatedFields[findKey(r, ALIASES.SERVICE)] = document.getElementById('edit-service').value;
+      updatedFields[findKey(r, ALIASES.STATUT)] = document.getElementById('edit-statut').value;
+      updatedFields[findKey(r, ALIASES.CODE_POSTAL)] = document.getElementById('edit-code-postal').value;
+      updatedFields[findKey(r, ALIASES.VILLE)] = document.getElementById('edit-ville').value;
+      updatedFields[findKey(r, ALIASES.EMAIL_PRINCIPAL)] = document.getElementById('edit-email-principal').value;
+      updatedFields[findKey(r, ALIASES.EMAILS_SECONDAIRES)] = document.getElementById('edit-emails-secondaires').value;
+      updatedFields[findKey(r, ALIASES.TEL_PRINCIPAL)] = document.getElementById('edit-tel-principal').value;
+      updatedFields[findKey(r, ALIASES.TELS_SECONDAIRES)] = document.getElementById('edit-tels-secondaires').value;
+      updatedFields[findKey(r, ALIASES.COMMENTAIRE)] = document.getElementById('edit-commentaire').value;
+
+      updatedFields[findKey(r, ALIASES.DIFF_CINEMA)] = document.getElementById('edit-diff-cinema').value;
+      updatedFields[findKey(r, ALIASES.DIFF_DIRECTION)] = document.getElementById('edit-diff-direction').value;
+      updatedFields[findKey(r, ALIASES.DIFF_HOUDREMONT)] = document.getElementById('edit-diff-houdremont').value;
+      updatedFields[findKey(r, ALIASES.DIFF_INTERVENANT)] = document.getElementById('edit-diff-intervenant').value;
 
       try {
         await grist.docApi.applyUserActions([
@@ -832,104 +478,15 @@
     }
 
     function copierEmails() {
-      const emails = matchingRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('; ');
-      if (!emails) {
-        alert('Aucun email disponible dans la liste actuelle.');
-        return;
-      }
-      navigator.clipboard.writeText(emails).then(() => {
-        alert(`${matchingRecords.length} email(s) copié(s) dans le presse-papier.`);
-      });
+      const emails = matchingRecords.map(r => getVal(r, ALIASES.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('; ');
+      if (!emails) return alert('Aucun email disponible.');
+      navigator.clipboard.writeText(emails).then(() => alert(`${matchingRecords.length} email(s) copié(s).`));
     }
 
-    function exporterEmailsTXT() {
-      const emails = matchingRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('\n');
-      telechargerFichier(emails, 'emails_contacts.txt', 'text/plain');
-    }
-
-    function exporterMailsSelectionnesTXT() {
-      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
-      const emails = selectedRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('\n');
-      telechargerFichier(emails, 'emails_selectionnes.txt', 'text/plain');
-    }
-
-    function exporterCSV() {
-      genererEtTelechargerCSV(matchingRecords, 'export_contacts.csv');
-    }
-
-    function exporterFichesSelectionneesCSV() {
-      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
-      genererEtTelechargerCSV(selectedRecords, 'export_contacts_selection.csv');
-    }
-
-    function genererEtTelechargerCSV(recordsList, filename) {
-      if (recordsList.length === 0) {
-        alert('Aucune donnée à exporter.');
-        return;
-      }
-      const headers = ["ID", "Nom", "Prénom", "Structure", "Code Postal", "Ville", "Email Principal", "Téléphone"];
-      const rows = recordsList.map(r => [
-        r.id,
-        `"${(getVal(r, ['NOM', 'Nom']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['PRENOM', 'Prénom', 'Prenom']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['NOM_Structure', 'Structure', 'NOM Structure']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['Code_Postal', 'Code Postal']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['Ville']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']) || '').replace(/"/g, '""')}"`
-      ]);
-
-      const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
-      telechargerFichier(csvContent, filename, 'text/csv;charset=utf-8;');
-    }
-
-    function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob([contenu], { type: typeMime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = nomFichier;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function initialiserRedimensionnementColonnes() {
-      const table = document.getElementById('main-table');
-      const headers = table.querySelectorAll('th');
-
-      headers.forEach(th => {
-        if (th.querySelector('.resizer')) return;
-
-        const resizer = document.createElement('div');
-        resizer.classList.add('resizer');
-        th.appendChild(resizer);
-
-        let x = 0;
-        let w = 0;
-
-        resizer.addEventListener('mousedown', function (e) {
-          e.stopPropagation();
-          x = e.clientX;
-          w = th.offsetWidth;
-          resizer.classList.add('resizing');
-
-          const mouseMoveHandler = function (e) {
-            const dx = e.clientX - x;
-            th.style.width = `${w + dx}px`;
-          };
-
-          const mouseUpHandler = function () {
-            resizer.classList.remove('resizing');
-            document.removeEventListener('mousemove', mouseMoveHandler);
-            document.removeEventListener('mouseup', mouseUpHandler);
-          };
-
-          document.addEventListener('mousemove', mouseMoveHandler);
-          document.addEventListener('mouseup', mouseUpHandler);
-        });
-      });
+    function naviguerTableau(dir) {
+      if (!matchingRecords.length) return;
+      selectedIndex = Math.max(0, Math.min(matchingRecords.length - 1, selectedIndex + dir));
+      afficherTableau();
     }
   </script>
 </body>
