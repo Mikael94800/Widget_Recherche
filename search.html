@@ -47,10 +47,11 @@
     th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
     th.no-sort { cursor: default; }
     th:hover:not(.no-sort) { background-color: #e5e7eb; }
-    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
     tr.result-row { cursor: pointer; }
     tr.result-row:hover { background-color: #f0fdf4; }
-    tr.selected { background-color: #bae0ff !important; font-weight: 600; }
+    tr.selected { background-color: #e6f4ff !important; }
+    tr.checked-row { background-color: #bae0ff !important; font-weight: 500; }
 
     .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-action-modifier:hover { background-color: #bae6fd; }
@@ -190,7 +191,7 @@
       <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
       <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
       <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 14.5px; color: #6b7280; margin-left: 8px;"><i>(Double-clic sur une ligne pour modifier)</i></span>
+      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Ctrl+Clic : multiple | Double-clic : éditer)</i></span>
     </div>
 
     <div class="toolbar-group">
@@ -255,6 +256,7 @@
     let allRecords = [];
     let matchingRecords = [];
     let selectedIndex = 0;
+    let lastClickedIndex = null; // Point d'ancrage pour la sélection Shift + Clic
     let currentFontSize = 15.5;
     let currentEditingId = null;
 
@@ -414,6 +416,7 @@
 
       document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
       selectedIndex = 0;
+      lastClickedIndex = null;
       afficherTableau();
     }
 
@@ -425,7 +428,6 @@
         sortAscending = true;
       }
 
-      // Mettre à jour les icônes
       ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(col => {
         const elem = document.getElementById(`sort-${col}`);
         if (elem) {
@@ -473,6 +475,7 @@
       });
 
       selectedIds.clear();
+      lastClickedIndex = null;
       majBoutonsSelection();
 
       appliquerFiltres();
@@ -490,9 +493,10 @@
       matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         tr.className = 'result-row';
-        if (index === selectedIndex) tr.classList.add('selected');
-
+        
         const isChecked = selectedIds.has(rec.id);
+        if (isChecked) tr.classList.add('checked-row');
+        if (index === selectedIndex) tr.classList.add('selected');
 
         tr.innerHTML = `
           <td>${rec.NOM || ''}</td>
@@ -501,9 +505,15 @@
           <td>${normaliserChaine(rec.Service)}</td>
           <td>${rec.Ville || ''}</td>
           <td>${rec.EMAIL_PRINCIPAL || ''}</td>
-          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); basculerSelectionItem(${rec.id}, this.checked)"></td>
+          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
           <td><button class="btn-action-modifier">Modifier</button></td>
         `;
+
+        const checkbox = tr.querySelector('.row-checkbox');
+        checkbox.onclick = (e) => {
+          e.stopPropagation();
+          gererClicLigne(index, e, true);
+        };
 
         const btnModif = tr.querySelector('.btn-action-modifier');
         btnModif.onclick = (e) => {
@@ -513,9 +523,8 @@
           ouvrirModal(rec);
         };
 
-        tr.onclick = () => {
-          selectedIndex = index;
-          majSelectionGraphique();
+        tr.onclick = (e) => {
+          gererClicLigne(index, e, false);
         };
 
         tr.ondblclick = () => {
@@ -530,18 +539,69 @@
       initialiserRedimensionnementColonnes();
     }
 
-    function basculerSelectionItem(id, isChecked) {
-      if (isChecked) {
-        selectedIds.add(id);
-      } else {
-        selectedIds.delete(id);
-      }
-      majBoutonsSelection();
+    // Gestion intelligente des clics (Style Tableur : Shift / Ctrl)
+    function gererClicLigne(indexIndex, event, isDirectCheckboxClick) {
+      const recActuel = matchingRecords[indexIndex];
 
+      if (event.shiftKey && lastClickedIndex !== null) {
+        // --- SÉLECTION DE PLAGE (SHIFT + CLIC) ---
+        const start = Math.min(lastClickedIndex, indexIndex);
+        const end = Math.max(lastClickedIndex, indexIndex);
+        
+        for (let i = start; i <= end; i++) {
+          selectedIds.add(matchingRecords[i].id);
+        }
+      } else if (event.ctrlKey || event.metaKey) {
+        // --- SÉLECTION MULTIPLE INDIVIDUELLE (CTRL / CMD + CLIC) ---
+        if (selectedIds.has(recActuel.id)) {
+          selectedIds.delete(recActuel.id);
+        } else {
+          selectedIds.add(recActuel.id);
+        }
+        lastClickedIndex = indexIndex;
+      } else {
+        // --- CLIC SIMPLE ---
+        if (isDirectCheckboxClick) {
+          // Si clic direct sur case à cocher, on bascule son état sans effacer le reste
+          if (selectedIds.has(recActuel.id)) {
+            selectedIds.delete(recActuel.id);
+          } else {
+            selectedIds.add(recActuel.id);
+          }
+        } else {
+          // Si clic sur la ligne
+          if (selectedIds.has(recActuel.id)) {
+            selectedIds.delete(recActuel.id);
+          } else {
+            selectedIds.add(recActuel.id);
+          }
+        }
+        lastClickedIndex = indexIndex;
+      }
+
+      selectedIndex = indexIndex;
+      majBoutonsSelection();
+      majRenduTableauApresSelection();
+    }
+
+    function majRenduTableauApresSelection() {
+      const rows = document.querySelectorAll('#results-table-body tr');
       const selectAllCb = document.getElementById('select-all');
+
       if (selectAllCb) {
         selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
       }
+
+      rows.forEach((row, idx) => {
+        const rec = matchingRecords[idx];
+        const isChecked = selectedIds.has(rec.id);
+        
+        const cb = row.querySelector('.row-checkbox');
+        if (cb) cb.checked = isChecked;
+
+        row.classList.toggle('checked-row', isChecked);
+        row.classList.toggle('selected', idx === selectedIndex);
+      });
     }
 
     function toutSelectionner(masterCheckbox) {
@@ -554,8 +614,8 @@
         }
       });
       
-      document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
       majBoutonsSelection();
+      majRenduTableauApresSelection();
     }
 
     function majBoutonsSelection() {
