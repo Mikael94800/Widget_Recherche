@@ -180,7 +180,7 @@
       <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
       <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
       <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Ctrl+Clic : multiple | Double-clic : éditer)</i></span>
+      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Clic case : sélectionner | Double-clic : éditer)</i></span>
     </div>
 
     <div class="toolbar-group">
@@ -247,13 +247,8 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    let referenceTables = {
-      structures: [],
-      services: [],
-      statuts: []
-    };
+    let referenceTables = { structures: [], services: [], statuts: [] };
 
-    // Tolérance accrue sur la casse et le nom exact des colonnes Grist
     const KEYS = {
       NOM: ['NOM', 'Nom'],
       PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
@@ -276,6 +271,13 @@
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
+    const OPTIONS_DIFFUSION = {
+      CINEMA: ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle"],
+      DIRECTION: ["Enseignants maternelle PEAC 26-27", "Enseignants élémentaire PEAC 26-27", "Arts visuels", "Patrimoine & Archives", "Newsletter", "DAC_93"],
+      HOUDREMONT: ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle", "Habitants", "Newsletter"],
+      INTERVENANT: ["Cinéma", "PEAC 26-27", "Patrimoine", "Arts visuels", "Direction", "Arts plastiques"]
+    };
+
     grist.ready({ requiredAccess: 'full' });
 
     grist.onRecords(async function(records) {
@@ -290,18 +292,13 @@
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
         if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
-
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
         if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
-
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
-      } catch(e) {
-        console.warn("Certaines tables annexes n'ont pas pu être lues :", e);
-      }
+      } catch(e) { console.warn(e); }
     }
 
     function getVal(rec, keys) {
@@ -355,7 +352,6 @@
         sel.innerHTML = '<option value="">-- Tous --</option>' + options.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
-
       alimenterSelect('filter-service', extraireValeursUniques(KEYS.SERVICE));
       alimenterSelect('filter-statut', extraireValeursUniques(KEYS.STATUT));
       alimenterSelect('filter-type-structure', extraireValeursUniques(KEYS.TYPE_STRUCT));
@@ -392,7 +388,6 @@
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
         if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
-
         if (typeStructFilter && !normaliserChaine(getVal(rec, KEYS.TYPE_STRUCT)).toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         if (fonctionFilter && !normaliserChaine(getVal(rec, KEYS.FONCTION)).toLowerCase().includes(fonctionFilter)) return false;
 
@@ -405,7 +400,6 @@
       });
 
       if (sortColumn) effectuerTriDonnees();
-
       document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
       selectedIndex = 0;
       afficherTableau();
@@ -483,8 +477,9 @@
 
         tr.querySelector('.row-checkbox').onclick = (e) => { e.stopPropagation(); gererClicLigne(index, e, true); };
         tr.querySelector('.btn-action-modifier').onclick = (e) => { e.stopPropagation(); selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
+        
         tr.onclick = (e) => gererClicLigne(index, e, false);
-        tr.ondblclick = () => { selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
+        tr.ondblclick = (e) => { e.stopPropagation(); selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
 
         tbody.appendChild(tr);
       });
@@ -497,14 +492,14 @@
         const start = Math.min(lastClickedIndex, indexIndex);
         const end = Math.max(lastClickedIndex, indexIndex);
         for (let i = start; i <= end; i++) selectedIds.add(matchingRecords[i].id);
-      } else {
+      } else if (isCheckbox) {
         if (selectedIds.has(rec.id)) selectedIds.delete(rec.id);
         else selectedIds.add(rec.id);
         lastClickedIndex = indexIndex;
       }
       selectedIndex = indexIndex;
       majBoutonsSelection();
-      afficherTableau();
+      majSelectionGraphique();
     }
 
     function majSelectionGraphique() {
@@ -544,7 +539,20 @@
       document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    /* OUVERTURE DE LA MODALE */
+    function genererCheckboxesModale(idGroupe, options, valeursActuelles) {
+      const listeActuelle = normaliserChaine(valeursActuelles).split(/[,;]/).map(s => s.trim().toLowerCase());
+      let html = `<div class="checkbox-group" id="${idGroupe}">`;
+      options.forEach(opt => {
+        const isChecked = listeActuelle.includes(opt.toLowerCase());
+        html += `
+          <label class="checkbox-item">
+            <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
+          </label>`;
+      });
+      html += `</div>`;
+      return html;
+    }
+
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
@@ -599,10 +607,22 @@
         <div class="viewer-field"><span class="viewer-label">Téléphones Secondaires</span><input type="text" id="edit-tels-secondaires" value="${getVal(rec, KEYS.TELS_SECONDAIRES)}"></div>
 
         <div class="modal-section-title">📢 Listes de Diffusion</div>
-        <div class="viewer-field"><span class="viewer-label">Diffusion Cinéma</span><input type="text" id="edit-diff-cinema" value="${normaliserChaine(getVal(rec, KEYS.DIFF_CINEMA))}"></div>
-        <div class="viewer-field"><span class="viewer-label">Diffusion Direction</span><input type="text" id="edit-diff-direction" value="${normaliserChaine(getVal(rec, KEYS.DIFF_DIRECTION))}"></div>
-        <div class="viewer-field"><span class="viewer-label">Diffusion Houdremont</span><input type="text" id="edit-diff-houdremont" value="${normaliserChaine(getVal(rec, KEYS.DIFF_HOUDREMONT))}"></div>
-        <div class="viewer-field"><span class="viewer-label">Diffusion Intervenant</span><input type="text" id="edit-diff-intervenant" value="${normaliserChaine(getVal(rec, KEYS.DIFF_INTERVENANT))}"></div>
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Cinéma</span>
+          ${genererCheckboxesModale('modal-diff-cinema', OPTIONS_DIFFUSION.CINEMA, getVal(rec, KEYS.DIFF_CINEMA))}
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Direction</span>
+          ${genererCheckboxesModale('modal-diff-direction', OPTIONS_DIFFUSION.DIRECTION, getVal(rec, KEYS.DIFF_DIRECTION))}
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Houdremont</span>
+          ${genererCheckboxesModale('modal-diff-houdremont', OPTIONS_DIFFUSION.HOUDREMONT, getVal(rec, KEYS.DIFF_HOUDREMONT))}
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Intervenant</span>
+          ${genererCheckboxesModale('modal-diff-intervenant', OPTIONS_DIFFUSION.INTERVENANT, getVal(rec, KEYS.DIFF_INTERVENANT))}
+        </div>
 
         <div class="modal-section-title">📝 Remarques</div>
         <div class="viewer-field full"><span class="viewer-label">Commentaire / Description</span><textarea id="edit-commentaire" rows="3">${getVal(rec, KEYS.COMMENTAIRE)}</textarea></div>
@@ -622,15 +642,14 @@
           if (data.features && data.features.length > 0) {
             document.getElementById('edit-ville').value = data.features[0].properties.city;
           }
-        } catch (e) {
-          console.error("Erreur de récupération de la ville:", e);
-        }
+        } catch (e) { console.error(e); }
       }
     }
 
     function validerEmailTerrain(inputId, msgId, multiple) {
       const input = document.getElementById(inputId);
       const msg = document.getElementById(msgId);
+      if (!input || !msg) return true;
       const val = input.value.trim();
 
       if (!val) {
@@ -640,14 +659,7 @@
       }
 
       const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      let valide = true;
-
-      if (multiple) {
-        const emails = val.split(/[,;]/).map(e => e.trim()).filter(e => e !== '');
-        valide = emails.every(e => regexEmail.test(e));
-      } else {
-        valide = regexEmail.test(val);
-      }
+      let valide = multiple ? val.split(/[,;]/).map(e => e.trim()).filter(Boolean).every(e => regexEmail.test(e)) : regexEmail.test(val);
 
       if (valide) {
         input.className = 'valid-email';
@@ -667,7 +679,6 @@
       currentEditingRecord = null;
     }
 
-    /* SAUVEGARDE SÉCURISÉE AVEC FORMAT DE LISTE ET DÉTECTION STRICTE DES CLÉS GRIST */
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
       const r = currentEditingRecord;
@@ -695,23 +706,18 @@
       mapSingleField(KEYS.TELS_SECONDAIRES, 'edit-tels-secondaires');
       mapSingleField(KEYS.COMMENTAIRE, 'edit-commentaire');
 
-      // Traitement des listes de diffusion : format ["L", "Option 1", "Option 2"]
-      const mapListField = (aliasList, elementId) => {
+      const mapCheckboxList = (aliasList, groupContainerId) => {
         const exactKey = findExactExistingKey(r, aliasList);
         if (exactKey) {
-          const elem = document.getElementById(elementId);
-          if (elem) {
-            const raw = elem.value || "";
-            const items = raw.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-            updatedFields[exactKey] = ['L', ...items];
-          }
+          const checkedValues = Array.from(document.querySelectorAll(`#${groupContainerId} input:checked`)).map(cb => cb.value);
+          updatedFields[exactKey] = ['L', ...checkedValues];
         }
       };
 
-      mapListField(KEYS.DIFF_CINEMA, 'edit-diff-cinema');
-      mapListField(KEYS.DIFF_DIRECTION, 'edit-diff-direction');
-      mapListField(KEYS.DIFF_HOUDREMONT, 'edit-diff-houdremont');
-      mapListField(KEYS.DIFF_INTERVENANT, 'edit-diff-intervenant');
+      mapCheckboxList(KEYS.DIFF_CINEMA, 'modal-diff-cinema');
+      mapCheckboxList(KEYS.DIFF_DIRECTION, 'modal-diff-direction');
+      mapCheckboxList(KEYS.DIFF_HOUDREMONT, 'modal-diff-houdremont');
+      mapCheckboxList(KEYS.DIFF_INTERVENANT, 'modal-diff-intervenant');
 
       try {
         await grist.docApi.applyUserActions([
