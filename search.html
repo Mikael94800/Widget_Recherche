@@ -61,7 +61,6 @@
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
-    /* MODALE DE MODIFICATION ENRICHIE */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
@@ -79,7 +78,6 @@
 </head>
 <body>
 
-  <!-- CARTE DE RECHERCHE ET FILTRES -->
   <div class="search-card">
     <div class="card-title">
       <span>🔍 Recherche Multi-critères</span>
@@ -182,7 +180,6 @@
     </div>
   </div>
 
-  <!-- TOOLBAR TABLEAU DE RÉSULTATS -->
   <div class="table-toolbar">
     <div class="toolbar-group">
       <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
@@ -203,7 +200,6 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE RÉSULTATS AVEC TRI RÉTABLI -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -233,7 +229,6 @@
     </table>
   </div>
 
-  <!-- MODALE D'ÉDITION DE CONTACT COMPLÈTE ET ENRICHIE -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -270,6 +265,16 @@
       appliquerFiltres();
     });
 
+    function getVal(rec, keys) {
+      if (!rec) return "";
+      for (let k of keys) {
+        if (rec[k] !== undefined && rec[k] !== null) {
+          return rec[k];
+        }
+      }
+      return "";
+    }
+
     function normaliserChaine(valeur) {
       if (!valeur) return "";
       if (typeof valeur === "string") return valeur;
@@ -285,10 +290,11 @@
       return texteChamp.includes(valeurRecherchee.toLowerCase());
     }
 
-    function extraireValeursUniques(cle) {
+    function extraireValeursUniques(cles) {
       const valeursSet = new Set();
+      const keysArray = Array.isArray(cles) ? cles : [cles];
       allRecords.forEach(r => {
-        const val = r[cle];
+        const val = getVal(r, keysArray);
         if (val !== undefined && val !== null && val !== "") {
           const texte = normaliserChaine(val);
           texte.split(/[,;]/).forEach(v => {
@@ -301,25 +307,25 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      const services = extraireValeursUniques('Service');
+      const services = extraireValeursUniques(['Service']);
       const selService = document.getElementById('filter-service');
       const valServiceActuelle = selService.value;
       selService.innerHTML = '<option value="">-- Tous les services --</option>' + services.map(s => `<option value="${s}">${s}</option>`).join('');
       selService.value = valServiceActuelle;
 
-      const statuts = extraireValeursUniques('STATUT_JURIDIQUE');
+      const statuts = extraireValeursUniques(['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']);
       const selStatut = document.getElementById('filter-statut');
       const valStatutActuelle = selStatut.value;
       selStatut.innerHTML = '<option value="">-- Tous les statuts --</option>' + statuts.map(s => `<option value="${s}">${s}</option>`).join('');
       selStatut.value = valStatutActuelle;
 
-      const typesStruct = extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT').length > 0 ? extraireValeursUniques('TYPE_DE_STRUCTURE_CONTACT') : extraireValeursUniques('TYPE_DE_STRUCTURE');
+      const typesStruct = extraireValeursUniques(['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure', 'Type_de_structure']);
       const selTypeStruct = document.getElementById('filter-type-structure');
       const valTypeStructActuelle = selTypeStruct.value;
       selTypeStruct.innerHTML = '<option value="">-- Tous les types --</option>' + typesStruct.map(t => `<option value="${t}">${t}</option>`).join('');
       selTypeStruct.value = valTypeStructActuelle;
 
-      const domaines = extraireValeursUniques('DOMAINE_D_ACTIVITES');
+      const domaines = extraireValeursUniques(['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites']);
       const selDomaine = document.getElementById('filter-domaine');
       const valDomaineActuelle = selDomaine.value;
       selDomaine.innerHTML = '<option value="">-- Tous les domaines --</option>' + domaines.map(d => `<option value="${d}">${d}</option>`).join('');
@@ -344,9 +350,17 @@
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const champsCibles = [
-            rec.NOM, rec.PRENOM, rec.NOM_Structure, rec.Ville, rec.Code_Postal,
-            rec.EMAIL_PRINCIPAL, rec.EMAILS_SECONDAIRES, rec.Telephone_Principal, rec.Telephones_Secondaires,
-            rec.Fonction_Profession, rec.Commentaire_Description
+            getVal(rec, ['NOM', 'Nom']),
+            getVal(rec, ['PRENOM', 'Prénom', 'Prenom']),
+            getVal(rec, ['NOM_Structure', 'Structure', 'NOM Structure']),
+            getVal(rec, ['Ville']),
+            getVal(rec, ['Code_Postal', 'Code Postal']),
+            getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']),
+            getVal(rec, ['EMAILS_SECONDAIRES', 'Emails Secondaires']),
+            getVal(rec, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']),
+            getVal(rec, ['Telephones_Secondaires', 'Téléphones Secondaires', 'Telephones Secondaires']),
+            getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']),
+            getVal(rec, ['Commentaire_Description', 'Commentaire / Description', 'Commentaire'])
           ];
           const texteGlobal = champsCibles.map(c => normaliserChaine(c)).join(' ').toLowerCase();
           const motsRecherche = textFilter.split(/\s+/);
@@ -354,40 +368,40 @@
           if (!correspondanceGlobale) return false;
         }
 
-        if (serviceFilter && !contientCritere(rec.Service, serviceFilter)) return false;
-        if (statutFilter && !contientCritere(rec.STATUT_JURIDIQUE, statutFilter)) return false;
-        if (domaineFilter && !contientCritere(rec.DOMAINE_D_ACTIVITES, domaineFilter)) return false;
+        if (serviceFilter && !contientCritere(getVal(rec, ['Service']), serviceFilter)) return false;
+        if (statutFilter && !contientCritere(getVal(rec, ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']), statutFilter)) return false;
+        if (domaineFilter && !contientCritere(getVal(rec, ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites']), domaineFilter)) return false;
 
         if (typeStructFilter) {
-          const valTypeStruct = normaliserChaine(rec.TYPE_DE_STRUCTURE_CONTACT || rec.TYPE_DE_STRUCTURE);
+          const valTypeStruct = normaliserChaine(getVal(rec, ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure']));
           if (!valTypeStruct.toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         }
 
         if (fonctionFilter) {
-          const valFonction = normaliserChaine(rec.Fonction_Profession);
+          const valFonction = normaliserChaine(getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']));
           if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
         }
 
         if (cinemaChecked.length > 0) {
-          const valCinema = rec.Listes_Diffusion_Cinema || rec['Listes Diffusion Cinéma'];
+          const valCinema = getVal(rec, ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma', 'Diffusion_Cinema']);
           const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
           if (!matchCinema) return false;
         }
 
         if (directionChecked.length > 0) {
-          const valDirection = rec.Listes_Diffusion_Direction;
+          const valDirection = getVal(rec, ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction']);
           const matchDirection = directionChecked.some(val => contientCritere(valDirection, val));
           if (!matchDirection) return false;
         }
 
         if (houdremontChecked.length > 0) {
-          const valHoudremont = rec.Listes_Diffusion_Houdremont;
+          const valHoudremont = getVal(rec, ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont']);
           const matchHoudremont = houdremontChecked.some(val => contientCritere(valHoudremont, val));
           if (!matchHoudremont) return false;
         }
 
         if (intervenantChecked.length > 0) {
-          const valIntervenant = rec.Listes_Diffusion_Intervenant;
+          const valIntervenant = getVal(rec, ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant']);
           const matchIntervenant = intervenantChecked.some(val => contientCritere(valIntervenant, val));
           if (!matchIntervenant) return false;
         }
@@ -431,9 +445,20 @@
     }
 
     function effectuerTriDonnees() {
+      const fieldMap = {
+        'NOM': ['NOM', 'Nom'],
+        'PRENOM': ['PRENOM', 'Prénom', 'Prenom'],
+        'NOM_Structure': ['NOM_Structure', 'Structure', 'NOM Structure'],
+        'Service': ['Service'],
+        'Ville': ['Ville'],
+        'EMAIL_PRINCIPAL': ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']
+      };
+
+      const keysToUse = fieldMap[sortColumn] || [sortColumn];
+
       matchingRecords.sort((a, b) => {
-        let valA = normaliserChaine(a[sortColumn]).toLowerCase();
-        let valB = normaliserChaine(b[sortColumn]).toLowerCase();
+        let valA = normaliserChaine(getVal(a, keysToUse)).toLowerCase();
+        let valB = normaliserChaine(getVal(b, keysToUse)).toLowerCase();
 
         if (valA < valB) return sortAscending ? -1 : 1;
         if (valA > valB) return sortAscending ? 1 : -1;
@@ -483,13 +508,20 @@
         if (isChecked) tr.classList.add('checked-row');
         if (index === selectedIndex) tr.classList.add('selected');
 
+        const nom = getVal(rec, ['NOM', 'Nom']);
+        const prenom = getVal(rec, ['PRENOM', 'Prénom', 'Prenom']);
+        const struct = getVal(rec, ['NOM_Structure', 'Structure', 'NOM Structure']);
+        const service = getVal(rec, ['Service']);
+        const ville = getVal(rec, ['Ville']);
+        const email = getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']);
+
         tr.innerHTML = `
-          <td>${rec.NOM || ''}</td>
-          <td>${rec.PRENOM || ''}</td>
-          <td>${rec.NOM_Structure || ''}</td>
-          <td>${normaliserChaine(rec.Service)}</td>
-          <td>${rec.Ville || ''}</td>
-          <td>${rec.EMAIL_PRINCIPAL || ''}</td>
+          <td>${nom}</td>
+          <td>${prenom}</td>
+          <td>${struct}</td>
+          <td>${normaliserChaine(service)}</td>
+          <td>${ville}</td>
+          <td>${email}</td>
           <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
           <td><button class="btn-action-modifier">Modifier</button></td>
         `;
@@ -635,79 +667,95 @@
       document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    /* MODALE DE MODIFICATION COMPLÈTE & ENRICHIE */
+    /* MODALE D'ÉDITION AVEC SUPPORT DES NOMS DE COLONNES AVEC ET SANS ESPACES */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
-      
-      const strCinema = normaliserChaine(rec.Listes_Diffusion_Cinema || rec['Listes Diffusion Cinéma']);
-      const strDirection = normaliserChaine(rec.Listes_Diffusion_Direction);
-      const strHoudremont = normaliserChaine(rec.Listes_Diffusion_Houdremont);
-      const strIntervenant = normaliserChaine(rec.Listes_Diffusion_Intervenant);
+
+      const nom = getVal(rec, ['NOM', 'Nom']);
+      const prenom = getVal(rec, ['PRENOM', 'Prénom', 'Prenom']);
+      const structure = getVal(rec, ['NOM_Structure', 'NOM Structure', 'Structure']);
+      const fonction = getVal(rec, ['Fonction_Profession', 'Fonction / Profession', 'Fonction']);
+      const service = getVal(rec, ['Service']);
+      const statut = getVal(rec, ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique']);
+
+      const codePostal = getVal(rec, ['Code_Postal', 'Code Postal']);
+      const ville = getVal(rec, ['Ville']);
+      const emailPrincipal = getVal(rec, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']);
+      const emailsSecondaires = getVal(rec, ['EMAILS_SECONDAIRES', 'Emails Secondaires']);
+      const telPrincipal = getVal(rec, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']);
+      const telsSecondaires = getVal(rec, ['Telephones_Secondaires', 'Téléphones Secondaires', 'Telephones Secondaires']);
+
+      const strCinema = normaliserChaine(getVal(rec, ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma']));
+      const strDirection = normaliserChaine(getVal(rec, ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction']));
+      const strHoudremont = normaliserChaine(getVal(rec, ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont']));
+      const strIntervenant = normaliserChaine(getVal(rec, ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant']));
+
+      const commentaire = getVal(rec, ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']);
 
       container.innerHTML = `
         <div class="modal-section-title">👤 Identité & Structure</div>
         
         <div class="viewer-field">
           <span class="viewer-label">Nom</span>
-          <input type="text" id="edit-nom" value="${rec.NOM || ''}">
+          <input type="text" id="edit-nom" value="${nom}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Prénom</span>
-          <input type="text" id="edit-prenom" value="${rec.PRENOM || ''}">
+          <input type="text" id="edit-prenom" value="${prenom}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Structure</span>
-          <input type="text" id="edit-structure" value="${rec.NOM_Structure || ''}">
+          <input type="text" id="edit-structure" value="${structure}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Fonction / Profession</span>
-          <input type="text" id="edit-fonction" value="${rec.Fonction_Profession || ''}">
+          <input type="text" id="edit-fonction" value="${fonction}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Service (Origine)</span>
-          <input type="text" id="edit-service" value="${normaliserChaine(rec.Service)}">
+          <input type="text" id="edit-service" value="${normaliserChaine(service)}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Statut Juridique</span>
-          <input type="text" id="edit-statut" value="${normaliserChaine(rec.STATUT_JURIDIQUE)}">
+          <input type="text" id="edit-statut" value="${normaliserChaine(statut)}">
         </div>
 
         <div class="modal-section-title">📍 Adresse & Coordonnées</div>
 
         <div class="viewer-field">
           <span class="viewer-label">Code Postal</span>
-          <input type="text" id="edit-code-postal" value="${rec.Code_Postal || ''}">
+          <input type="text" id="edit-code-postal" value="${codePostal}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Ville</span>
-          <input type="text" id="edit-ville" value="${rec.Ville || ''}">
+          <input type="text" id="edit-ville" value="${ville}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Email Principal</span>
-          <input type="text" id="edit-email-principal" value="${rec.EMAIL_PRINCIPAL || ''}">
+          <input type="text" id="edit-email-principal" value="${emailPrincipal}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Emails Secondaires</span>
-          <input type="text" id="edit-emails-secondaires" value="${rec.EMAILS_SECONDAIRES || ''}">
+          <input type="text" id="edit-emails-secondaires" value="${emailsSecondaires}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Téléphone Principal</span>
-          <input type="text" id="edit-tel-principal" value="${rec.Telephone_Principal || ''}">
+          <input type="text" id="edit-tel-principal" value="${telPrincipal}">
         </div>
 
         <div class="viewer-field">
           <span class="viewer-label">Téléphones Secondaires</span>
-          <input type="text" id="edit-tels-secondaires" value="${rec.Telephones_Secondaires || ''}">
+          <input type="text" id="edit-tels-secondaires" value="${telsSecondaires}">
         </div>
 
         <div class="modal-section-title">📢 Listes de Diffusion</div>
@@ -736,7 +784,7 @@
 
         <div class="viewer-field full">
           <span class="viewer-label">Commentaire / Description</span>
-          <textarea id="edit-commentaire" rows="3">${rec.Commentaire_Description || ''}</textarea>
+          <textarea id="edit-commentaire" rows="3">${commentaire}</textarea>
         </div>
       `;
 
@@ -749,26 +797,27 @@
       currentEditingRecord = null;
     }
 
+    /* SAUVEGARDE DE LA SÉLECTION AVEC NOMS DE COLONNES AVEC ESPACES */
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
 
       const updatedFields = {
-        NOM: document.getElementById('edit-nom').value,
-        PRENOM: document.getElementById('edit-prenom').value,
-        NOM_Structure: document.getElementById('edit-structure').value,
-        Fonction_Profession: document.getElementById('edit-fonction').value,
-        Code_Postal: document.getElementById('edit-code-postal').value,
-        Ville: document.getElementById('edit-ville').value,
-        EMAIL_PRINCIPAL: document.getElementById('edit-email-principal').value,
-        EMAILS_SECONDAIRES: document.getElementById('edit-emails-secondaires').value,
-        Telephone_Principal: document.getElementById('edit-tel-principal').value,
-        Telephones_Secondaires: document.getElementById('edit-tels-secondaires').value,
-        Commentaire_Description: document.getElementById('edit-commentaire').value,
+        "NOM": document.getElementById('edit-nom').value,
+        "PRENOM": document.getElementById('edit-prenom').value,
+        "NOM Structure": document.getElementById('edit-structure').value,
+        "Fonction / Profession": document.getElementById('edit-fonction').value,
+        "Code Postal": document.getElementById('edit-code-postal').value,
+        "Ville": document.getElementById('edit-ville').value,
+        "EMAIL PRINCIPAL": document.getElementById('edit-email-principal').value,
+        "EMAILS SECONDAIRES": document.getElementById('edit-emails-secondaires').value,
+        "Téléphone Principal": document.getElementById('edit-tel-principal').value,
+        "Téléphones Secondaires": document.getElementById('edit-tels-secondaires').value,
+        "Commentaire / Description": document.getElementById('edit-commentaire').value,
         
-        Listes_Diffusion_Cinema: document.getElementById('edit-diff-cinema').value,
-        Listes_Diffusion_Direction: document.getElementById('edit-diff-direction').value,
-        Listes_Diffusion_Houdremont: document.getElementById('edit-diff-houdremont').value,
-        Listes_Diffusion_Intervenant: document.getElementById('edit-diff-intervenant').value
+        "Listes Diffusion Cinéma": document.getElementById('edit-diff-cinema').value,
+        "Listes Diffusion Direction": document.getElementById('edit-diff-direction').value,
+        "Listes Diffusion Houdremont": document.getElementById('edit-diff-houdremont').value,
+        "Listes Diffusion Intervenant": document.getElementById('edit-diff-intervenant').value
       };
 
       try {
@@ -782,9 +831,8 @@
       }
     }
 
-    /* EXPORTS ET OUTILS DE COPIE */
     function copierEmails() {
-      const emails = matchingRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('; ');
+      const emails = matchingRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('; ');
       if (!emails) {
         alert('Aucun email disponible dans la liste actuelle.');
         return;
@@ -795,13 +843,13 @@
     }
 
     function exporterEmailsTXT() {
-      const emails = matchingRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('\n');
+      const emails = matchingRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('\n');
       telechargerFichier(emails, 'emails_contacts.txt', 'text/plain');
     }
 
     function exporterMailsSelectionnesTXT() {
       const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
-      const emails = selectedRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('\n');
+      const emails = selectedRecords.map(r => getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'])).filter(e => e && e.trim() !== '').join('\n');
       telechargerFichier(emails, 'emails_selectionnes.txt', 'text/plain');
     }
 
@@ -822,13 +870,13 @@
       const headers = ["ID", "Nom", "Prénom", "Structure", "Code Postal", "Ville", "Email Principal", "Téléphone"];
       const rows = recordsList.map(r => [
         r.id,
-        `"${(r.NOM || '').replace(/"/g, '""')}"`,
-        `"${(r.PRENOM || '').replace(/"/g, '""')}"`,
-        `"${(r.NOM_Structure || '').replace(/"/g, '""')}"`,
-        `"${(r.Code_Postal || '').replace(/"/g, '""')}"`,
-        `"${(r.Ville || '').replace(/"/g, '""')}"`,
-        `"${(r.EMAIL_PRINCIPAL || '').replace(/"/g, '""')}"`,
-        `"${(r.Telephone_Principal || '').replace(/"/g, '""')}"`
+        `"${(getVal(r, ['NOM', 'Nom']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['PRENOM', 'Prénom', 'Prenom']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['NOM_Structure', 'Structure', 'NOM Structure']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['Code_Postal', 'Code Postal']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['Ville']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, ['Telephone_Principal', 'Téléphone Principal', 'Telephone Principal']) || '').replace(/"/g, '""')}"`
       ]);
 
       const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
