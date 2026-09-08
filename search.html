@@ -61,9 +61,9 @@
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
 
-    /* MODALE DE MODIFICATION */
+    /* MODALE DE MODIFICATION ENRICHIE */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-    .modal-card { background: #fff; border-radius: 12px; width: 92%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
+    .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
     .modal-title { font-size: 20px; font-weight: bold; color: #111827; }
     .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; color: #6b7280; }
@@ -72,6 +72,8 @@
     .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
     .viewer-field.full { grid-column: span 2; }
     .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+    
+    .modal-section-title { grid-column: span 2; font-size: 15px; font-weight: bold; color: #1f2937; margin-top: 10px; padding-bottom: 4px; border-bottom: 2px solid #e5e7eb; }
     .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
 </head>
@@ -201,7 +203,7 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE RÉSULTATS -->
+  <!-- TABLEAU DE RÉSULTATS AVEC TRI RÉTABLI -->
   <div class="table-container">
     <table id="main-table">
       <colgroup>
@@ -231,11 +233,11 @@
     </table>
   </div>
 
-  <!-- MODALE D'ÉDITION DE CONTACT -->
+  <!-- MODALE D'ÉDITION DE CONTACT COMPLÈTE ET ENRICHIE -->
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title">Modifier le contact</span>
+        <span class="modal-title">Modifier la fiche contact</span>
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content">
@@ -366,7 +368,6 @@
           if (!valFonction.toLowerCase().includes(fonctionFilter)) return false;
         }
 
-        // Correction de la clé technique pour éviter la rupture du widget
         if (cinemaChecked.length > 0) {
           const valCinema = rec.Listes_Diffusion_Cinema || rec['Listes Diffusion Cinéma'];
           const matchCinema = cinemaChecked.some(val => contientCritere(valCinema, val));
@@ -634,12 +635,19 @@
       document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    /* MODALE AVEC AJOUT CODE POSTAL & CLÉ CINÉMA CORRECTE */
+    /* MODALE DE MODIFICATION COMPLÈTE & ENRICHIE */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
       
+      const strCinema = normaliserChaine(rec.Listes_Diffusion_Cinema || rec['Listes Diffusion Cinéma']);
+      const strDirection = normaliserChaine(rec.Listes_Diffusion_Direction);
+      const strHoudremont = normaliserChaine(rec.Listes_Diffusion_Houdremont);
+      const strIntervenant = normaliserChaine(rec.Listes_Diffusion_Intervenant);
+
       container.innerHTML = `
+        <div class="modal-section-title">👤 Identité & Structure</div>
+        
         <div class="viewer-field">
           <span class="viewer-label">Nom</span>
           <input type="text" id="edit-nom" value="${rec.NOM || ''}">
@@ -654,6 +662,23 @@
           <span class="viewer-label">Structure</span>
           <input type="text" id="edit-structure" value="${rec.NOM_Structure || ''}">
         </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Fonction / Profession</span>
+          <input type="text" id="edit-fonction" value="${rec.Fonction_Profession || ''}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Service (Origine)</span>
+          <input type="text" id="edit-service" value="${normaliserChaine(rec.Service)}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Statut Juridique</span>
+          <input type="text" id="edit-statut" value="${normaliserChaine(rec.STATUT_JURIDIQUE)}">
+        </div>
+
+        <div class="modal-section-title">📍 Adresse & Coordonnées</div>
 
         <div class="viewer-field">
           <span class="viewer-label">Code Postal</span>
@@ -671,9 +696,43 @@
         </div>
 
         <div class="viewer-field">
+          <span class="viewer-label">Emails Secondaires</span>
+          <input type="text" id="edit-emails-secondaires" value="${rec.EMAILS_SECONDAIRES || ''}">
+        </div>
+
+        <div class="viewer-field">
           <span class="viewer-label">Téléphone Principal</span>
           <input type="text" id="edit-tel-principal" value="${rec.Telephone_Principal || ''}">
         </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Téléphones Secondaires</span>
+          <input type="text" id="edit-tels-secondaires" value="${rec.Telephones_Secondaires || ''}">
+        </div>
+
+        <div class="modal-section-title">📢 Listes de Diffusion</div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Cinéma</span>
+          <input type="text" id="edit-diff-cinema" value="${strCinema}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Direction</span>
+          <input type="text" id="edit-diff-direction" value="${strDirection}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Houdremont</span>
+          <input type="text" id="edit-diff-houdremont" value="${strHoudremont}">
+        </div>
+
+        <div class="viewer-field">
+          <span class="viewer-label">Diffusion Intervenant</span>
+          <input type="text" id="edit-diff-intervenant" value="${strIntervenant}">
+        </div>
+
+        <div class="modal-section-title">📝 Remarques</div>
 
         <div class="viewer-field full">
           <span class="viewer-label">Commentaire / Description</span>
@@ -697,18 +756,20 @@
         NOM: document.getElementById('edit-nom').value,
         PRENOM: document.getElementById('edit-prenom').value,
         NOM_Structure: document.getElementById('edit-structure').value,
+        Fonction_Profession: document.getElementById('edit-fonction').value,
         Code_Postal: document.getElementById('edit-code-postal').value,
         Ville: document.getElementById('edit-ville').value,
         EMAIL_PRINCIPAL: document.getElementById('edit-email-principal').value,
+        EMAILS_SECONDAIRES: document.getElementById('edit-emails-secondaires').value,
         Telephone_Principal: document.getElementById('edit-tel-principal').value,
-        Commentaire_Description: document.getElementById('edit-commentaire').value
+        Telephones_Secondaires: document.getElementById('edit-tels-secondaires').value,
+        Commentaire_Description: document.getElementById('edit-commentaire').value,
+        
+        Listes_Diffusion_Cinema: document.getElementById('edit-diff-cinema').value,
+        Listes_Diffusion_Direction: document.getElementById('edit-diff-direction').value,
+        Listes_Diffusion_Houdremont: document.getElementById('edit-diff-houdremont').value,
+        Listes_Diffusion_Intervenant: document.getElementById('edit-diff-intervenant').value
       };
-
-      // Conservation de la clé technique 'Listes_Diffusion_Cinema' sans espaces pour préserver le widget de création
-      const cinemaVal = currentEditingRecord.Listes_Diffusion_Cinema || currentEditingRecord['Listes Diffusion Cinéma'];
-      if (cinemaVal !== undefined) {
-        updatedFields.Listes_Diffusion_Cinema = cinemaVal;
-      }
 
       try {
         await grist.docApi.applyUserActions([
@@ -721,7 +782,7 @@
       }
     }
 
-    /* EXPORTS ET OUTILS */
+    /* EXPORTS ET OUTILS DE COPIE */
     function copierEmails() {
       const emails = matchingRecords.map(r => r.EMAIL_PRINCIPAL).filter(e => e && e.trim() !== '').join('; ');
       if (!emails) {
