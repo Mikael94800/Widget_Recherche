@@ -30,7 +30,7 @@
     
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 199px; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
     
     .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
     .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -194,7 +194,6 @@
     let sortColumn = null;
     let sortAscending = true;
     let selectedIds = new Set();
-    let mappedEtiquetteColumnKey = null;
 
     const KEYS = {
       NOM: ['NOM', 'Nom'],
@@ -211,23 +210,11 @@
       EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires'],
       TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Tel_Principal'],
       TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires'],
-      ETIQUETTES: ['Etiquettes', 'ETIQUETTES', 'Listes_Diffusion', 'Listes_Diffusion_Cinema', 'Listes_Diffusion_Direction', 'Listes_Diffusion_Houdremont', 'Listes_Diffusion_Intervenant'],
+      ETIQUETTES: ['Etiquettes', 'ETIQUETTES', 'Listes_Diffusion', 'Listes_Diffusion_Cinema', 'Listes_Diffusion_Direction', 'Listes_Diffusion_Houdremont', 'Listes_Diffusion_Intervenant', 'Listes_Diffusion_Intervenants'],
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
-    // Configuration native Grist avec colonne Etiquettes optionnelle pour la déclaration
-    grist.ready({
-      requiredAccess: 'full',
-      columns: [
-        { name: 'Etiquettes', title: 'Listes de diffusion', type: 'ChoiceList', optional: true }
-      ]
-    });
-
-    grist.onOptions((options, interaction) => {
-      if (interaction && interaction.columns) {
-        mappedEtiquetteColumnKey = interaction.columns.Etiquettes || null;
-      }
-    });
+    grist.ready({ requiredAccess: 'full' });
 
     grist.onRecords(function(records) {
       allRecords = records;
@@ -237,20 +224,19 @@
 
     function getVal(rec, keys) {
       if (!rec) return "";
-      if (mappedEtiquetteColumnKey && keys === KEYS.ETIQUETTES && rec[mappedEtiquetteColumnKey] !== undefined) {
-        return rec[mappedEtiquetteColumnKey];
-      }
+      let values = [];
       for (let k of keys) {
-        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+        if (rec[k] !== undefined && rec[k] !== null) {
+          values.push(rec[k]);
+        }
       }
-      return "";
+      if (values.length === 0) return "";
+      if (values.length === 1) return values[0];
+      return values;
     }
 
     function findExactExistingKey(rec, keys) {
       if (!rec) return null;
-      if (mappedEtiquetteColumnKey && keys === KEYS.ETIQUETTES && mappedEtiquetteColumnKey in rec) {
-        return mappedEtiquetteColumnKey;
-      }
       for (let k of keys) {
         if (k in rec) return k;
       }
@@ -261,7 +247,11 @@
       if (!valeur) return "";
       if (typeof valeur === "string") return valeur;
       if (Array.isArray(valeur)) {
-        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? '' : String(v))).filter(Boolean).join(", ");
+        return valeur.map(v => {
+          if (typeof v === 'object' && v !== null && v.L) return v.L;
+          if (typeof v === 'object' && v !== null && v.name) return v.name;
+          return (typeof v === 'object') ? '' : String(v);
+        }).filter(Boolean).join(", ");
       }
       if (typeof valeur === "object") {
         if (valeur.L) return Array.isArray(valeur.L) ? valeur.L.join(", ") : String(valeur.L);
@@ -281,7 +271,9 @@
         if (val) {
           normaliserChaine(val).split(/[,;]/).forEach(v => {
             const clean = v.trim();
-            if (clean) valeursSet.add(clean);
+            if (clean && clean !== 'NONETYPE' && !clean.includes('NONETYPE')) {
+              valeursSet.add(clean);
+            }
           });
         }
       });
