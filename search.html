@@ -9,7 +9,7 @@
     body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; display: flex; flex-direction: column; height: 100vh; }
     
     .search-card { background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
     
@@ -71,6 +71,30 @@
       <div class="field-group">
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="field-group">
+        <label>Domaine d'activités</label>
+        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Type de structure</label>
+        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Profession / Fonction</label>
+        <input type="text" id="filter-profession" placeholder="Filtrer par profession..." oninput="appliquerFiltres()">
+      </div>
+    </div>
+    <div class="filter-row" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="field-group">
+        <label>Code Postal</label>
+        <input type="text" id="filter-cp" placeholder="Filtrer par CP..." oninput="appliquerFiltres()">
+      </div>
+      <div class="field-group">
+        <label>Ville</label>
+        <input type="text" id="filter-ville" placeholder="Filtrer par ville..." oninput="appliquerFiltres()">
       </div>
     </div>
     <div class="diffusion-section">
@@ -325,6 +349,8 @@
       
       alimenterSelectFilter('filter-service', referenceTables.services);
       alimenterSelectFilter('filter-statut', referenceTables.statuts);
+      alimenterSelectFilter('filter-domaine', referenceTables.domaines);
+      alimenterSelectFilter('filter-type-structure', referenceTables.typesStructure);
     }
 
     function alimenterSelectUnique(id, optionsRef, valeurActuelle) {
@@ -340,12 +366,19 @@
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
+      const domaineFilter = document.getElementById('filter-domaine').value;
+      const typeStructFilter = document.getElementById('filter-type-structure').value;
+      const professionFilter = document.getElementById('filter-profession').value.toLowerCase().trim();
+      const cpFilter = document.getElementById('filter-cp').value.toLowerCase().trim();
+      const villeFilter = document.getElementById('filter-ville').value.toLowerCase().trim();
+
       const selectedDiffusions = {};
       document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
         const groupe = chk.getAttribute('data-groupe');
         if (!selectedDiffusions[groupe]) selectedDiffusions[groupe] = [];
         selectedDiffusions[groupe].push(chk.value);
       });
+
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const textGlobal = [
@@ -356,6 +389,12 @@
         }
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
+        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
+        if (typeStructFilter && !contientCritere(getVal(rec, KEYS.TYPE_STRUCTURE), typeStructFilter)) return false;
+        if (professionFilter && !contientCritere(getVal(rec, KEYS.FONCTION), professionFilter)) return false;
+        if (cpFilter && !contientCritere(getVal(rec, KEYS.CODE_POSTAL), cpFilter)) return false;
+        if (villeFilter && !contientCritere(getVal(rec, KEYS.VILLE), villeFilter)) return false;
+
         for (const [groupe, valeursCochees] of Object.entries(selectedDiffusions)) {
           if (valeursCochees.length > 0) {
             const colKey = KEYS.DIFFUSION_CONTACTS[groupe];
@@ -373,6 +412,11 @@
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-domaine').value = '';
+      document.getElementById('filter-type-structure').value = '';
+      document.getElementById('filter-profession').value = '';
+      document.getElementById('filter-cp').value = '';
+      document.getElementById('filter-ville').value = '';
       document.querySelectorAll('.diffusion-box input[type="checkbox"]').forEach(chk => chk.checked = false);
       appliquerFiltres();
     }
@@ -535,7 +579,6 @@
         </div>
       `;
 
-      // Remplissage des quatre listes déroulantes uniformes
       alimenterSelectUnique('edit-service', referenceTables.services, valService);
       alimenterSelectUnique('edit-statut', referenceTables.statuts, valStatut);
       alimenterSelectUnique('edit-domaine', referenceTables.domaines, valDomaine);
@@ -657,7 +700,6 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      // Enregistrement des quatre champs fermés via les listes déroulantes unifiées
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
