@@ -24,7 +24,7 @@
     .email-msg { font-size: 11.5px; margin-top: 2px; font-weight: 600; }
     .email-msg.error { color: #dc2626; }
     .email-msg.success { color: #16a34a; }
-    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
     .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
@@ -108,45 +108,19 @@
     <div class="checkboxes-container">
       <div class="field-group">
         <label>Diffusion Cinéma</label>
-        <div class="checkbox-group" id="group-cinema">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
-        </div>
+        <div class="checkbox-group" id="group-cinema"></div>
       </div>
       <div class="field-group">
         <label>Diffusion Direction</label>
-        <div class="checkbox-group" id="group-direction">
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
-          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
-        </div>
+        <div class="checkbox-group" id="group-direction"></div>
       </div>
       <div class="field-group">
         <label>Diffusion Houdremont</label>
-        <div class="checkbox-group" id="group-houdremont">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
-          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
-        </div>
+        <div class="checkbox-group" id="group-houdremont"></div>
       </div>
       <div class="field-group">
         <label>Diffusion Intervenant</label>
-        <div class="checkbox-group" id="group-intervenant">
-          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
-          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
-        </div>
+        <div class="checkbox-group" id="group-intervenant"></div>
       </div>
     </div>
     <div class="actions">
@@ -224,6 +198,14 @@
     let selectedIds = new Set();
     let referenceTables = { structures: [], services: [], statuts: [] };
     
+    // Listes dynamiques récupérées depuis ETIQUETTES ou CONTACTS
+    let optionsDiffusionDynamiques = {
+      CINEMA: [],
+      DIRECTION: [],
+      HOUDREMONT: [],
+      INTERVENANT: []
+    };
+    
     const KEYS = {
       NOM: ['NOM', 'Nom'],
       PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
@@ -245,20 +227,15 @@
       DIFF_INTERVENANT: ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant', 'Diffusion_Intervenant'],
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
-    
-    const OPTIONS_DIFFUSION = {
-      CINEMA: ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle"],
-      DIRECTION: ["Enseignants maternelle PEAC 26-27", "Enseignants élémentaire PEAC 26-27", "Arts visuels", "Patrimoine & Archives", "Newsletter", "DAC_93"],
-      HOUDREMONT: ["Crèche", "Enfance & Jeunesse", "Enseignant élémentaire", "Enseignant maternelle", "Habitants", "Newsletter"],
-      INTERVENANT: ["Cinéma", "PEAC 26-27", "Patrimoine", "Arts visuels", "Direction", "Arts plastiques"]
-    };
 
     grist.ready({ requiredAccess: 'full' });
     
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
+      await chargerEtiquettesEtListes();
       peuplerListesDeroulantesFiltres();
+      construireCasesACocherDiffusion();
       appliquerFiltres();
     });
 
@@ -274,6 +251,72 @@
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
       } catch(e) { console.warn(e); }
+    }
+
+    async function chargerEtiquettesEtListes() {
+      // 1. Tente de charger depuis une table dédiée ETIQUETTES si elle existe
+      try {
+        const tEtiquettes = await grist.docApi.fetchTable('ETIQUETTES') || await grist.docApi.fetchTable('Etiquettes');
+        if (tEtiquettes) {
+          // Analyse par catégorie si la table contient des colonnes de type Categorie / Nom
+          const noms = tEtiquettes.Nom || tEtiquettes.NOM || tEtiquettes.Libelle || [];
+          const categories = tEtiquettes.Categorie || tEtiquettes.CATEGORIE || tEtiquettes.Type || [];
+          
+          let cSet = new Set(), dSet = new Set(), hSet = new Set(), iSet = new Set();
+          for (let i = 0; i < noms.length; i++) {
+            const nom = normaliserChaine(noms[i]);
+            const cat = normaliserChaine(categories[i]).toLowerCase();
+            if (!nom) continue;
+            if (cat.includes('cinema') || cat.includes('cinéma')) cSet.add(nom);
+            else if (cat.includes('direction')) dSet.add(nom);
+            else if (cat.includes('houdremont')) hSet.add(nom);
+            else if (cat.includes('intervenant')) iSet.add(nom);
+          }
+          if (cSet.size || dSet.size || hSet.size || iSet.size) {
+            optionsDiffusionDynamiques.CINEMA = Array.from(cSet).sort();
+            optionsDiffusionDynamiques.DIRECTION = Array.from(dSet).sort();
+            optionsDiffusionDynamiques.HOUDREMONT = Array.from(hSet).sort();
+            optionsDiffusionDynamiques.INTERVENANT = Array.from(iSet).sort();
+            return;
+          }
+        }
+      } catch(e) { /* Table ETIQUETTES optionnelle absente ou structurée différemment */ }
+
+      // 2. Fallback : Extraction dynamique à partir des données existantes dans CONTACTS (comme le module de création)
+      const extraireDepuisContacts = (cles) => {
+        const setVals = new Set();
+        allRecords.forEach(r => {
+          const val = getVal(r, cles);
+          if (val) {
+            normaliserChaine(val).split(/[,;]/).forEach(v => {
+              const clean = v.trim();
+              if (clean) setVals.add(clean);
+            });
+          }
+        });
+        return Array.from(setVals).sort();
+      };
+
+      optionsDiffusionDynamiques.CINEMA = extraireDepuisContacts(KEYS.DIFF_CINEMA);
+      optionsDiffusionDynamiques.DIRECTION = extraireDepuisContacts(KEYS.DIFF_DIRECTION);
+      optionsDiffusionDynamiques.HOUDREMONT = extraireDepuisContacts(KEYS.DIFF_HOUDREMONT);
+      optionsDiffusionDynamiques.INTERVENANT = extraireDepuisContacts(KEYS.DIFF_INTERVENANT);
+    }
+
+    function construireCasesACocherDiffusion() {
+      const peuplerGroupe = (containerId, options) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = options.map(opt => `
+          <label class="checkbox-item">
+            <input type="checkbox" value="${opt}" onchange="appliquerFiltres()"> ${opt}
+          </label>
+        `).join('');
+      };
+      peuplerGroupe('group-cinema', optionsDiffusionDynamiques.CINEMA);
+      peuplerGroupe('group-direction', optionsDiffusionDynamiques.DIRECTION);
+      peuplerGroupe('group-houdremont', optionsDiffusionDynamiques.HOUDREMONT);
+      peuplerGroupe('group-intervenant', optionsDiffusionDynamiques.INTERVENANT);
     }
 
     function getVal(rec, keys) {
@@ -569,19 +612,19 @@
         <div class="modal-section-title">📢 Listes de Diffusion</div>
         <div class="viewer-field">
           <span class="viewer-label">Diffusion Cinéma</span>
-          ${genererCheckboxesModale('modal-diff-cinema', OPTIONS_DIFFUSION.CINEMA, getVal(rec, KEYS.DIFF_CINEMA))}
+          ${genererCheckboxesModale('modal-diff-cinema', optionsDiffusionDynamiques.CINEMA, getVal(rec, KEYS.DIFF_CINEMA))}
         </div>
         <div class="viewer-field">
           <span class="viewer-label">Diffusion Direction</span>
-          ${genererCheckboxesModale('modal-diff-direction', OPTIONS_DIFFUSION.DIRECTION, getVal(rec, KEYS.DIFF_DIRECTION))}
+          ${genererCheckboxesModale('modal-diff-direction', optionsDiffusionDynamiques.DIRECTION, getVal(rec, KEYS.DIFF_DIRECTION))}
         </div>
         <div class="viewer-field">
           <span class="viewer-label">Diffusion Houdremont</span>
-          ${genererCheckboxesModale('modal-diff-houdremont', OPTIONS_DIFFUSION.HOUDREMONT, getVal(rec, KEYS.DIFF_HOUDREMONT))}
+          ${genererCheckboxesModale('modal-diff-houdremont', optionsDiffusionDynamiques.HOUDREMONT, getVal(rec, KEYS.DIFF_HOUDREMONT))}
         </div>
         <div class="viewer-field">
           <span class="viewer-label">Diffusion Intervenant</span>
-          ${genererCheckboxesModale('modal-diff-intervenant', OPTIONS_DIFFUSION.INTERVENANT, getVal(rec, KEYS.DIFF_INTERVENANT))}
+          ${genererCheckboxesModale('modal-diff-intervenant', optionsDiffusionDynamiques.INTERVENANT, getVal(rec, KEYS.DIFF_INTERVENANT))}
         </div>
         
         <div class="modal-section-title">📝 Remarques</div>
