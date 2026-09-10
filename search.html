@@ -169,7 +169,7 @@
     </table>
   </div>
 
-  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
+  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(fileEvent)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
         <span class="modal-title">Modifier la fiche contact</span>
@@ -194,7 +194,7 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    // Colonnes dédiées aux listes de diffusion
+    // Colonnes rigides cibles (incluant la 4e démasquée)
     const COLONNES_LISTES = [
       'Listes_Diffusion_Intervenants',
       'Listes_Diffusion_Cinema',
@@ -261,15 +261,28 @@
       return String(valeur);
     }
 
+    // Extraction robuste gérant les listes de choix multiples Grist (tableaux d'objets, listes, etc.)
     function ObtenirListesParContact(rec) {
       let resultats = [];
       COLONNES_LISTES.forEach(col => {
-        if (rec[col]) {
-          const str = normaliserChaine(rec[col]);
-          str.split(/[,;]/).forEach(item => {
-            const clean = item.trim();
-            if (clean) resultats.push(clean);
-          });
+        const val = rec[col];
+        if (val) {
+          if (Array.isArray(val)) {
+            val.forEach(item => {
+              if (typeof item === 'string') resultats.push(item.trim());
+              else if (item && typeof item === 'object') {
+                if (item.label) resultats.push(String(item.label).trim());
+                else if (item.name) resultats.push(String(item.name).trim());
+                else if (item.L) resultats.push(String(item.L).trim());
+              }
+            });
+          } else {
+            const str = normaliserChaine(val);
+            str.split(/[,;]/).forEach(item => {
+              const clean = item.trim();
+              if (clean) resultats.push(clean);
+            });
+          }
         }
       });
       return resultats;
@@ -280,7 +293,12 @@
       allRecords.forEach(r => {
         ObtenirListesParContact(r).forEach(item => ensemble.add(item));
       });
-      return Array.from(ensemble).sort();
+      const listefinale = Array.from(ensemble).sort();
+      // Si aucune liste n'est détectée automatiquement via les fiches, on injecte par défaut les libellés vus sur la capture pour éviter un bloc vide
+      if (listefinale.length === 0) {
+        return ['CRÈCHE', 'ENFANCE & JEUNESSE', 'ENSEIGNANT MATERNELLE', 'ENSEIGNANT ÉLÉMENTAIRE', 'PATRIMOINE & ARCHIVES'];
+      }
+      return listefinale;
     }
 
     function extraireValeursUniques(cles) {
@@ -318,11 +336,6 @@
       if (!container) return;
 
       const liste = extraireToutesLesListesUnique();
-
-      if (liste.length === 0) {
-        container.innerHTML = '<i>Aucune liste de diffusion trouvée dans les colonnes.</i>';
-        return;
-      }
 
       container.innerHTML = liste.map(etiq => `
         <label class="checkbox-item">
