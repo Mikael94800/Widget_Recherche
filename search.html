@@ -169,7 +169,7 @@
     </table>
   </div>
 
-  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(fileEvent)">
+  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
         <span class="modal-title">Modifier la fiche contact</span>
@@ -194,7 +194,6 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    // Colonnes rigides cibles (incluant la 4e démasquée)
     const COLONNES_LISTES = [
       'Listes_Diffusion_Intervenants',
       'Listes_Diffusion_Cinema',
@@ -261,7 +260,6 @@
       return String(valeur);
     }
 
-    // Extraction robuste gérant les listes de choix multiples Grist (tableaux d'objets, listes, etc.)
     function ObtenirListesParContact(rec) {
       let resultats = [];
       COLONNES_LISTES.forEach(col => {
@@ -294,7 +292,6 @@
         ObtenirListesParContact(r).forEach(item => ensemble.add(item));
       });
       const listefinale = Array.from(ensemble).sort();
-      // Si aucune liste n'est détectée automatiquement via les fiches, on injecte par défaut les libellés vus sur la capture pour éviter un bloc vide
       if (listefinale.length === 0) {
         return ['CRÈCHE', 'ENFANCE & JEUNESSE', 'ENSEIGNANT MATERNELLE', 'ENSEIGNANT ÉLÉMENTAIRE', 'PATRIMOINE & ARCHIVES'];
       }
