@@ -2,552 +2,289 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche de contacts</title>
+  <title>Gestion Contacts Grist</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 15px;
-      background-color: #f8f9fa;
-      color: #333;
-      font-size: 13px;
-    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 15.5px; }
     
-    .filter-panel {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+    .search-card { background: #ffffff; border-radius: 10px; padding: 20px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 20px; }
+    .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+    .filter-row, .filter-row-bottom { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #eee;
-    }
+    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; transition: all 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
-    .panel-title {
-      font-weight: bold;
-      font-size: 16px;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    input.invalid-email { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    input.valid-email { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
+    .email-msg { font-size: 11.5px; margin-top: 2px; font-weight: 600; }
+    .email-msg.error { color: #dc2626; }
+    .email-msg.success { color: #16a34a; }
+    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
+    .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
+    .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
+    .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
+    .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     
-    .grid-filters {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 15px;
-    }
+    .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
+    .btn-tool:hover { background: #e5e7eb; }
     
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
+    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    th.no-sort { cursor: default; }
+    th:hover:not(.no-sort) { background-color: #e5e7eb; }
+    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+    tr.result-row { cursor: pointer; }
+    tr.result-row:hover { background-color: #f0fdf4; }
+    tr.selected { background-color: #e6f4ff !important; }
+    tr.checked-row { background-color: #bae0ff !important; font-weight: 500; }
+    .btn-action-modifier { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; font-size: 13.5px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .btn-action-modifier:hover { background-color: #bae6fd; }
+    .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
+    .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
+    .resizer:hover, .resizer.resizing { background-color: #1677ff; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+    .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
+    .modal-title { font-size: 20px; font-weight: bold; color: #111827; }
+    .btn-close { background: #f3f4f6; border: none; font-size: 20px; font-weight: bold; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; color: #6b7280; }
     
-    .field-group label {
-      font-weight: 600;
-      font-size: 11px;
-      text-transform: uppercase;
-      color: #555;
-      letter-spacing: 0.5px;
-    }
+    .viewer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .viewer-field.full { grid-column: span 2; }
+    .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
     
-    input[type="text"], select {
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 13px;
-      outline: none;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    input[type="text"]:focus, select:focus {
-      border-color: #2B6CB0;
-      box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
-    }
-
-    .checkboxes-container {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 15px;
-    }
-
-    .checkbox-group {
-      background: #fdfdfd;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      padding: 8px;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .checkbox-item input {
-      cursor: pointer;
-    }
-
-    .actions-bar {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background-color 0.2s;
-    }
-
-    .btn-primary { background-color: #1A73E8; color: white; }
-    .btn-primary:hover { background-color: #1557b0; }
-    
-    .btn-secondary { background-color: #e8eaed; color: #3c4043; }
-    .btn-secondary:hover { background-color: #dadce0; }
-
-    .btn-export { background-color: #2b8a3e; color: white; }
-    .btn-export:hover { background-color: #216a30; }
-
-    .btn-copy { background-color: #6f42c1; color: white; }
-    .btn-copy:hover { background-color: #59339d; }
-
-    .btn-export-select { background-color: #d9480f; color: white; }
-    .btn-export-select:hover { background-color: #b0380b; }
-
-    .btn-export-select-csv { background-color: #0ca678; color: white; }
-    .btn-export-select-csv:hover { background-color: #09825e; }
-
-    /* Barre d'actions résultats */
-    .results-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .results-count {
-      font-weight: 600;
-      color: #1A73E8;
-      background: #e8f0fe;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-    }
-
-    /* Table de résultats */
-    .table-container {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      overflow-x: auto;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    th, td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #eee;
-    }
-
-    th {
-      background-color: #f1f3f4;
-      font-weight: 600;
-      color: #444;
-      position: sticky;
-      top: 0;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    th:hover {
-      background-color: #e8eaed;
-    }
-
-    tr:hover {
-      background-color: #f8f9fa;
-    }
-
-    .btn-edit {
-      padding: 4px 8px;
-      background-color: #e8f0fe;
-      color: #1a73e8;
-      border: 1px solid #1a73e8;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 11px;
-    }
-
-    .btn-edit:hover {
-      background-color: #1a73e8;
-      color: white;
-    }
-
-    /* Modal Styling */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background: white;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      color: #666;
-    }
-
-    .pagination {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-    }
+    .modal-section-title { grid-column: span 2; font-size: 15px; font-weight: bold; color: #1f2937; margin-top: 10px; padding-bottom: 4px; border-bottom: 2px solid #e5e7eb; }
+    .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
 </head>
 <body>
-
-  <!-- PANNEAU DE FILTRES -->
-  <div class="filter-panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        🔍 Recherche Multi-critères
-      </div>
-      <div id="results-counter" class="results-count">0 résultat(s)</div>
+  <div class="search-card">
+    <div class="card-title">
+      <span>🔍 Recherche Multi-critères</span>
+      <span id="result-count" class="count-badge">Chargement...</span>
     </div>
-
-    <!-- Filtres Texte & Selects -->
-    <div class="grid-filters">
+    <div class="filter-row">
       <div class="field-group">
         <label>Recherche Texte</label>
-        <input type="text" id="filter-search" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
+        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
-
       <div class="field-group">
         <label>Service (Origine)</label>
-        <select id="filter-service" onchange="appliquerFiltres()">
-          <option value="">-- Tous --</option>
-        </select>
+        <select id="filter-service" onchange="appliquerFiltres()"><option value="">-- Tous les services --</option></select>
       </div>
-
       <div class="field-group">
         <label>Statut Juridique</label>
-        <select id="filter-statut" onchange="appliquerFiltres()">
-          <option value="">-- Tous --</option>
-        </select>
+        <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous les statuts --</option></select>
       </div>
-
+    </div>
+    <div class="filter-row-bottom">
       <div class="field-group">
-        <label>Type de Structure</label>
-        <select id="filter-type-structure" onchange="appliquerFiltres()">
-          <option value="">-- Tous --</option>
-        </select>
+        <label>Type de structure</label>
+        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous les types --</option></select>
       </div>
-
       <div class="field-group">
         <label>Fonction / Profession</label>
         <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
       </div>
-
       <div class="field-group">
         <label>Domaine d'activités</label>
-        <select id="filter-domaine" onchange="appliquerFiltres()">
-          <option value="">-- Tous --</option>
-        </select>
+        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous les domaines --</option></select>
+      </div>
+    </div>
+    
+    <!-- Liste dynamique issue de la table ETIQUETTES de Grist -->
+    <div class="field-group" style="margin-bottom: 12px;">
+      <label>Listes de diffusion (Étiquettes)</label>
+      <div class="checkbox-group" id="dynamic-etiquettes-container">
+        <i>Chargement des étiquettes...</i>
       </div>
     </div>
 
-    <!-- Checkboxes de Diffusion Dynamiques -->
-    <div class="checkboxes-container">
-      <div class="field-group">
-        <label>Diffusion Cinéma</label>
-        <div class="checkbox-group" id="group-cinema"></div>
-      </div>
-
-      <div class="field-group">
-        <label>Diffusion Direction</label>
-        <div class="checkbox-group" id="group-direction"></div>
-      </div>
-
-      <div class="field-group">
-        <label>Diffusion Houdremont</label>
-        <div class="checkbox-group" id="group-houdremont"></div>
-      </div>
-
-      <div class="field-group">
-        <label>Diffusion Intervenant</label>
-        <div class="checkbox-group" id="group-intervenant"></div>
-      </div>
-    </div>
-
-    <!-- Boutons d'action filtres -->
-    <div class="actions-bar">
-      <button class="btn btn-secondary" onclick="reinitialiserFiltres()">Réinitialiser</button>
-      <button class="btn btn-primary" onclick="appliquerFiltres()">Rechercher</button>
+    <div class="actions">
+      <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
+      <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
   </div>
 
-  <!-- BARRE D'ACTIONS EXPORTS & SELECTION -->
-  <div class="results-actions">
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-      <button id="btn-export-sel-txt" class="btn btn-export-select" style="display:none;" onclick="exporterEmailsSelectionTXT()">
-        📧 Exporter mails sélect. TXT (<span id="count-sel-txt">0</span>)
-      </button>
-      <button id="btn-export-sel-csv" class="btn btn-export-select-csv" style="display:none;" onclick="exporterFichesSelectionCSV()">
-        📊 Exporter fiches sélect. (.csv) (<span id="count-sel-csv">0</span>)
-      </button>
-      <button class="btn btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
-      <button class="btn btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
-      <button class="btn btn-primary" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
+  <div class="table-toolbar">
+    <div class="toolbar-group">
+      <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
+      <button class="btn-tool" onclick="naviguerTableau(1)">▼ Suivant</button>
+      <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
+      <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
+      <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
+      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Clic case : sélectionner | Double-clic : éditer)</i></span>
+    </div>
+    <div class="toolbar-group">
+      <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
+      <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
+      
+      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
+      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
+      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
     </div>
   </div>
 
-  <!-- TABLEAU DE RESULTATS -->
   <div class="table-container">
-    <table>
+    <table id="main-table">
+      <colgroup>
+        <col style="width: 120px;">
+        <col style="width: 120px;">
+        <col style="width: 170px;">
+        <col style="width: 120px;">
+        <col style="width: 110px;">
+        <col style="width: 170px;">
+        <col style="width: 45px;">
+        <col style="width: 90px;">
+      </colgroup>
       <thead>
         <tr>
-          <th onclick="trierPar('Nom')">Nom ⇕</th>
-          <th onclick="trierPar('Prenom')">Prénom ⇕</th>
-          <th onclick="trierPar('Structure')">Structure ⇕</th>
-          <th onclick="trierPar('Service')">Service ⇕</th>
-          <th onclick="trierPar('Ville')">Ville ⇕</th>
-          <th onclick="trierPar('Email')">Email ⇕</th>
-          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"></th>
-          <th>Action</th>
+          <th onclick="trierTableau('NOM')">Nom <span class="sort-icon" id="sort-NOM">↕</span></th>
+          <th onclick="trierTableau('PRENOM')">Prénom <span class="sort-icon" id="sort-PRENOM">↕</span></th>
+          <th onclick="trierTableau('NOM_Structure')">Structure <span class="sort-icon" id="sort-NOM_Structure">↕</span></th>
+          <th onclick="trierTableau('Service')">Service <span class="sort-icon" id="sort-Service">↕</span></th>
+          <th onclick="trierTableau('Ville')">Ville <span class="sort-icon" id="sort-Ville">↕</span></th>
+          <th onclick="trierTableau('EMAIL_PRINCIPAL')">Email <span class="sort-icon" id="sort-EMAIL_PRINCIPAL">↕</span></th>
+          <th class="no-sort" style="text-align: center;"><input type="checkbox" id="select-all" onchange="toutSelectionner(this)" title="Tout sélectionner / Désélectionner"></th>
+          <th class="no-sort">Action</th>
         </tr>
       </thead>
-      <tbody id="table-body">
-        <tr><td colspan="8" style="text-align:center; padding:20px;">Chargement des données...</td></tr>
-      </tbody>
+      <tbody id="results-table-body"></tbody>
     </table>
   </div>
 
-  <!-- PAGINATION -->
-  <div class="pagination">
-    <button class="btn btn-secondary" onclick="changerPage(-1)">▲ Précédent</button>
-    <span id="page-info">Page 1</span>
-    <button class="btn btn-secondary" onclick="changerPage(1)">▼ Suivant</button>
-  </div>
-
-  <!-- MODALE EDITION DE CONTACT -->
-  <div id="edit-modal" class="modal-overlay">
-    <div class="modal-content">
+  <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Modifier le contact</div>
-        <button class="close-btn" onclick="fermerModal()">&times;</button>
+        <span class="modal-title">Modifier la fiche contact</span>
+        <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
-      <form id="edit-form" onsubmit="sauvegarderContact(event)">
-        <input type="hidden" id="edit-id">
-        <div class="grid-filters">
-          <div class="field-group">
-            <label>Nom</label>
-            <input type="text" id="edit-nom" required>
-          </div>
-          <div class="field-group">
-            <label>Prénom</label>
-            <input type="text" id="edit-prenom">
-          </div>
-          <div class="field-group">
-            <label>Email</label>
-            <input type="text" id="edit-email">
-          </div>
-          <div class="field-group">
-            <label>Structure</label>
-            <input type="text" id="edit-structure">
-          </div>
-          <div class="field-group">
-            <label>Service</label>
-            <select id="edit-service"></select>
-          </div>
-          <div class="field-group">
-            <label>Ville</label>
-            <input type="text" id="edit-ville">
-          </div>
-        </div>
-        <div class="actions-bar" style="margin-top:20px;">
-          <button type="button" class="btn btn-secondary" onclick="fermerModal()">Annuler</button>
-          <button type="submit" class="btn btn-primary">Enregistrer</button>
-        </div>
-      </form>
+      <div class="viewer-grid" id="modal-content"></div>
+      <div class="modal-footer">
+        <button class="btn-reset" onclick="fermerModal()">Annuler</button>
+        <button class="btn-search" onclick="sauvegarderContactModifie()">Enregistrer les modifications</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // Variables globales
-    let contactsData = [];
-    let filteredContacts = [];
-    let selectedContactIds = new Set();
-    let currentSort = { column: 'Nom', ascending: true };
-    let pageActuelle = 1;
-    const lignesParPage = 50;
-
-    let referenceTables = {
-      services: [],
-      statuts: [],
-      structures: []
-    };
-
-    let OPTIONS_DIFFUSION = {
-      CINEMA: [],
-      DIRECTION: [],
-      HOUDREMONT: [],
-      INTERVENANT: []
-    };
+    let allRecords = [];
+    let matchingRecords = [];
+    let selectedIndex = 0;
+    let lastClickedIndex = null;
+    let currentFontSize = 15.5;
+    let currentEditingRecord = null;
+    let sortColumn = null;
+    let sortAscending = true;
+    let selectedIds = new Set();
+    let referenceTables = { structures: [], services: [], statuts: [], etiquettes: [] };
 
     const KEYS = {
-      SERVICE: 'Service',
-      STATUT: 'Statut_juridique',
-      TYPE_STRUCT: 'Type_de_structure',
-      DOMAINE: 'Domaine_d_activites'
+      NOM: ['NOM', 'Nom'],
+      PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
+      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
+      FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
+      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
+      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
+      TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure'],
+      DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
+      CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
+      VILLE: ['Ville', 'VILLE'],
+      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
+      EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires'],
+      TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Tel_Principal'],
+      TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires'],
+      ETIQUETTES: ['Etiquettes', 'ETIQUETTES', 'Listes_Diffusion', 'Listes_Diffusion_Cinema', 'Listes_Diffusion_Direction', 'Listes_Diffusion_Houdremont', 'Listes_Diffusion_Intervenant'],
+      COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
-    // Initialisation Grist
-    grist.ready({
-      requiredAccess: 'full',
-      columns: ['Nom', 'Prenom', 'Structure', 'Service', 'Ville', 'Email', 'Fonction', 'Statut_juridique', 'Type_de_structure', 'Domaine_d_activites', 'Listes_diffusion_Cinema', 'Listes_diffusion_Direction', 'Listes_diffusion_Houdremont', 'Listes_diffusion_Intervenant']
-    });
-
+    grist.ready({ requiredAccess: 'full' });
     grist.onRecords(async function(records) {
-      contactsData = records;
+      allRecords = records;
       await chargerTablesDeReference();
       peuplerListesDeroulantesFiltres();
       appliquerFiltres();
     });
 
-    // Chargement dynamique des tables de référence et d'étiquettes
-    // Utilise la même méthode de parsing tableau/objet que le widget Création de contact
     async function chargerTablesDeReference() {
       try {
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-        
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if (tStruct) {
-          if (Array.isArray(tStruct)) {
-            referenceTables.structures = tStruct.map(r => r.Nom || r.NOM || r.Name).filter(Boolean);
-          } else {
-            referenceTables.structures = (tStruct.Nom || tStruct.NOM || tStruct.Name || []).filter(Boolean);
-          }
-        }
+        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
         
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if (tServ) {
-          if (Array.isArray(tServ)) {
-            referenceTables.services = tServ.map(r => r.Nom || r.Service).filter(Boolean);
-          } else {
-            referenceTables.services = (tServ.Nom || tServ.Service || []).filter(Boolean);
-          }
-        }
+        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
         
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if (tStat) {
-          if (Array.isArray(tStat)) {
-            referenceTables.statuts = tStat.map(r => r.Nom || r.Statut).filter(Boolean);
-          } else {
-            referenceTables.statuts = (tStat.Nom || tStat.Statut || []).filter(Boolean);
-          }
-        }
+        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
 
-        // Lecture de la table ETIQUETTES / Etiquettes
         const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
-        if (tEtiq) {
-          if (Array.isArray(tEtiq)) {
-            OPTIONS_DIFFUSION.CINEMA = tEtiq.map(r => r.Listes_Diffusion_Cinema).filter(Boolean);
-            OPTIONS_DIFFUSION.DIRECTION = tEtiq.map(r => r.Listes_Diffusion_Direction).filter(Boolean);
-            OPTIONS_DIFFUSION.HOUDREMONT = tEtiq.map(r => r.Listes_Diffusion_Houdremont).filter(Boolean);
-            OPTIONS_DIFFUSION.INTERVENANT = tEtiq.map(r => r.Listes_Diffusion_Intervenants).filter(Boolean);
-          } else {
-            OPTIONS_DIFFUSION.CINEMA = (tEtiq.Listes_Diffusion_Cinema || []).filter(Boolean);
-            OPTIONS_DIFFUSION.DIRECTION = (tEtiq.Listes_Diffusion_Direction || []).filter(Boolean);
-            OPTIONS_DIFFUSION.HOUDREMONT = (tEtiq.Listes_Diffusion_Houdremont || []).filter(Boolean);
-            OPTIONS_DIFFUSION.INTERVENANT = (tEtiq.Listes_Diffusion_Intervenants || []).filter(Boolean);
-          }
-        }
-      } catch(e) { 
-        console.warn("Erreur lors du chargement des étiquettes :", e); 
-      }
+        if(tEtiq) referenceTables.etiquettes = tEtiq.Nom || tEtiq.Etiquette || tEtiq.Libelle || [];
+      } catch(e) { console.warn(e); }
     }
 
-    function extraireValeursUniques(colName) {
-      const set = new Set();
-      contactsData.forEach(c => {
-        let val = c[colName];
+    function getVal(rec, keys) {
+      if (!rec) return "";
+      for (let k of keys) {
+        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+      }
+      return "";
+    }
+
+    function findExactExistingKey(rec, keys) {
+      if (!rec) return null;
+      for (let k of keys) {
+        if (k in rec) return k;
+      }
+      return null;
+    }
+
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
+      }
+      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
+      return String(valeur);
+    }
+
+    function contientCritere(champData, valeurRecherchee) {
+      return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
+    }
+
+    function extraireValeursUniques(cles) {
+      const valeursSet = new Set();
+      allRecords.forEach(r => {
+        const val = getVal(r, cles);
         if (val) {
-          if (Array.isArray(val)) {
-            val.forEach(v => v && set.add(v.toString().trim()));
-          } else {
-            set.add(val.toString().trim());
-          }
+          normaliserChaine(val).split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) valeursSet.add(clean);
+          });
         }
       });
-      return Array.from(set).sort();
+      return Array.from(valeursSet).sort();
     }
 
     function peuplerListesDeroulantesFiltres() {
       const alimenterSelect = (id, options) => {
         const sel = document.getElementById(id);
-        if (!sel) return;
         const curVal = sel.value;
         sel.innerHTML = '<option value="">-- Tous --</option>' + options.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
@@ -558,282 +295,437 @@
       alimenterSelect('filter-type-structure', extraireValeursUniques(KEYS.TYPE_STRUCT));
       alimenterSelect('filter-domaine', extraireValeursUniques(KEYS.DOMAINE));
 
-      // Génération dynamique des checkboxes dans la zone de recherche
-      const alimenterCheckboxes = (containerId, optionsList) => {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.innerHTML = optionsList.map(opt => `
-          <label class="checkbox-item">
-            <input type="checkbox" value="${opt}" onchange="appliquerFiltres()"> ${opt}
-          </label>
-        `).join('');
-      };
-
-      alimenterCheckboxes('group-cinema', OPTIONS_DIFFUSION.CINEMA);
-      alimenterCheckboxes('group-direction', OPTIONS_DIFFUSION.DIRECTION);
-      alimenterCheckboxes('group-houdremont', OPTIONS_DIFFUSION.HOUDREMONT);
-      alimenterCheckboxes('group-intervenant', OPTIONS_DIFFUSION.INTERVENANT);
+      genererBlocCheckboxesEtiquettes();
     }
 
-    function recupererCoches(containerId) {
-      const container = document.getElementById(containerId);
-      if(!container) return [];
-      return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    function genererBlocCheckboxesEtiquettes() {
+      const container = document.getElementById('dynamic-etiquettes-container');
+      if (!container) return;
+
+      const liste = referenceTables.etiquettes.length > 0 ? referenceTables.etiquettes : extraireValeursUniques(KEYS.ETIQUETTES);
+
+      if (liste.length === 0) {
+        container.innerHTML = '<i>Aucune étiquette trouvée</i>';
+        return;
+      }
+
+      container.innerHTML = liste.map(etiq => `
+        <label class="checkbox-item">
+          <input type="checkbox" value="${etiq}" onchange="appliquerFiltres()"> ${etiq}
+        </label>
+      `).join('');
     }
 
     function appliquerFiltres() {
-      const txtSearch = document.getElementById('filter-search').value.toLowerCase().trim();
-      const serviceVal = document.getElementById('filter-service').value;
-      const statutVal = document.getElementById('filter-statut').value;
-      const structVal = document.getElementById('filter-type-structure').value;
-      const fonctionTxt = document.getElementById('filter-fonction').value.toLowerCase().trim();
-      const domaineVal = document.getElementById('filter-domaine').value;
+      if (!allRecords.length) return;
+      const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
+      const serviceFilter = document.getElementById('filter-service').value;
+      const statutFilter = document.getElementById('filter-statut').value;
+      const typeStructFilter = document.getElementById('filter-type-structure').value;
+      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
+      const domaineFilter = document.getElementById('filter-domaine').value;
+      
+      const etiquettesCochees = Array.from(document.querySelectorAll('#dynamic-etiquettes-container input:checked')).map(cb => cb.value);
 
-      const diffCinema = recupererCoches('group-cinema');
-      const diffDirection = recupererCoches('group-direction');
-      const diffHoudremont = recupererCoches('group-houdremont');
-      const diffIntervenant = recupererCoches('group-intervenant');
-
-      filteredContacts = contactsData.filter(c => {
-        // Recherche globale texte
-        if (txtSearch) {
-          const chaineComplete = [c.Nom, c.Prenom, c.Structure, c.Ville, c.Email].map(v => v || '').join(' ').toLowerCase();
-          if (!chaineComplete.includes(txtSearch)) return false;
+      matchingRecords = allRecords.filter(rec => {
+        if (textFilter) {
+          const textGlobal = [
+            getVal(rec, KEYS.NOM), getVal(rec, KEYS.PRENOM), getVal(rec, KEYS.STRUCTURE),
+            getVal(rec, KEYS.VILLE), getVal(rec, KEYS.CODE_POSTAL), getVal(rec, KEYS.EMAIL_PRINCIPAL),
+            getVal(rec, KEYS.EMAILS_SECONDAIRES), getVal(rec, KEYS.TEL_PRINCIPAL), getVal(rec, KEYS.TELS_SECONDAIRES),
+            getVal(rec, KEYS.FONCTION), getVal(rec, KEYS.COMMENTAIRE)
+          ].map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          if (!textFilter.split(/\s+/).every(m => textGlobal.includes(m))) return false;
         }
+        if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
+        if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
+        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
+        if (typeStructFilter && !normaliserChaine(getVal(rec, KEYS.TYPE_STRUCT)).toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
+        if (fonctionFilter && !normaliserChaine(getVal(rec, KEYS.FONCTION)).toLowerCase().includes(fonctionFilter)) return false;
 
-        if (serviceVal && c.Service !== serviceVal) return false;
-        if (statutVal && c.Statut_juridique !== statutVal) return false;
-        if (structVal && c.Type_de_structure !== structVal) return false;
-        if (fonctionTxt && !(c.Fonction || '').toLowerCase().includes(fonctionTxt)) return false;
-        if (domaineVal && c.Domaine_d_activites !== domaineVal) return false;
-
-        // Filtres de diffusion (vérification array ou chaîne)
-        const checkDiffusion = (filtres, valeurContact) => {
-          if (filtres.length === 0) return true;
-          if (!valeurContact) return false;
-          const vals = Array.isArray(valeurContact) ? valeurContact : [valeurContact];
-          return filtres.some(f => vals.includes(f));
-        };
-
-        if (!checkDiffusion(diffCinema, c.Listes_diffusion_Cinema)) return false;
-        if (!checkDiffusion(diffDirection, c.Listes_diffusion_Direction)) return false;
-        if (!checkDiffusion(diffHoudremont, c.Listes_diffusion_Houdremont)) return false;
-        if (!checkDiffusion(diffIntervenant, c.Listes_diffusion_Intervenant)) return false;
+        if (etiquettesCochees.length > 0) {
+          const etiquettesContact = getVal(rec, KEYS.ETIQUETTES);
+          if (!etiquettesCochees.some(e => contientCritere(etiquettesContact, e))) return false;
+        }
 
         return true;
       });
 
-      pageActuelle = 1;
-      trierEtAfficherTable();
+      if (sortColumn) effectuerTriDonnees();
+      document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
+      selectedIndex = 0;
+      afficherTableau();
+    }
+
+    function trierTableau(col) {
+      if (sortColumn === col) sortAscending = !sortAscending;
+      else { sortColumn = col; sortAscending = true; }
+      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(c => {
+        const elem = document.getElementById(`sort-${c}`);
+        if (elem) {
+          elem.innerText = (c === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
+          elem.style.color = (c === sortColumn) ? '#1677ff' : '#6b7280';
+        }
+      });
+      effectuerTriDonnees();
+      afficherTableau();
+    }
+
+    function effectuerTriDonnees() {
+      const keyMap = {
+        'NOM': KEYS.NOM, 'PRENOM': KEYS.PRENOM, 'NOM_Structure': KEYS.STRUCTURE,
+        'Service': KEYS.SERVICE, 'Ville': KEYS.VILLE, 'EMAIL_PRINCIPAL': KEYS.EMAIL_PRINCIPAL
+      };
+      const keys = keyMap[sortColumn] || KEYS.NOM;
+      matchingRecords.sort((a, b) => {
+        let valA = normaliserChaine(getVal(a, keys)).toLowerCase();
+        let valB = normaliserChaine(getVal(b, keys)).toLowerCase();
+        if (valA < valB) return sortAscending ? -1 : 1;
+        if (valA > valB) return sortAscending ? 1 : -1;
+        return 0;
+      });
     }
 
     function reinitialiserFiltres() {
-      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
       document.getElementById('filter-type-structure').value = '';
       document.getElementById('filter-fonction').value = '';
       document.getElementById('filter-domaine').value = '';
-
-      document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => cb.checked = false);
-
+      document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
+      selectedIds.clear();
+      sortColumn = null;
       appliquerFiltres();
     }
 
-    function trierPar(colonne) {
-      if (currentSort.column === colonne) {
-        currentSort.ascending = !currentSort.ascending;
-      } else {
-        currentSort.column = colonne;
-        currentSort.ascending = true;
-      }
-      trierEtAfficherTable();
-    }
-
-    function trierEtAfficherTable() {
-      filteredContacts.sort((a, b) => {
-        let valA = (a[currentSort.column] || '').toString().toLowerCase();
-        let valB = (b[currentSort.column] || '').toString().toLowerCase();
-        return currentSort.ascending ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      });
-
-      document.getElementById('results-counter').innerText = `${filteredContacts.length} / ${contactsData.length} résultat(s)`;
-
-      afficherPage();
-    }
-
-    function afficherPage() {
-      const tbody = document.getElementById('table-body');
+    function afficherTableau() {
+      const tbody = document.getElementById('results-table-body');
       tbody.innerHTML = '';
-
-      const debut = (pageActuelle - 1) * lignesParPage;
-      const fin = debut + lignesParPage;
-      const pageData = filteredContacts.slice(debut, fin);
-
-      if (pageData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Aucun contact trouvé.</td></tr>';
-        return;
-      }
-
-      pageData.forEach(c => {
+      const selectAllCb = document.getElementById('select-all');
+      if (selectAllCb) selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
+      
+      matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
-        const isChecked = selectedContactIds.has(c.id) ? 'checked' : '';
+        tr.className = 'result-row';
+        const isChecked = selectedIds.has(rec.id);
+        if (isChecked) tr.classList.add('checked-row');
+        if (index === selectedIndex) tr.classList.add('selected');
         tr.innerHTML = `
-          <td>${c.Nom || ''}</td>
-          <td>${c.Prenom || ''}</td>
-          <td>${c.Structure || ''}</td>
-          <td>${c.Service || ''}</td>
-          <td>${c.Ville || ''}</td>
-          <td>${c.Email || ''}</td>
-          <td><input type="checkbox" value="${c.id}" ${isChecked} onchange="toggleSelectContact(${c.id}, this.checked)"></td>
-          <td><button class="btn-edit" onclick="ouvrirEdition(${c.id})">Modifier</button></td>
+          <td>${getVal(rec, KEYS.NOM)}</td>
+          <td>${getVal(rec, KEYS.PRENOM)}</td>
+          <td>${getVal(rec, KEYS.STRUCTURE)}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
+          <td>${getVal(rec, KEYS.VILLE)}</td>
+          <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
+          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
+          <td><button class="btn-action-modifier">Modifier</button></td>
         `;
+        tr.querySelector('.row-checkbox').onclick = (e) => { e.stopPropagation(); gererClicLigne(index, e, true); };
+        tr.querySelector('.btn-action-modifier').onclick = (e) => { e.stopPropagation(); selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
+        
+        tr.onclick = (e) => gererClicLigne(index, e, false);
+        tr.ondblclick = (e) => { e.stopPropagation(); selectedIndex = index; majSelectionGraphique(); ouvrirModal(rec); };
         tbody.appendChild(tr);
       });
-
-      document.getElementById('page-info').innerText = `Page ${pageActuelle} / ${Math.ceil(filteredContacts.length / lignesParPage) || 1}`;
-      updateSelectionButtons();
+      initialiserRedimensionnementColonnes();
     }
 
-    function changerPage(delta) {
-      const maxPages = Math.ceil(filteredContacts.length / lignesParPage) || 1;
-      if (pageActuelle + delta >= 1 && pageActuelle + delta <= maxPages) {
-        pageActuelle += delta;
-        afficherPage();
+    function gererClicLigne(indexIndex, event, isCheckbox) {
+      const rec = matchingRecords[indexIndex];
+      if (event.shiftKey && lastClickedIndex !== null) {
+        const start = Math.min(lastClickedIndex, indexIndex);
+        const end = Math.max(lastClickedIndex, indexIndex);
+        for (let i = start; i <= end; i++) selectedIds.add(matchingRecords[i].id);
+      } else if (isCheckbox) {
+        if (selectedIds.has(rec.id)) selectedIds.delete(rec.id);
+        else selectedIds.add(rec.id);
+        lastClickedIndex = indexIndex;
       }
+      selectedIndex = indexIndex;
+      majBoutonsSelection();
+      majSelectionGraphique();
     }
 
-    function toggleSelectContact(id, checked) {
-      if (checked) {
-        selectedContactIds.add(id);
-      } else {
-        selectedContactIds.delete(id);
-      }
-      updateSelectionButtons();
-    }
-
-    function toggleSelectAll(masterCb) {
-      const debut = (pageActuelle - 1) * lignesParPage;
-      const fin = debut + lignesParPage;
-      const pageData = filteredContacts.slice(debut, fin);
-
-      pageData.forEach(c => {
-        if (masterCb.checked) {
-          selectedContactIds.add(c.id);
-        } else {
-          selectedContactIds.delete(c.id);
-        }
+    function majSelectionGraphique() {
+      document.querySelectorAll('#results-table-body tr').forEach((row, idx) => {
+        row.classList.toggle('selected', idx === selectedIndex);
       });
-      afficherPage();
     }
 
-    function updateSelectionButtons() {
-      const count = selectedContactIds.size;
-      const btnTxt = document.getElementById('btn-export-sel-txt');
-      const btnCsv = document.getElementById('btn-export-sel-csv');
+    function toutSelectionner(master) {
+      matchingRecords.forEach(r => master.checked ? selectedIds.add(r.id) : selectedIds.delete(r.id));
+      majBoutonsSelection();
+      afficherTableau();
+    }
 
-      if (count > 0) {
-        btnTxt.style.display = 'inline-block';
-        btnCsv.style.display = 'inline-block';
-        document.getElementById('count-sel-txt').innerText = count;
-        document.getElementById('count-sel-csv').innerText = count;
-      } else {
-        btnTxt.style.display = 'none';
-        btnCsv.style.display = 'none';
+    function majBoutonsSelection() {
+      const count = selectedIds.size;
+      const btnTxt = document.getElementById('btn-export-selected-txt');
+      const btnCsv = document.getElementById('btn-export-selected-csv');
+      btnTxt.style.display = count ? 'inline-block' : 'none';
+      btnCsv.style.display = count ? 'inline-block' : 'none';
+      if (count) {
+        btnTxt.innerText = `📩 Exporter mails sélect. TXT (${count})`;
+        btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${count})`;
       }
     }
 
-    // Modal d'édition
-    function ouvrirEdition(id) {
-      const contact = contactsData.find(c => c.id === id);
-      if (!contact) return;
-
-      document.getElementById('edit-id').value = contact.id;
-      document.getElementById('edit-nom').value = contact.Nom || '';
-      document.getElementById('edit-prenom').value = contact.Prenom || '';
-      document.getElementById('edit-email').value = contact.Email || '';
-      document.getElementById('edit-structure').value = contact.Structure || '';
-      document.getElementById('edit-ville').value = contact.Ville || '';
-
-      const selService = document.getElementById('edit-service');
-      selService.innerHTML = '<option value="">-- Aucun --</option>' + referenceTables.services.map(s => `<option value="${s}">${s}</option>`).join('');
-      selService.value = contact.Service || '';
-
-      document.getElementById('edit-modal').style.display = 'flex';
+    function naviguerTableau(dir) {
+      if (!matchingRecords.length) return;
+      selectedIndex = Math.max(0, Math.min(matchingRecords.length - 1, selectedIndex + dir));
+      majSelectionGraphique();
+      const rows = document.querySelectorAll('#results-table-body tr');
+      if (rows[selectedIndex]) rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    function fermerModal() {
-      document.getElementById('edit-modal').style.display = 'none';
+    function changerZoom(delta) {
+      currentFontSize = Math.max(12, Math.min(22, currentFontSize + delta));
+      document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    async function sauvegarderContact(e) {
-      e.preventDefault();
-      const id = parseInt(document.getElementById('edit-id').value);
-      const updated = {
-        id: id,
-        fields: {
-          Nom: document.getElementById('edit-nom').value,
-          Prenom: document.getElementById('edit-prenom').value,
-          Email: document.getElementById('edit-email').value,
-          Structure: document.getElementById('edit-structure').value,
-          Ville: document.getElementById('edit-ville').value,
-          Service: document.getElementById('edit-service').value
+    function genererCheckboxesModale(idGroupe, options, valeursActuelles) {
+      const listeActuelle = normaliserChaine(valeursActuelles).split(/[,;]/).map(s => s.trim().toLowerCase());
+      let html = `<div class="checkbox-group" id="${idGroupe}">`;
+      options.forEach(opt => {
+        const isChecked = listeActuelle.includes(opt.toLowerCase());
+        html += `
+          <label class="checkbox-item">
+            <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
+          </label>`;
+      });
+      html += `</div>`;
+      return html;
+    }
+
+    function ouvrirModal(rec) {
+      currentEditingRecord = rec;
+      const container = document.getElementById('modal-content');
+      const valService = normaliserChaine(getVal(rec, KEYS.SERVICE));
+      const valStatut = normaliserChaine(getVal(rec, KEYS.STATUT));
+      const valStructure = normaliserChaine(getVal(rec, KEYS.STRUCTURE));
+
+      const buildSelectOrInput = (id, valActuelle, listeReference, aliasKeys) => {
+        const optionsList = Array.from(new Set([...listeReference, ...extraireValeursUniques(aliasKeys)]));
+        if (optionsList.length > 0) {
+          let html = `<select id="${id}"><option value="">-- Sélectionner --</option>`;
+          optionsList.forEach(opt => {
+            const selected = opt.toLowerCase() === valActuelle.toLowerCase() ? 'selected' : '';
+            html += `<option value="${opt}" ${selected}>${opt}</option>`;
+          });
+          html += `</select>`;
+          return html;
+        }
+        return `<input type="text" id="${id}" value="${valActuelle}">`;
+      };
+
+      const optionsEtiquettes = referenceTables.etiquettes.length > 0 ? referenceTables.etiquettes : extraireValeursUniques(KEYS.ETIQUETTES);
+
+      container.innerHTML = `
+        <div class="modal-section-title">👤 Identité & Structure</div>
+        <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${getVal(rec, KEYS.NOM)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${getVal(rec, KEYS.PRENOM)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Structure</span>${buildSelectOrInput('edit-structure', valStructure, referenceTables.structures, KEYS.STRUCTURE)}</div>
+        <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" id="edit-fonction" value="${getVal(rec, KEYS.FONCTION)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Service (Origine)</span>${buildSelectOrInput('edit-service', valService, referenceTables.services, KEYS.SERVICE)}</div>
+        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span>${buildSelectOrInput('edit-statut', valStatut, referenceTables.statuts, KEYS.STATUT)}</div>
+        
+        <div class="modal-section-title">📍 Adresse & Coordonnées</div>
+        <div class="viewer-field">
+          <span class="viewer-label">Code Postal</span>
+          <input type="text" id="edit-code-postal" value="${getVal(rec, KEYS.CODE_POSTAL)}" oninput="chercherVilleParCodePostal(this.value)">
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Ville</span>
+          <input type="text" id="edit-ville" value="${getVal(rec, KEYS.VILLE)}">
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Email Principal</span>
+          <input type="text" id="edit-email-principal" value="${getVal(rec, KEYS.EMAIL_PRINCIPAL)}" oninput="validerEmailTerrain('edit-email-principal', 'msg-email-principal', false)">
+          <div id="msg-email-principal" class="email-msg"></div>
+        </div>
+        <div class="viewer-field">
+          <span class="viewer-label">Emails Secondaires</span>
+          <input type="text" id="edit-emails-secondaires" value="${getVal(rec, KEYS.EMAILS_SECONDAIRES)}" oninput="validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true)">
+          <div id="msg-emails-secondaires" class="email-msg"></div>
+        </div>
+        <div class="viewer-field"><span class="viewer-label">Téléphone Principal</span><input type="text" id="edit-tel-principal" value="${getVal(rec, KEYS.TEL_PRINCIPAL)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Téléphones Secondaires</span><input type="text" id="edit-tels-secondaires" value="${getVal(rec, KEYS.TELS_SECONDAIRES)}"></div>
+        
+        <div class="modal-section-title">📢 Listes de Diffusion (Étiquettes)</div>
+        <div class="viewer-field full">
+          <span class="viewer-label">Étiquettes sélectionnées</span>
+          ${genererCheckboxesModale('modal-etiquettes-container', optionsEtiquettes, getVal(rec, KEYS.ETIQUETTES))}
+        </div>
+
+        <div class="modal-section-title">📝 Remarques</div>
+        <div class="viewer-field full"><span class="viewer-label">Commentaire / Description</span><textarea id="edit-commentaire" rows="3">${getVal(rec, KEYS.COMMENTAIRE)}</textarea></div>
+      `;
+
+      document.getElementById('modal-overlay').style.display = 'flex';
+      validerEmailTerrain('edit-email-principal', 'msg-email-principal', false);
+      validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true);
+    }
+
+    async function chercherVilleParCodePostal(cp) {
+      const clean = cp.trim();
+      if (/^\d{5}$/.test(clean)) {
+        try {
+          const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${clean}&type=municipality&limit=1`);
+          const data = await res.json();
+          if (data.features && data.features.length > 0) {
+            document.getElementById('edit-ville').value = data.features[0].properties.city;
+          }
+        } catch (e) { console.error(e); }
+      }
+    }
+
+    function validerEmailTerrain(inputId, msgId, multiple) {
+      const input = document.getElementById(inputId);
+      const msg = document.getElementById(msgId);
+      if (!input || !msg) return true;
+      const val = input.value.trim();
+      if (!val) {
+        input.className = '';
+        msg.innerText = '';
+        return true;
+      }
+      const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      let valide = multiple ? val.split(/[,;]/).map(e => e.trim()).filter(Boolean).every(e => regexEmail.test(e)) : regexEmail.test(val);
+      if (valide) {
+        input.className = 'valid-email';
+        msg.className = 'email-msg success';
+        msg.innerText = '✓ Format e-mail valide';
+      } else {
+        input.className = 'invalid-email';
+        msg.className = 'email-msg error';
+        msg.innerText = '✕ Adresse e-mail invalide';
+      }
+      return valide;
+    }
+
+    function fermerModal(event) {
+      if (event && event.target !== document.getElementById('modal-overlay') && !event.target.classList.contains('btn-close') && !event.target.classList.contains('btn-reset')) return;
+      document.getElementById('modal-overlay').style.display = 'none';
+      currentEditingRecord = null;
+    }
+
+    async function sauvegarderContactModifie() {
+      if (!currentEditingRecord) return;
+      const r = currentEditingRecord;
+      const updatedFields = {};
+
+      const mapSingleField = (aliasList, elementId) => {
+        const exactKey = findExactExistingKey(r, aliasList);
+        if (exactKey) {
+          const elem = document.getElementById(elementId);
+          if (elem) updatedFields[exactKey] = elem.value;
         }
       };
 
+      mapSingleField(KEYS.NOM, 'edit-nom');
+      mapSingleField(KEYS.PRENOM, 'edit-prenom');
+      mapSingleField(KEYS.STRUCTURE, 'edit-structure');
+      mapSingleField(KEYS.FONCTION, 'edit-fonction');
+      mapSingleField(KEYS.SERVICE, 'edit-service');
+      mapSingleField(KEYS.STATUT, 'edit-statut');
+      mapSingleField(KEYS.CODE_POSTAL, 'edit-code-postal');
+      mapSingleField(KEYS.VILLE, 'edit-ville');
+      mapSingleField(KEYS.EMAIL_PRINCIPAL, 'edit-email-principal');
+      mapSingleField(KEYS.EMAILS_SECONDAIRES, 'edit-emails-secondaires');
+      mapSingleField(KEYS.TEL_PRINCIPAL, 'edit-tel-principal');
+      mapSingleField(KEYS.TELS_SECONDAIRES, 'edit-tels-secondaires');
+      mapSingleField(KEYS.COMMENTAIRE, 'edit-commentaire');
+
+      // Sauvegarde des étiquettes au format ChoiceList Grist ['L', val1, val2]
+      const exactKeyEtiq = findExactExistingKey(r, KEYS.ETIQUETTES);
+      if (exactKeyEtiq) {
+        const checkedValues = Array.from(document.querySelectorAll('#modal-etiquettes-container input:checked')).map(cb => cb.value);
+        updatedFields[exactKeyEtiq] = ['L', ...checkedValues];
+      }
+
       try {
-        await grist.docApi.applyUserActions([['UpdateRecord', 'CONTACTS', id, updated.fields]]);
-        fermerModal();
+        await grist.docApi.applyUserActions([
+          ['UpdateRecord', 'CONTACTS', currentEditingRecord.id, updatedFields]
+        ]);
+        document.getElementById('modal-overlay').style.display = 'none';
+        currentEditingRecord = null;
       } catch (err) {
-        alert("Erreur lors de la sauvegarde : " + err.message);
+        alert("Erreur lors de la mise à jour : " + err.message);
       }
     }
 
-    // Fonctions d'exports et de copie
     function copierEmails() {
-      const emails = filteredContacts.map(c => c.Email).filter(Boolean);
-      navigator.clipboard.writeText(emails.join('; '));
-      alert(`${emails.length} email(s) copié(s) dans le presse-papier !`);
+      const emails = matchingRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('; ');
+      if (!emails) return alert('Aucun email disponible.');
+      navigator.clipboard.writeText(emails).then(() => alert(`${matchingRecords.length} email(s) copié(s).`));
+    }
+
+    function exporterEmailsTXT() {
+      const emails = matchingRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('\n');
+      telechargerFichier(emails, 'emails_contacts.txt', 'text/plain');
+    }
+
+    function exporterMailsSelectionnesTXT() {
+      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
+      const emails = selectedRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('\n');
+      telechargerFichier(emails, 'emails_selectionnes.txt', 'text/plain');
+    }
+
+    function exporterCSV() { genererEtTelechargerCSV(matchingRecords, 'export_contacts.csv'); }
+    function exporterFichesSelectionneesCSV() { genererEtTelechargerCSV(matchingRecords.filter(r => selectedIds.has(r.id)), 'export_selection.csv'); }
+
+    function genererEtTelechargerCSV(recordsList, filename) {
+      if (!recordsList.length) return alert('Aucune donnée à exporter.');
+      const headers = ["ID", "Nom", "Prénom", "Structure", "Code Postal", "Ville", "Email Principal", "Téléphone"];
+      const rows = recordsList.map(r => [
+        r.id,
+        `"${(getVal(r, KEYS.NOM) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.PRENOM) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.STRUCTURE) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.CODE_POSTAL) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.VILLE) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.EMAIL_PRINCIPAL) || '').replace(/"/g, '""')}"`,
+        `"${(getVal(r, KEYS.TEL_PRINCIPAL) || '').replace(/"/g, '""')}"`
+      ]);
+      const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
+      telechargerFichier(csvContent, filename, 'text/csv;charset=utf-8;');
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
       const blob = new Blob([contenu], { type: typeMime });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = nomFichier;
-      link.click();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nomFichier;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-    function exporterEmailsTXT() {
-      const emails = filteredContacts.map(c => c.Email).filter(Boolean).join('\n');
-      telechargerFichier(emails, 'emails_recherche.txt', 'text/plain');
-    }
-
-    function exporterEmailsSelectionTXT() {
-      const selectedContacts = contactsData.filter(c => selectedContactIds.has(c.id));
-      const emails = selectedContacts.map(c => c.Email).filter(Boolean).join('\n');
-      telechargerFichier(emails, 'emails_selection.txt', 'text/plain');
-    }
-
-    function exporterCSV() {
-      genererCSV(filteredContacts, 'contacts_recherche.csv');
-    }
-
-    function exporterFichesSelectionCSV() {
-      const selectedContacts = contactsData.filter(c => selectedContactIds.has(c.id));
-      genererCSV(selectedContacts, 'contacts_selection.csv');
-    }
-
-    function genererCSV(dataList, filename) {
-      const headers = ['Nom', 'Prenom', 'Structure', 'Service', 'Ville', 'Email', 'Fonction', 'Statut_juridique'];
-      let csvContent = headers.join(';') + '\n';
-
-      dataList.forEach(c => {
-        let row = headers.map(h => `"${(c[h] || '').toString().replace(/"/g, '""')}"`);
-        csvContent += row.join(';') + '\n';
+    function initialiserRedimensionnementColonnes() {
+      const table = document.getElementById('main-table');
+      table.querySelectorAll('th').forEach(th => {
+        if (th.querySelector('.resizer')) return;
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+        let x = 0, w = 0;
+        resizer.addEventListener('mousedown', function (e) {
+          e.stopPropagation();
+          x = e.clientX; w = th.offsetWidth;
+          resizer.classList.add('resizing');
+          const onMouseMove = (e) => th.style.width = `${w + (e.clientX - x)}px`;
+          const onMouseUp = () => {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
       });
-
-      telechargerFichier(csvContent, filename, 'text/csv;charset=utf-8;');
     }
   </script>
 </body>
