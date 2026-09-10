@@ -602,14 +602,16 @@
           <input type="text" id="edit-statut" list="list-statuts" value="${valStatut}">
           <datalist id="list-statuts">${referenceTables.statuts.map(s => `<option value="${s}">`).join('')}</datalist>
         </div>
-        <div class="viewer-field">
-          <span class="viewer-label">Type de Structure</span>
-          <input type="text" id="edit-type-struct" value="${valTypeStruct}">
-        </div>
-        <div class="viewer-field">
-          <span class="viewer-label">Domaine d'activités</span>
-          <input type="text" id="edit-domaine" value="${valDomaine}">
-        </div>
+       <div class="viewer-field">
+      <span class="viewer-label">Type de Structure</span>
+      <input type="text" id="edit-type-struct" list="list-type-struct" value="${valTypeStruct}">
+      <datalist id="list-type-struct">${referenceTables.typesStruct.map(s => `<option value="${s}">`).join('')}</datalist>
+    </div>
+    <div class="viewer-field">
+      <span class="viewer-label">Domaine d'activités</span>
+      <input type="text" id="edit-domaine" list="list-domaines" value="${valDomaine}">
+      <datalist id="list-domaines">${referenceTables.domaines.map(s => `<option value="${s}">`).join('')}</datalist>
+    </div>
 
         <div class="modal-section-title">📍 Coordonnées & Contacts</div>
         <div class="viewer-field">
