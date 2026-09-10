@@ -6,28 +6,28 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; display: flex; flex-direction: column; height: 100vh; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 13px; display: flex; flex-direction: column; height: 100vh; }
     
-    .search-card { background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-    .field-group { display: flex; flex-direction: column; gap: 4px; }
-    label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
+    .search-card { background: #ffffff; border-radius: 8px; padding: 14px; border: 1px solid #e2e8f0; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .filter-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+    .field-group { display: flex; flex-direction: column; gap: 3px; }
+    label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    input[type="text"], select { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #fff; width: 100%; }
+    input[type="text"], select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #fff; width: 100%; }
     input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
 
-    .diffusion-section { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 4px; }
-    .diffusion-title { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px; }
-    .diffusion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .diffusion-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; background: #f8fafc; max-height: 110px; overflow-y: auto; }
-    .diffusion-box-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
-    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; margin-bottom: 4px; cursor: pointer; }
+    .diffusion-section { border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 2px; }
+    .diffusion-title { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .diffusion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .diffusion-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; background: #f8fafc; max-height: 95px; overflow-y: auto; }
+    .diffusion-box-title { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .checkbox-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #334155; margin-bottom: 3px; cursor: pointer; }
     .checkbox-label input { cursor: pointer; }
 
     .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    th { background: #f1f5f9; color: #475569; padding: 8px 10px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
     tr { cursor: pointer; }
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
@@ -43,7 +43,7 @@
     <div class="filter-row">
       <div class="field-group">
         <label>Recherche Texte</label>
-        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, email..." oninput="appliquerFiltres()">
+        <input type="text" id="filter-text" placeholder="Nom, structure, email..." oninput="appliquerFiltres()">
       </div>
       <div class="field-group">
         <label>Service (Origine)</label>
@@ -52,6 +52,26 @@
       <div class="field-group">
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Type de Structure</label>
+        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Domaine d'Activités</label>
+        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Fonction / Profession</label>
+        <input type="text" id="filter-fonction" placeholder="Fonction..." oninput="appliquerFiltres()">
+      </div>
+      <div class="field-group">
+        <label>Ville</label>
+        <input type="text" id="filter-ville" placeholder="Ville..." oninput="appliquerFiltres()">
+      </div>
+      <div class="field-group">
+        <label>Code Postal</label>
+        <input type="text" id="filter-cp" placeholder="Code postal..." oninput="appliquerFiltres()">
       </div>
     </div>
 
@@ -70,11 +90,15 @@
           <th>Structure</th>
           <th>Service</th>
           <th>Statut</th>
+          <th>Type Structure</th>
+          <th>Domaine</th>
+          <th>Fonction</th>
+          <th>Téléphone</th>
           <th>Email</th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+        <tr><td colspan="10" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
       </tbody>
     </table>
   </div>
@@ -88,10 +112,8 @@
     let allRecords = [];
     let matchingRecords = [];
     let selectedId = null;
-    let referenceTables = { services: [], statuts: [] };
+    let referenceTables = { services: [], statuts: [], typeStructures: [], domaines: [] };
     
-    // Map pour stocker les correspondances ID -> Texte de la table ETIQUETTES
-    // ex: etiquettesMap[1] = { 'Listes_Diffusion_Cinema': 'Crèche', ... }
     let etiquettesMap = {};
     let optionsEtiquettes = {
       'Diffusion Cinéma': [],
@@ -106,6 +128,12 @@
       STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
+      TYPE_STRUCTURE: ['Type_de_Structure', 'Type de Structure', 'Type_Structure'],
+      DOMAINE: ['Domaine_d_Activités', 'Domaine d’Activités', 'Domaine_Activites', 'Domaine'],
+      FONCTION: ['Fonction_Profession', 'Fonction', 'Profession'],
+      VILLE: ['Ville'],
+      CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
+      TELEPHONE: ['Telephone_Principal', 'Téléphone Principal', 'Telephone', 'Tel'],
       EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
       DIFFUSION_CONTACTS: {
         'Diffusion Cinéma': 'Listes_Diffusion_Cinema',
@@ -140,15 +168,24 @@
 
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
         if(tServ && tServ.id) {
-          referenceTables.services = tServ.id.map((_, i) => tServ.Nom ? tServ.Nom[i] : tServ.Service ? tServ.Service[i] : '').filter(Boolean);
+          referenceTables.services = tServ.id.map((_, i) => tServ.Nom || tServ.Service || '').filter(Boolean);
         }
         
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat && tStat.id) {
-          referenceTables.statuts = tStat.id.map((_, i) => tStat.Nom ? tStat.Nom[i] : tStat.Statut ? tStat.Statut[i] : '').filter(Boolean);
+          referenceTables.statuts = tStat.id.map((_, i) => tStat.Nom || tStat.Statut || '').filter(Boolean);
         }
 
-        // Récupération de la table ETIQUETTES (qui renvoie un objet de colonnes sous forme de tableaux)
+        const tTypeStruct = await fetchTable('TYPE_STRUCTURE') || await fetchTable('Type_Structure') || await fetchTable('TypeStructure');
+        if(tTypeStruct && tTypeStruct.id) {
+          referenceTables.typeStructures = tTypeStruct.id.map((_, i) => tTypeStruct.Nom || tTypeStruct.Type || '').filter(Boolean);
+        }
+
+        const tDomaine = await fetchTable('DOMAINES') || await fetchTable('Domaines') || await fetchTable('Domaine_Activites');
+        if(tDomaine && tDomaine.id) {
+          referenceTables.domaines = tDomaine.id.map((_, i) => tDomaine.Nom || tDomaine.Domaine || '').filter(Boolean);
+        }
+
         const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
         if (tEtiq && tEtiq.id) {
           for (let i = 0; i < tEtiq.id.length; i++) {
@@ -161,7 +198,6 @@
             };
           }
 
-          // Extraire les listes uniques d'options pour chaque groupe
           const extraireCol = (colArr) => {
             if (!colArr) return [];
             return Array.from(new Set(colArr.map(v => normaliserChaine(v)).filter(v => v !== ""))).sort();
@@ -186,7 +222,6 @@
       return rec[keys] !== undefined && rec[keys] !== null ? rec[keys] : "";
     }
 
-    // Convertit une valeur Grist (chaîne, tableau de référence ['L', 1, 2], etc.) en texte lisible
     function normaliserChaine(valeur) {
       if (!valeur) return "";
       if (typeof valeur === "string") return valeur;
@@ -200,14 +235,12 @@
       return String(valeur);
     }
 
-    // Récupère les textes réels d'une colonne de référence multiple pour un contact donné
     function getLibellesDiffusion(rec, colKey) {
       const valBrute = getVal(rec, colKey);
       if (!valBrute) return [];
-      
       let ids = valBrute;
-      if (Array.isArray(valbrute = valBrute) && valBrute[0] === 'L') {
-        ids = valBrute.slice(1);
+      if (Array.isArray(ids) && ids[0] === 'L') {
+        ids = ids.slice(1);
       }
       if (!Array.isArray(ids)) ids = [ids];
 
@@ -225,6 +258,20 @@
       return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
     }
 
+    function extraireValeursUniques(cles) {
+      const valeursSet = new Set();
+      allRecords.forEach(r => {
+        const val = getVal(r, cles);
+        if (val) {
+          normaliserChaine(val).split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) valeursSet.add(clean);
+          });
+        }
+      });
+      return Array.from(valeursSet).sort();
+    }
+
     function initialiserInterfaceDiffusion() {
       const container = document.getElementById('diffusion-grid-container');
       let html = '';
@@ -235,7 +282,7 @@
             <div>
         `;
         if (options.length === 0) {
-          html += `<div style="font-size:11px; color:#94a3b8;">Aucune option</div>`;
+          html += `<div style="font-size:10px; color:#94a3b8;">Aucune option</div>`;
         } else {
           options.forEach(opt => {
             html += `
@@ -252,15 +299,18 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      const alimenterSelect = (id, optionsRef) => {
+      const alimenterSelect = (id, optionsRef, clesDonnees) => {
         const sel = document.getElementById(id);
         const curVal = sel.value;
-        sel.innerHTML = '<option value="">-- Tous --</option>' + optionsRef.map(s => `<option value="${s}">${s}</option>`).join('');
+        const fusionOptions = Array.from(new Set([...optionsRef, ...extraireValeursUniques(clesDonnees)])).sort();
+        sel.innerHTML = '<option value="">-- Tous --</option>' + fusionOptions.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
       
-      alimenterSelect('filter-service', referenceTables.services);
-      alimenterSelect('filter-statut', referenceTables.statuts);
+      alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
+      alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
+      alimenterSelect('filter-type-structure', referenceTables.typeStructures, KEYS.TYPE_STRUCTURE);
+      alimenterSelect('filter-domaine', referenceTables.domaines, KEYS.DOMAINE);
     }
 
     function appliquerFiltres() {
@@ -268,6 +318,11 @@
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
+      const typeStructFilter = document.getElementById('filter-type-structure').value;
+      const domaineFilter = document.getElementById('filter-domaine').value;
+      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
+      const villeFilter = document.getElementById('filter-ville').value.toLowerCase().trim();
+      const cpFilter = document.getElementById('filter-cp').value.toLowerCase().trim();
 
       const selectedDiffusions = {};
       document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
@@ -286,8 +341,12 @@
         }
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
+        if (typeStructFilter && !contientCritere(getVal(rec, KEYS.TYPE_STRUCTURE), typeStructFilter)) return false;
+        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
+        if (fonctionFilter && !contientCritere(getVal(rec, KEYS.FONCTION), fonctionFilter)) return false;
+        if (villeFilter && !contientCritere(getVal(rec, KEYS.VILLE), villeFilter)) return false;
+        if (cpFilter && !contientCritere(getVal(rec, KEYS.CODE_POSTAL), cpFilter)) return false;
 
-        // Filtrage des listes de diffusion multi-références
         for (const [groupe, valeursCochees] of Object.entries(selectedDiffusions)) {
           if (valeursCochees.length > 0) {
             const colKey = KEYS.DIFFUSION_CONTACTS[groupe];
@@ -307,6 +366,11 @@
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
+      document.getElementById('filter-type-structure').value = '';
+      document.getElementById('filter-domaine').value = '';
+      document.getElementById('filter-fonction').value = '';
+      document.getElementById('filter-ville').value = '';
+      document.getElementById('filter-cp').value = '';
       document.querySelectorAll('.diffusion-box input[type="checkbox"]').forEach(chk => chk.checked = false);
       appliquerFiltres();
     }
@@ -316,7 +380,7 @@
       tbody.innerHTML = '';
 
       if (matchingRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
         document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
         return;
       }
@@ -331,6 +395,10 @@
           <td>${getVal(rec, KEYS.STRUCTURE)}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE))}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.DOMAINE))}</td>
+          <td>${getVal(rec, KEYS.FONCTION)}</td>
+          <td>${getVal(rec, KEYS.TELEPHONE)}</td>
           <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
         `;
 
