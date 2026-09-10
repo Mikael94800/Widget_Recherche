@@ -23,12 +23,15 @@
     .email-msg { font-size: 11.5px; margin-top: 2px; font-weight: 600; }
     .email-msg.error { color: #dc2626; }
     .email-msg.success { color: #16a34a; }
+    
     .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
     .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
+    
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 199px; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    
     .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
     .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     
@@ -40,6 +43,7 @@
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
     th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
@@ -55,6 +59,7 @@
     .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
     .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     .resizer:hover, .resizer.resizing { background-color: #1677ff; }
+    
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 12px; width: 95%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e5e7eb; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
@@ -108,7 +113,7 @@
     <div class="field-group" style="margin-bottom: 12px;">
       <label>Listes de diffusion (Étiquettes)</label>
       <div class="checkbox-group" id="dynamic-etiquettes-container">
-        <i>Chargement des étiquettes...</i>
+        <i>Chargement des listes de diffusion...</i>
       </div>
     </div>
 
@@ -189,7 +194,7 @@
     let sortColumn = null;
     let sortAscending = true;
     let selectedIds = new Set();
-    let referenceTables = { structures: [], services: [], statuts: [], etiquettes: [] };
+    let mappedEtiquetteColumnKey = null;
 
     const KEYS = {
       NOM: ['NOM', 'Nom'],
@@ -210,42 +215,31 @@
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
-    // Correctif de l'initialisation Grist (déclarations optionnelles)
-grist.ready({
-  requiredAccess: 'full',
-  columns: [
-    { name: 'Etiquettes', type: 'ChoiceList', optional: true }
-  ]
-});
+    // Configuration native Grist avec colonne Etiquettes optionnelle pour la déclaration
+    grist.ready({
+      requiredAccess: 'full',
+      columns: [
+        { name: 'Etiquettes', title: 'Listes de diffusion', type: 'ChoiceList', optional: true }
+      ]
+    });
 
-    grist.onRecords(async function(records) {
+    grist.onOptions((options, interaction) => {
+      if (interaction && interaction.columns) {
+        mappedEtiquetteColumnKey = interaction.columns.Etiquettes || null;
+      }
+    });
+
+    grist.onRecords(function(records) {
       allRecords = records;
-      await chargerTablesDeReference();
       peuplerListesDeroulantesFiltres();
       appliquerFiltres();
     });
 
-    async function chargerTablesDeReference() {
-      try {
-        const fetchTable = async (name) => {
-          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
-        };
-        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
-        
-        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
-        
-        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
-
-        const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
-        if(tEtiq) referenceTables.etiquettes = tEtiq.Nom || tEtiq.Etiquette || tEtiq.Libelle || [];
-      } catch(e) { console.warn(e); }
-    }
-
     function getVal(rec, keys) {
       if (!rec) return "";
+      if (mappedEtiquetteColumnKey && keys === KEYS.ETIQUETTES && rec[mappedEtiquetteColumnKey] !== undefined) {
+        return rec[mappedEtiquetteColumnKey];
+      }
       for (let k of keys) {
         if (rec[k] !== undefined && rec[k] !== null) return rec[k];
       }
@@ -254,6 +248,9 @@ grist.ready({
 
     function findExactExistingKey(rec, keys) {
       if (!rec) return null;
+      if (mappedEtiquetteColumnKey && keys === KEYS.ETIQUETTES && mappedEtiquetteColumnKey in rec) {
+        return mappedEtiquetteColumnKey;
+      }
       for (let k of keys) {
         if (k in rec) return k;
       }
@@ -261,18 +258,17 @@ grist.ready({
     }
 
     function normaliserChaine(valeur) {
-  if (!valeur) return "";
-  if (typeof valeur === "string") return valeur;
-  if (Array.isArray(valeur)) {
-    return valeur.map(v => normaliserChaine(v)).filter(Boolean).join(", ");
-  }
-  if (typeof valeur === "object") {
-    if (valeur.L) return Array.isArray(valeur.L) ? valeur.L.map(v => normaliserChaine(v)).filter(Boolean).join(", ") : String(valeur.L);
-    if (valeur.NAME === "NONETYPE" || valeur.kind === "N") return "";
-    return "";
-  }
-  return String(valeur);
-}
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? '' : String(v))).filter(Boolean).join(", ");
+      }
+      if (typeof valeur === "object") {
+        if (valeur.L) return Array.isArray(valeur.L) ? valeur.L.join(", ") : String(valeur.L);
+        return "";
+      }
+      return String(valeur);
+    }
 
     function contientCritere(champData, valeurRecherchee) {
       return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
@@ -312,10 +308,10 @@ grist.ready({
       const container = document.getElementById('dynamic-etiquettes-container');
       if (!container) return;
 
-      const liste = referenceTables.etiquettes.length > 0 ? referenceTables.etiquettes : extraireValeursUniques(KEYS.ETIQUETTES);
+      const liste = extraireValeursUniques(KEYS.ETIQUETTES);
 
       if (liste.length === 0) {
-        container.innerHTML = '<i>Aucune étiquette trouvée</i>';
+        container.innerHTML = '<i>Aucune liste de diffusion trouvée</i>';
         return;
       }
 
@@ -511,44 +507,20 @@ grist.ready({
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
-      const valService = normaliserChaine(getVal(rec, KEYS.SERVICE));
-      const valStatut = normaliserChaine(getVal(rec, KEYS.STATUT));
-      const valStructure = normaliserChaine(getVal(rec, KEYS.STRUCTURE));
-
-      const buildSelectOrInput = (id, valActuelle, listeReference, aliasKeys) => {
-        const optionsList = Array.from(new Set([...listeReference, ...extraireValeursUniques(aliasKeys)]));
-        if (optionsList.length > 0) {
-          let html = `<select id="${id}"><option value="">-- Sélectionner --</option>`;
-          optionsList.forEach(opt => {
-            const selected = opt.toLowerCase() === valActuelle.toLowerCase() ? 'selected' : '';
-            html += `<option value="${opt}" ${selected}>${opt}</option>`;
-          });
-          html += `</select>`;
-          return html;
-        }
-        return `<input type="text" id="${id}" value="${valActuelle}">`;
-      };
-
-      const optionsEtiquettes = referenceTables.etiquettes.length > 0 ? referenceTables.etiquettes : extraireValeursUniques(KEYS.ETIQUETTES);
+      const optionsEtiquettes = extraireValeursUniques(KEYS.ETIQUETTES);
 
       container.innerHTML = `
         <div class="modal-section-title">👤 Identité & Structure</div>
         <div class="viewer-field"><span class="viewer-label">Nom</span><input type="text" id="edit-nom" value="${getVal(rec, KEYS.NOM)}"></div>
         <div class="viewer-field"><span class="viewer-label">Prénom</span><input type="text" id="edit-prenom" value="${getVal(rec, KEYS.PRENOM)}"></div>
-        <div class="viewer-field"><span class="viewer-label">Structure</span>${buildSelectOrInput('edit-structure', valStructure, referenceTables.structures, KEYS.STRUCTURE)}</div>
+        <div class="viewer-field"><span class="viewer-label">Structure</span><input type="text" id="edit-structure" value="${getVal(rec, KEYS.STRUCTURE)}"></div>
         <div class="viewer-field"><span class="viewer-label">Fonction / Profession</span><input type="text" id="edit-fonction" value="${getVal(rec, KEYS.FONCTION)}"></div>
-        <div class="viewer-field"><span class="viewer-label">Service (Origine)</span>${buildSelectOrInput('edit-service', valService, referenceTables.services, KEYS.SERVICE)}</div>
-        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span>${buildSelectOrInput('edit-statut', valStatut, referenceTables.statuts, KEYS.STATUT)}</div>
+        <div class="viewer-field"><span class="viewer-label">Service (Origine)</span><input type="text" id="edit-service" value="${normaliserChaine(getVal(rec, KEYS.SERVICE))}"></div>
+        <div class="viewer-field"><span class="viewer-label">Statut Juridique</span><input type="text" id="edit-statut" value="${normaliserChaine(getVal(rec, KEYS.STATUT))}"></div>
         
         <div class="modal-section-title">📍 Adresse & Coordonnées</div>
-        <div class="viewer-field">
-          <span class="viewer-label">Code Postal</span>
-          <input type="text" id="edit-code-postal" value="${getVal(rec, KEYS.CODE_POSTAL)}" oninput="chercherVilleParCodePostal(this.value)">
-        </div>
-        <div class="viewer-field">
-          <span class="viewer-label">Ville</span>
-          <input type="text" id="edit-ville" value="${getVal(rec, KEYS.VILLE)}">
-        </div>
+        <div class="viewer-field"><span class="viewer-label">Code Postal</span><input type="text" id="edit-code-postal" value="${getVal(rec, KEYS.CODE_POSTAL)}"></div>
+        <div class="viewer-field"><span class="viewer-label">Ville</span><input type="text" id="edit-ville" value="${getVal(rec, KEYS.VILLE)}"></div>
         <div class="viewer-field">
           <span class="viewer-label">Email Principal</span>
           <input type="text" id="edit-email-principal" value="${getVal(rec, KEYS.EMAIL_PRINCIPAL)}" oninput="validerEmailTerrain('edit-email-principal', 'msg-email-principal', false)">
@@ -575,19 +547,6 @@ grist.ready({
       document.getElementById('modal-overlay').style.display = 'flex';
       validerEmailTerrain('edit-email-principal', 'msg-email-principal', false);
       validerEmailTerrain('edit-emails-secondaires', 'msg-emails-secondaires', true);
-    }
-
-    async function chercherVilleParCodePostal(cp) {
-      const clean = cp.trim();
-      if (/^\d{5}$/.test(clean)) {
-        try {
-          const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${clean}&type=municipality&limit=1`);
-          const data = await res.json();
-          if (data.features && data.features.length > 0) {
-            document.getElementById('edit-ville').value = data.features[0].properties.city;
-          }
-        } catch (e) { console.error(e); }
-      }
     }
 
     function validerEmailTerrain(inputId, msgId, multiple) {
