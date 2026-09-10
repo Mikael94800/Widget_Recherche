@@ -203,7 +203,7 @@
       STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
       FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
-      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
+      STATUT: ['STATUT_JURidIQUE', 'STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure'],
       DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
       CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
@@ -253,21 +253,37 @@
     }
 
     async function chargerTablesDeReference() {
+      // 1. Essayer de charger via fetchTable avec plusieurs variantes de noms possibles
+      const fetchTableSafe = async (nomsPossibles) => {
+        for (let nom of nomsPossibles) {
+          try {
+            const res = await grist.docApi.fetchTable(nom);
+            if (res) return res;
+          } catch(e) {}
+        }
+        return null;
+      };
+
       try {
-        const fetchTable = async (name) => {
-          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
-        };
-
-        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = (tStruct.Nom || tStruct.NOM || tStruct.Name || []).map(nettoyerEtiquette).filter(Boolean);
+        const tStruct = await fetchTableSafe(['STRUCTURES', 'Structures', 'structures', 'STRUCTURE']);
+        if(tStruct) {
+          const col = tStruct.Nom || tStruct.NOM || tStruct.Name || tStruct.Libelle || Object.values(tStruct)[0];
+          referenceTables.structures = (Array.isArray(col) ? col : Object.values(col || {})).map(nettoyerEtiquette).filter(Boolean);
+        }
         
-        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ) referenceTables.services = (tServ.Nom || tServ.Service || []).map(nettoyerEtiquette).filter(Boolean);
+        const tServ = await fetchTableSafe(['SERVICES', 'Services', 'services', 'SERVICE']);
+        if(tServ) {
+          const col = tServ.Nom || tServ.Service || tServ.Name || tServ.Libelle || Object.values(tServ)[0];
+          referenceTables.services = (Array.isArray(col) ? col : Object.values(col || {})).map(nettoyerEtiquette).filter(Boolean);
+        }
         
-        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat) referenceTables.statuts = (tStat.Nom || tStat.Statut || []).map(nettoyerEtiquette).filter(Boolean);
+        const tStat = await fetchTableSafe(['STATUTS', 'Statuts', 'statuts', 'STATUT']);
+        if(tStat) {
+          const col = tStat.Nom || tStat.Statut || tStat.Name || tStat.Libelle || Object.values(tStat)[0];
+          referenceTables.statuts = (Array.isArray(col) ? col : Object.values(col || {})).map(nettoyerEtiquette).filter(Boolean);
+        }
 
-        const tEtiquette = await fetchTable('ETIQUETTE') || await fetchTable('Etiquette') || await fetchTable('Etiquettes');
+        const tEtiquette = await fetchTableSafe(['ETIQUETTE', 'Etiquette', 'Etiquettes', 'etiquette', 'etiquettes']);
         if (tEtiquette) {
           const extraireEtiquettesCol = (colData) => {
             if (!colData) return [];
@@ -290,10 +306,11 @@
           OPTIONS_DIFFUSION.HOUDREMONT = extraireEtiquettesCol(tEtiquette.Diffusion_Houdremont || tEtiquette.Listes_Diffusion_Houdremont);
           OPTIONS_DIFFUSION.INTERVENANT = extraireEtiquettesCol(tEtiquette.Diffusion_Intervenant || tEtiquette.Listes_Diffusion_Intervenant);
         }
-      } catch(e) { 
-        console.warn("Erreur chargement tables de référence :", e); 
+      } catch(e) {
+        console.warn("Tables de référence non trouvées, bascule sur extraction automatique.", e);
       }
 
+      // 2. Filet de sécurité automatique : si une liste est vide, on l'extrait directement des contacts existants
       const extraireDepuisContacts = (cles) => {
         const set = new Set();
         allRecords.forEach(r => {
@@ -308,6 +325,10 @@
         return Array.from(set).sort();
       };
 
+      if (!referenceTables.structures.length) referenceTables.structures = extraireDepuisContacts(KEYS.STRUCTURE);
+      if (!referenceTables.services.length) referenceTables.services = extraireDepuisContacts(KEYS.SERVICE);
+      if (!referenceTables.statuts.length) referenceTables.statuts = extraireDepuisContacts(KEYS.STATUT);
+      
       if (!OPTIONS_DIFFUSION.CINEMA.length) OPTIONS_DIFFUSION.CINEMA = extraireDepuisContacts(KEYS.DIFF_CINEMA);
       if (!OPTIONS_DIFFUSION.DIRECTION.length) OPTIONS_DIFFUSION.DIRECTION = extraireDepuisContacts(KEYS.DIFF_DIRECTION);
       if (!OPTIONS_DIFFUSION.HOUDREMONT.length) OPTIONS_DIFFUSION.HOUDREMONT = extraireDepuisContacts(KEYS.DIFF_HOUDREMONT);
@@ -370,8 +391,8 @@
         sel.innerHTML = '<option value="">-- Tous --</option>' + options.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
-      alimenterSelect('filter-service', extraireValeursUniques(KEYS.SERVICE));
-      alimenterSelect('filter-statut', extraireValeursUniques(KEYS.STATUT));
+      alimenterSelect('filter-service', referenceTables.services.length ? referenceTables.services : extraireValeursUniques(KEYS.SERVICE));
+      alimenterSelect('filter-statut', referenceTables.statuts.length ? referenceTables.statuts : extraireValeursUniques(KEYS.STATUT));
       alimenterSelect('filter-type-structure', extraireValeursUniques(KEYS.TYPE_STRUCT));
       alimenterSelect('filter-domaine', extraireValeursUniques(KEYS.DOMAINE));
     }
