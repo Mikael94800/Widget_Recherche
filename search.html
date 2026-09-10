@@ -284,16 +284,22 @@
       appliquerFiltres();
     });
 
-  async function chargerTablesDeReference() {
+ async function chargerTablesDeReference() {
     try {
         const fetchTable = async (name) => {
             try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
-        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
-    } catch(e) { console.warn("Erreur chargement tables de référence:", e); }
+        const tEtiquettes = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
+        if (tEtiquettes) {
+            referenceTables.structures = tEtiquettes.ORIGINE_CONTACT || [];
+            referenceTables.services = tEtiquettes.ORIGINE_CONTACT || [];
+            referenceTables.statuts = tEtiquettes.STATUT_JURIDIQUE || [];
+            referenceTables.domaines = tEtiquettes.DOMAINE_D_ACTIVITES || tEtiquettes.DOMAINE_D_ACTIVITÉS || [];
+            referenceTables.typesStruct = tEtiquettes.TYPE_DE_STRUCTURE || [];
+        }
+    } catch(e) { 
+        console.warn("Erreur chargement tables de référence:", e); 
+    }
 }
 
     function getVal(rec, keys) {
