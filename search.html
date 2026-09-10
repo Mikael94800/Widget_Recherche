@@ -284,19 +284,17 @@
       appliquerFiltres();
     });
 
-    async function chargerTablesDeReference() {
-      try {
+  async function chargerTablesDeReference() {
+    try {
         const fetchTable = async (name) => {
-          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
+            try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
         if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
         if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
-        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
-      } catch(e) { console.warn("Erreur chargement tables de référence:", e); }
-    }
+    } catch(e) { console.warn("Erreur chargement tables de référence:", e); }
+}
 
     function getVal(rec, keys) {
       if (!rec) return "";
