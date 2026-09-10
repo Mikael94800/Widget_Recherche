@@ -212,7 +212,10 @@
 
     // Correctif de l'initialisation Grist (déclarations optionnelles)
 grist.ready({
-  requiredAccess: 'full'
+  requiredAccess: 'full',
+  columns: [
+    { name: 'Etiquettes', type: 'ChoiceList', optional: true }
+  ]
 });
 
     grist.onRecords(async function(records) {
