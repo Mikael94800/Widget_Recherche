@@ -92,6 +92,12 @@
     let matchingRecords = [];
     let selectedId = null;
     let referenceTables = { structures: [], services: [], statuts: [] };
+    let optionsEtiquettes = {
+      'Diffusion Cinéma': [],
+      'Diffusion Direction': [],
+      'Diffusion Houdremont': [],
+      'Diffusion Intervenant': []
+    };
 
     const KEYS = {
       NOM: ['NOM', 'Nom'],
@@ -100,7 +106,8 @@
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
-      DIFFUSION: {
+      // Correspondance vers les colonnes de contacts (si stockées directement)
+      DIFFUSION_CONTACTS: {
         'Diffusion Cinéma': ['DIFFUSION_CINEMA', 'Diffusion Cinéma', 'Diffusion_Cinema'],
         'Diffusion Direction': ['DIFFUSION_DIRECTION', 'Diffusion Direction', 'Diffusion_Direction'],
         'Diffusion Houdremont': ['DIFFUSION_HOUDREMONT', 'Diffusion Houdremont', 'Diffusion_Houdremont'],
@@ -130,11 +137,40 @@
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
+
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
         if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
+        
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
+
+        // Récupération des options depuis la table ETIQUETTES
+        const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
+        if (tEtiq) {
+          if (tEtiq.Listes_Diffusion_Cinema) {
+            optionsEtiquettes['Diffusion Cinéma'] = extraireListe(tEtiq.Listes_Diffusion_Cinema);
+          }
+          if (tEtiq.Listes_Diffusion_Direction) {
+            optionsEtiquettes['Diffusion Direction'] = extraireListe(tEtiq.Listes_Diffusion_Direction);
+          }
+          if (tEtiq.Listes_Diffusion_Houdremont) {
+            optionsEtiquettes['Diffusion Houdremont'] = extraireListe(tEtiq.Listes_Diffusion_Houdremont);
+          }
+          if (tEtiq.Listes_Diffusion_Intervenants) {
+            optionsEtiquettes['Diffusion Intervenant'] = extraireListe(tEtiq.Listes_Diffusion_Intervenants);
+          }
+        }
       } catch(e) { console.warn(e); }
+    }
+
+    function extraireListe(colData) {
+      if (!colData) return [];
+      let arr = colData;
+      if (Array.isArray(colData) && colData[0] === 'L') {
+        arr = colData.slice(1);
+      }
+      if (!Array.isArray(arr)) arr = [arr];
+      return arr.map(v => normaliserChaine(v)).filter(v => v.trim() !== "").sort();
     }
 
     function getVal(rec, keys) {
@@ -152,7 +188,11 @@
       if (!valeur) return "";
       if (typeof valeur === "string") return valeur;
       if (Array.isArray(valeur)) {
-        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
+        let items = valeur;
+        if (valeur.length > 0 && valeur[0] === 'L') {
+          items = valeur.slice(1);
+        }
+        return items.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
       }
       if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
       return String(valeur);
@@ -176,35 +216,15 @@
       return Array.from(valeursSet).sort();
     }
 
-    function extraireOptionsDiffusion(clesMap) {
-      const optionsMap = {};
-      for (const [titre, cles] of Object.entries(clesMap)) {
-        const valeursSet = new Set();
-        allRecords.forEach(r => {
-          const val = getVal(r, cles);
-          if (val) {
-            normaliserChaine(val).split(/[,;]/).forEach(v => {
-              const clean = v.trim();
-              if (clean) valeursSet.add(clean);
-            });
-          }
-        });
-        optionsMap[titre] = Array.from(valeursSet).sort();
-      }
-      return optionsMap;
-    }
-
     function initialiserInterfaceDiffusion() {
       const container = document.getElementById('diffusion-grid-container');
-      const optionsParGroupe = extraireOptionsDiffusion(KEYS.DIFFUSION);
       
       let html = '';
-      for (const [titreGroupe, cles] of Object.entries(KEYS.DIFFUSION)) {
-        const options = optionsParGroupe[titreGroupe] || [];
+      for (const [titreGroupe, options] of Object.entries(optionsEtiquettes)) {
         html += `
           <div class="diffusion-box">
             <div class="diffusion-box-title">${titreGroupe}</div>
-            <div id="chk-group-${titreGroupe.replace(/\s+/g, '-')}">
+            <div>
         `;
         if (options.length === 0) {
           html += `<div style="font-size:11px; color:#94a3b8;">Aucune option</div>`;
@@ -242,12 +262,11 @@
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
 
-      // Récupérer les cases à cocher sélectionnées par groupe de diffusion
       const selectedDiffusions = {};
       document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
         const groupe = chk.getAttribute('data-groupe');
         if (!selectedDiffusions[groupe]) selectedDiffusions[groupe] = [];
-        selectedDiffusions[groupe].append ? selectedDiffusions[groupe].push(chk.value) : selectedDiffusions[groupe] = [chk.value];
+        selectedDiffusions[groupe].push(chk.value);
       });
 
       matchingRecords = allRecords.filter(rec => {
@@ -261,10 +280,9 @@
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
 
-        // Filtrage des listes de diffusion (ET entre les groupes, OU au sein d'un même groupe)
         for (const [groupe, valeursCochees] of Object.entries(selectedDiffusions)) {
           if (valeursCochees.length > 0) {
-            const clesGroupe = KEYS.DIFFUSION[groupe];
+            const clesGroupe = KEYS.DIFFUSION_CONTACTS[groupe];
             const valeurContact = normaliserChaine(getVal(rec, clesGroupe));
             const matchUnGroupe = valeursCochees.some(v => valeurContact.toLowerCase().includes(v.toLowerCase()));
             if (!matchUnGroupe) return false;
