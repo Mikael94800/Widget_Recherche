@@ -16,8 +16,8 @@
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
     
-    input[type="text"], select { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; transition: all 0.2s; }
-    input:focus, select:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
+    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; transition: all 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
     
     .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
@@ -25,9 +25,9 @@
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
     .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
-    
     .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
     .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    
     .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
     .btn-tool:hover { background: #e5e7eb; }
     
@@ -36,7 +36,6 @@
     .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
     .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    
     .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
     table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
     th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
@@ -56,84 +55,84 @@
 <body>
   <div class="search-card">
     <div class="card-title">
-      <span>🔍 Espace de Recherche de Contacts (Mode Consultation)</span>
+      <span>🔍 Recherche Multi-critères (Mode Consultation)</span>
       <span id="result-count" class="count-badge">Chargement...</span>
     </div>
     <div class="filter-row">
       <div class="field-group">
         <label>Recherche Texte</label>
-        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="rechercherContacts()">
+        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
       </div>
       <div class="field-group">
         <label>Service (Origine)</label>
-        <select id="filter-service" onchange="rechercherContacts()"><option value="">-- Tous les services --</option></select>
+        <select id="filter-service" onchange="appliquerFiltres()"><option value="">-- Tous les services --</option></select>
       </div>
       <div class="field-group">
         <label>Statut Juridique</label>
-        <select id="filter-statut" onchange="rechercherContacts()"><option value="">-- Tous les statuts --</option></select>
+        <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous les statuts --</option></select>
       </div>
     </div>
     <div class="filter-row-bottom">
       <div class="field-group">
         <label>Type de structure</label>
-        <select id="filter-type-structure" onchange="rechercherContacts()"><option value="">-- Tous les types --</option></select>
+        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous les types --</option></select>
       </div>
       <div class="field-group">
         <label>Fonction / Profession</label>
-        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="rechercherContacts()">
+        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
       </div>
       <div class="field-group">
         <label>Domaine d'activités</label>
-        <select id="filter-domaine" onchange="rechercherContacts()"><option value="">-- Tous les domaines --</option></select>
+        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous les domaines --</option></select>
       </div>
     </div>
     <div class="checkboxes-container">
       <div class="field-group">
         <label>Diffusion Cinéma</label>
         <div class="checkbox-group" id="group-cinema">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="rechercherContacts()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="rechercherContacts()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="rechercherContacts()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="rechercherContacts()"> Enseignant maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
         </div>
       </div>
       <div class="field-group">
         <label>Diffusion Direction</label>
         <div class="checkbox-group" id="group-direction">
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="rechercherContacts()"> Enseignants maternelle PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="rechercherContacts()"> Enseignants élémentaire PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="rechercherContacts()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="rechercherContacts()"> Patrimoine & Archives</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="rechercherContacts()"> Newsletter</label>
-          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="rechercherContacts()"> DAC_93</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
+          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
         </div>
       </div>
       <div class="field-group">
         <label>Diffusion Houdremont</label>
         <div class="checkbox-group" id="group-houdremont">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="rechercherContacts()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="rechercherContacts()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="rechercherContacts()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="rechercherContacts()"> Enseignant maternelle</label>
-          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="rechercherContacts()"> Habitants</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="rechercherContacts()"> Newsletter</label>
+          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
+          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
+          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
+          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
         </div>
       </div>
       <div class="field-group">
         <label>Diffusion Intervenant</label>
         <div class="checkbox-group" id="group-intervenant">
-          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="rechercherContacts()"> Cinéma</label>
-          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="rechercherContacts()"> PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="rechercherContacts()"> Patrimoine</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="rechercherContacts()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="rechercherContacts()"> Direction</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="rechercherContacts()"> Arts plastiques</label>
+          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
+          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
+          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
+          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
         </div>
       </div>
     </div>
     <div class="actions">
-      <button class="btn-reset" onclick="reinitialiserRecherche()">Réinitialiser</button>
-      <button class="btn-search" onclick="rechercherContacts()">Rechercher</button>
+      <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
+      <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
     </div>
   </div>
 
@@ -191,6 +190,7 @@
     let sortColumn = null;
     let sortAscending = true;
     let selectedIds = new Set();
+    let referenceTables = { structures: [], services: [], statuts: [] };
     
     const KEYS = {
       NOM: ['NOM', 'Nom'],
@@ -215,11 +215,26 @@
     };
 
     grist.ready({ requiredAccess: 'read' });
-    grist.onRecords(function(records) {
+    grist.onRecords(async function(records) {
       allRecords = records;
+      await chargerTablesDeReference();
       peuplerListesDeroulantesFiltres();
-      rechercherContacts();
+      appliquerFiltres();
     });
+
+    async function chargerTablesDeReference() {
+      try {
+        const fetchTable = async (name) => {
+          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
+        };
+        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
+        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
+        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
+        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
+        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
+        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
+      } catch(e) { console.warn(e); }
+    }
 
     function getVal(rec, keys) {
       if (!rec) return "";
@@ -258,19 +273,21 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      const alimenterSelect = (id, options) => {
+      const alimenterSelect = (id, optionsRef, clesDonnees) => {
         const sel = document.getElementById(id);
         const curVal = sel.value;
-        sel.innerHTML = '<option value="">-- Tous --</option>' + options.map(s => `<option value="${s}">${s}</option>`).join('');
+        const fusionOptions = Array.from(new Set([...optionsRef, ...extraireValeursUniques(clesDonnees)])).sort();
+        sel.innerHTML = '<option value="">-- Tous --</option>' + fusionOptions.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
-      alimenterSelect('filter-service', extraireValeursUniques(KEYS.SERVICE));
-      alimenterSelect('filter-statut', extraireValeursUniques(KEYS.STATUT));
-      alimenterSelect('filter-type-structure', extraireValeursUniques(KEYS.TYPE_STRUCT));
-      alimenterSelect('filter-domaine', extraireValeursUniques(KEYS.DOMAINE));
+      
+      alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
+      alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
+      alimenterSelect('filter-type-structure', [], KEYS.TYPE_STRUCT);
+      alimenterSelect('filter-domaine', [], KEYS.DOMAINE);
     }
 
-    function rechercherContacts() {
+    function appliquerFiltres() {
       if (!allRecords.length) return;
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
@@ -341,7 +358,7 @@
       });
     }
 
-    function reinitialiserRecherche() {
+    function reinitialiserFiltres() {
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
@@ -351,7 +368,7 @@
       document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
       selectedIds.clear();
       sortColumn = null;
-      rechercherContacts();
+      appliquerFiltres();
     }
 
     function afficherTableau() {
