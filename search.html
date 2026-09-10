@@ -2,564 +2,134 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche Contacts Grist</title>
+  <title>Recherche de Contact</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 15.5px; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; display: flex; flex-direction: column; height: 100vh; }
     
-    .search-card { background: #ffffff; border-radius: 10px; padding: 20px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; margin-bottom: 20px; }
-    .card-title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-    .count-badge { background: #e6f4ff; color: #0958d9; font-size: 15.5px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
-    .filter-row, .filter-row-bottom { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-    .checkboxes-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
-    .field-group { display: flex; flex-direction: column; gap: 4px; }
-    label { font-size: 13.5px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
+    .search-box { margin-bottom: 12px; }
+    input[type="text"] { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; outline: none; background: #fff; }
+    input[type="text"]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+
+    .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    tr { cursor: pointer; }
+    tr:hover { background-color: #f8fafc; }
+    tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
     
-    input[type="text"], select, textarea { padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15.5px; outline: none; background-color: #fff; width: 100%; transition: all 0.2s; }
-    input:focus, select:focus, textarea:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15); }
-    
-    .checkbox-group { border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px; background-color: #f9fafb; display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
-    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: #374151; cursor: pointer; }
-    .checkbox-item input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
-    .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; align-items: center; }
-    .btn-search { background-color: #1677ff; color: white; border: none; padding: 11px 22px; font-size: 16.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-reset { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 11px 19px; font-size: 16.5px; font-weight: 600; border-radius: 6px; cursor: pointer; }
-    .table-toolbar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 11px 14px; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
-    .toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    
-    .btn-tool { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 13px; font-size: 15.5px; font-weight: bold; cursor: pointer; color: #374151; }
-    .btn-tool:hover { background: #e5e7eb; }
-    
-    .btn-export { background-color: #10b981; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-csv { background-color: #0284c7; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-copy { background-color: #8b5cf6; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-selected-txt { background-color: #d97706; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-selected-csv { background-color: #0d9488; color: white; border: none; padding: 9px 15px; font-size: 15.5px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .table-container { max-height: 65vh; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-    table { width: 100%; border-collapse: collapse; font-size: 15.5px; text-align: left; table-layout: fixed; }
-    th { background-color: #f3f4f6; color: #374151; padding: 13px 11px; position: sticky; top: 0; border-bottom: 1px solid #d1d5db; z-index: 5; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-    th.no-sort { cursor: default; }
-    th:hover:not(.no-sort) { background-color: #e5e7eb; }
-    td { padding: 12px 11px; border-bottom: 1px solid #f9fafb; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
-    tr.result-row { cursor: pointer; }
-    tr.result-row:hover { background-color: #f0fdf4; }
-    tr.selected { background-color: #e6f4ff !important; }
-    tr.checked-row { background-color: #bae0ff !important; font-weight: 500; }
-    
-    .sort-icon { font-size: 12px; margin-left: 4px; color: #6b7280; }
-    .resizer { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
-    .resizer:hover, .resizer.resizing { background-color: #1677ff; }
+    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; }
   </style>
 </head>
 <body>
-  <div class="search-card">
-    <div class="card-title">
-      <span>🔍 Recherche d'un Contact</span>
-      <span id="result-count" class="count-badge">Chargement...</span>
-    </div>
-    <div class="filter-row">
-      <div class="field-group">
-        <label>Recherche Texte</label>
-        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, ville, email..." oninput="appliquerFiltres()">
-      </div>
-      <div class="field-group">
-        <label>Service (Origine)</label>
-        <select id="filter-service" onchange="appliquerFiltres()"><option value="">-- Tous les services --</option></select>
-      </div>
-      <div class="field-group">
-        <label>Statut Juridique</label>
-        <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous les statuts --</option></select>
-      </div>
-    </div>
-    <div class="filter-row-bottom">
-      <div class="field-group">
-        <label>Type de structure</label>
-        <select id="filter-type-structure" onchange="appliquerFiltres()"><option value="">-- Tous les types --</option></select>
-      </div>
-      <div class="field-group">
-        <label>Fonction / Profession</label>
-        <input type="text" id="filter-fonction" placeholder="Filtrer fonction..." oninput="appliquerFiltres()">
-      </div>
-      <div class="field-group">
-        <label>Domaine d'activités</label>
-        <select id="filter-domaine" onchange="appliquerFiltres()"><option value="">-- Tous les domaines --</option></select>
-      </div>
-    </div>
-    <div class="checkboxes-container">
-      <div class="field-group">
-        <label>Diffusion Cinéma</label>
-        <div class="checkbox-group" id="group-cinema">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
-        </div>
-      </div>
-      <div class="field-group">
-        <label>Diffusion Direction</label>
-        <div class="checkbox-group" id="group-direction">
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants maternelle PEAC 26-27" onchange="appliquerFiltres()"> Enseignants maternelle PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignants élémentaire PEAC 26-27" onchange="appliquerFiltres()"> Enseignants élémentaire PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine & Archives" onchange="appliquerFiltres()"> Patrimoine & Archives</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
-          <label class="checkbox-item"><input type="checkbox" value="DAC_93" onchange="appliquerFiltres()"> DAC_93</label>
-        </div>
-      </div>
-      <div class="field-group">
-        <label>Diffusion Houdremont</label>
-        <div class="checkbox-group" id="group-houdremont">
-          <label class="checkbox-item"><input type="checkbox" value="Crèche" onchange="appliquerFiltres()"> Crèche</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enfance & Jeunesse" onchange="appliquerFiltres()"> Enfance & Jeunesse</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant élémentaire" onchange="appliquerFiltres()"> Enseignant élémentaire</label>
-          <label class="checkbox-item"><input type="checkbox" value="Enseignant maternelle" onchange="appliquerFiltres()"> Enseignant maternelle</label>
-          <label class="checkbox-item"><input type="checkbox" value="Habitants" onchange="appliquerFiltres()"> Habitants</label>
-          <label class="checkbox-item"><input type="checkbox" value="Newsletter" onchange="appliquerFiltres()"> Newsletter</label>
-        </div>
-      </div>
-      <div class="field-group">
-        <label>Diffusion Intervenant</label>
-        <div class="checkbox-group" id="group-intervenant">
-          <label class="checkbox-item"><input type="checkbox" value="Cinéma" onchange="appliquerFiltres()"> Cinéma</label>
-          <label class="checkbox-item"><input type="checkbox" value="PEAC 26-27" onchange="appliquerFiltres()"> PEAC 26-27</label>
-          <label class="checkbox-item"><input type="checkbox" value="Patrimoine" onchange="appliquerFiltres()"> Patrimoine</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts visuels" onchange="appliquerFiltres()"> Arts visuels</label>
-          <label class="checkbox-item"><input type="checkbox" value="Direction" onchange="appliquerFiltres()"> Direction</label>
-          <label class="checkbox-item"><input type="checkbox" value="Arts plastiques" onchange="appliquerFiltres()"> Arts plastiques</label>
-        </div>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser</button>
-      <button class="btn-search" onclick="appliquerFiltres()">Rechercher</button>
-    </div>
-  </div>
 
-  <div class="table-toolbar">
-    <div class="toolbar-group">
-      <button class="btn-tool" onclick="naviguerTableau(-1)">▲ Précédent</button>
-      <button class="btn-tool" onclick="naviguerTableau(1)">▼ Suivant</button>
-      <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
-      <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
-      <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Double-clic ou bouton pour sélectionner le contact)</i></span>
-    </div>
-    <div class="toolbar-group">
-      <button class="btn-tool" style="background-color: #1677ff; color: white; border: none;" onclick="selectionnerContactActif()">📌 Sélectionner ce contact</button>
-      <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
-      <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
-      
-      <button class="btn-copy" onclick="copierEmails()">📋 Copier les emails (;)</button>
-      <button class="btn-export" onclick="exporterEmailsTXT()">📥 Exporter tous les mails TXT</button>
-      <button class="btn-csv" onclick="exporterCSV()">📥 Exporter toutes les fiches (.csv)</button>
-    </div>
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="Rechercher par nom, prénom, structure, email..." oninput="filtrerContacts()">
   </div>
 
   <div class="table-container">
-    <table id="main-table">
-      <colgroup>
-        <col style="width: 140px;">
-        <col style="width: 140px;">
-        <col style="width: 200px;">
-        <col style="width: 140px;">
-        <col style="width: 130px;">
-        <col style="width: 200px;">
-        <col style="width: 50px;">
-      </colgroup>
+    <table>
       <thead>
         <tr>
-          <th onclick="trierTableau('NOM')">Nom <span class="sort-icon" id="sort-NOM">↕</span></th>
-          <th onclick="trierTableau('PRENOM')">Prénom <span class="sort-icon" id="sort-PRENOM">↕</span></th>
-          <th onclick="trierTableau('NOM_Structure')">Structure <span class="sort-icon" id="sort-NOM_Structure">↕</span></th>
-          <th onclick="trierTableau('Service')">Service <span class="sort-icon" id="sort-Service">↕</span></th>
-          <th onclick="trierTableau('Ville')">Ville <span class="sort-icon" id="sort-Ville">↕</span></th>
-          <th onclick="trierTableau('EMAIL_PRINCIPAL')">Email <span class="sort-icon" id="sort-EMAIL_PRINCIPAL">↕</span></th>
-          <th class="no-sort" style="text-align: center;"><input type="checkbox" id="select-all" onchange="toutSelectionner(this)" title="Tout sélectionner / Désélectionner"></th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Structure</th>
+          <th>Email</th>
         </tr>
       </thead>
-      <tbody id="results-table-body"></tbody>
+      <tbody id="table-body">
+        <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+      </tbody>
     </table>
   </div>
+
+  <div class="info-bar" id="info-count">0 contact(s)</div>
 
   <script>
     let allRecords = [];
     let matchingRecords = [];
-    let selectedIndex = 0;
-    let lastClickedIndex = null;
-    let currentFontSize = 15.5;
-    let sortColumn = null;
-    let sortAscending = true;
-    let selectedIds = new Set();
-    let referenceTables = { structures: [], services: [], statuts: [], typesStructure: [], domaines: [] };
-    
-    const KEYS = {
-      NOM: ['NOM', 'Nom'],
-      PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
-      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
-      FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
-      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
-      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
-      TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure', 'Type_de_structure'],
-      DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
-      CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
-      VILLE: ['Ville', 'VILLE'],
-      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
-      EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires'],
-      TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Tel_Principal'],
-      TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires'],
-      DIFF_CINEMA: ['Listes_Diffusion_Cinema', 'Listes Diffusion Cinéma', 'Diffusion Cinéma', 'Diffusion_Cinema', 'Listes_Diffusion_Cinéma'],
-      DIFF_DIRECTION: ['Listes_Diffusion_Direction', 'Listes Diffusion Direction', 'Diffusion Direction', 'Diffusion_Direction'],
-      DIFF_HOUDREMONT: ['Listes_Diffusion_Houdremont', 'Listes Diffusion Houdremont', 'Diffusion Houdremont', 'Diffusion_Houdremont'],
-      DIFF_INTERVENANT: ['Listes_Diffusion_Intervenant', 'Listes Diffusion Intervenant', 'Diffusion Intervenant', 'Diffusion_Intervenant'],
-      COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
-    };
+    let selectedId = null;
 
-    // Initialisation Grist avec accès étendu pour permettre le retour de sélection
+    // Connexion à Grist en écriture/sélection
     grist.ready({ requiredAccess: 'full' });
-    
-    grist.onRecords(async function(records) {
+
+    grist.onRecords(function(records) {
       allRecords = records;
-      await chargerTablesDeReference();
-      peuplerListesDeroulantesFiltres();
-      appliquerFiltres();
+      filtrerContacts();
     });
 
-    async function chargerTablesDeReference() {
-      try {
-        const fetchTable = async (names) => {
-          for (let name of names) {
-            try { 
-              const t = await grist.docApi.fetchTable(name); 
-              if (t) return t; 
-            } catch(e) {}
-          }
-          return null;
-        };
-
-        const extraireNoms = (tableData) => {
-          if (!tableData) return [];
-          const colonnesPossibles = ['Nom', 'NOM', 'Name', 'Libelle', 'Libellé', 'Service', 'Statut', 'Type', 'Domaine'];
-          for (let col of colonnesPossibles) {
-            if (tableData[col] && Array.isArray(tableData[col])) {
-              return tableData[col].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
-            }
-          }
-          for (let key in tableData) {
-            if (Array.isArray(tableData[key])) {
-              return tableData[key].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
-            }
-          }
-          return [];
-        };
-
-        referenceTables.structures = extraireNoms(await fetchTable(['STRUCTURES', 'Structures', 'structure', 'structures']));
-        referenceTables.services = extraireNoms(await fetchTable(['SERVICES', 'Services', 'service', 'services']));
-        referenceTables.statuts = extraireNoms(await fetchTable(['STATUTS', 'Statuts', 'statut', 'statuts', 'STATUT_JURIDIQUE']));
-        referenceTables.typesStructure = extraireNoms(await fetchTable(['TYPES_STRUCTURE', 'Types_Structure', 'Type_Structure', 'TypesDeStructure', 'TYPE_DE_STRUCTURE']));
-        referenceTables.domaines = extraireNoms(await fetchTable(['DOMAINES', 'Domaines', 'Domaine_Activites', 'Domaines_Activites']));
-
-      } catch(e) { console.warn("Erreur chargement tables de référence", e); }
-    }
-
-    function getVal(rec, keys) {
-      if (!rec) return "";
-      for (let k of keys) {
-        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+    // Écoute aussi si Grist change la sélection active par ailleurs
+    grist.onSelectedRow(function(recordId) {
+      if (recordId && recordId !== selectedId) {
+        selectedId = recordId;
+        mettreAJourSelectionVisuelle();
       }
-      return "";
-    }
+    });
 
-    function normaliserChaine(valeur) {
-      if (!valeur) return "";
-      if (typeof valeur === "string") return valeur;
-      if (Array.isArray(valeur)) {
-        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
-      }
-      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
-      return String(valeur);
-    }
-
-    function contientCritere(champData, valeurRecherchee) {
-      return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
-    }
-
-    function extraireValeursUniques(cles) {
-      const valeursSet = new Set();
-      allRecords.forEach(r => {
-        const val = getVal(r, cles);
-        if (val) {
-          normaliserChaine(val).split(/[,;]/).forEach(v => {
-            const clean = v.trim();
-            if (clean) valeursSet.add(clean);
-          });
-        }
-      });
-      return Array.from(valeursSet).sort();
-    }
-
-    function peuplerListesDeroulantesFiltres() {
-      const alimenterSelect = (id, optionsRef, clesDonnees) => {
-        const sel = document.getElementById(id);
-        const curVal = sel.value;
-        const fusionOptions = Array.from(new Set([...optionsRef, ...extraireValeursUniques(clesDonnees)])).sort();
-        sel.innerHTML = '<option value="">-- Tous --</option>' + fusionOptions.map(s => `<option value="${s}">${s}</option>`).join('');
-        sel.value = curVal;
-      };
+    function filtrerContacts() {
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
       
-      alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
-      alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
-      alimenterSelect('filter-type-structure', referenceTables.typesStructure, KEYS.TYPE_STRUCT);
-      alimenterSelect('filter-domaine', referenceTables.domaines, KEYS.DOMAINE);
-    }
-
-    function appliquerFiltres() {
-      if (!allRecords.length) return;
-      const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
-      const serviceFilter = document.getElementById('filter-service').value;
-      const statutFilter = document.getElementById('filter-statut').value;
-      const typeStructFilter = document.getElementById('filter-type-structure').value;
-      const fonctionFilter = document.getElementById('filter-fonction').value.toLowerCase().trim();
-      const domaineFilter = document.getElementById('filter-domaine').value;
-      
-      const cinemaChecked = Array.from(document.querySelectorAll('#group-cinema input:checked')).map(cb => cb.value);
-      const directionChecked = Array.from(document.querySelectorAll('#group-direction input:checked')).map(cb => cb.value);
-      const houdremontChecked = Array.from(document.querySelectorAll('#group-houdremont input:checked')).map(cb => cb.value);
-      const intervenantChecked = Array.from(document.querySelectorAll('#group-intervenant input:checked')).map(cb => cb.value);
-
       matchingRecords = allRecords.filter(rec => {
-        if (textFilter) {
-          const textGlobal = [
-            getVal(rec, KEYS.NOM), getVal(rec, KEYS.PRENOM), getVal(rec, KEYS.STRUCTURE),
-            getVal(rec, KEYS.VILLE), getVal(rec, KEYS.CODE_POSTAL), getVal(rec, KEYS.EMAIL_PRINCIPAL),
-            getVal(rec, KEYS.EMAILS_SECONDAIRES), getVal(rec, KEYS.TEL_PRINCIPAL), getVal(rec, KEYS.TELS_SECONDAIRES),
-            getVal(rec, KEYS.FONCTION), getVal(rec, KEYS.COMMENTAIRE)
-          ].map(c => normaliserChaine(c)).join(' ').toLowerCase();
-          if (!textFilter.split(/\s+/).every(m => textGlobal.includes(m))) return false;
-        }
-        if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
-        if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
-        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
-        if (typeStructFilter && !contientCritere(getVal(rec, KEYS.TYPE_STRUCT), typeStructFilter)) return false;
-        if (fonctionFilter && !normaliserChaine(getVal(rec, KEYS.FONCTION)).toLowerCase().includes(fonctionFilter)) return false;
-        if (cinemaChecked.length && !cinemaChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_CINEMA), v))) return false;
-        if (directionChecked.length && !directionChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_DIRECTION), v))) return false;
-        if (houdremontChecked.length && !houdremontChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_HOUDREMONT), v))) return false;
-        if (intervenantChecked.length && !intervenantChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_INTERVENANT), v))) return false;
-        return true;
+        if (!query) return true;
+        // Recherche globale tolérante sur les champs principaux
+        const ligneTexte = [
+          rec.NOM || '',
+          rec.PRENOM || '',
+          rec.NOM_Structure || '',
+          rec.EMAIL_PRINCIPAL || ''
+        ].join(' ').toLowerCase();
+
+        return query.split(/\s+/).every(mot => ligneTexte.includes(mot));
       });
 
-      if (sortColumn) effectuerTriDonnees();
-      document.getElementById('result-count').innerText = `${matchingRecords.length} / ${allRecords.length} résultat(s)`;
-      selectedIndex = 0;
       afficherTableau();
-    }
-
-    function trierTableau(col) {
-      if (sortColumn === col) sortAscending = !sortAscending;
-      else { sortColumn = col; sortAscending = true; }
-      ['NOM', 'PRENOM', 'NOM_Structure', 'Service', 'Ville', 'EMAIL_PRINCIPAL'].forEach(c => {
-        const elem = document.getElementById(`sort-${c}`);
-        if (elem) {
-          elem.innerText = (c === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
-          elem.style.color = (c === sortColumn) ? '#1677ff' : '#6b7280';
-        }
-      });
-      effectuerTriDonnees();
-      afficherTableau();
-    }
-
-    function effectuerTriDonnees() {
-      const keyMap = {
-        'NOM': KEYS.NOM, 'PRENOM': KEYS.PRENOM, 'NOM_Structure': KEYS.STRUCTURE,
-        'Service': KEYS.SERVICE, 'Ville': KEYS.VILLE, 'EMAIL_PRINCIPAL': KEYS.EMAIL_PRINCIPAL
-      };
-      const keys = keyMap[sortColumn] || KEYS.NOM;
-      matchingRecords.sort((a, b) => {
-        let valA = normaliserChaine(getVal(a, keys)).toLowerCase();
-        let valB = normaliserChaine(getVal(b, keys)).toLowerCase();
-        if (valA < valB) return sortAscending ? -1 : 1;
-        if (valA > valB) return sortAscending ? 1 : -1;
-        return 0;
-      });
-    }
-
-    function reinitialiserFiltres() {
-      document.getElementById('filter-text').value = '';
-      document.getElementById('filter-service').value = '';
-      document.getElementById('filter-statut').value = '';
-      document.getElementById('filter-type-structure').value = '';
-      document.getElementById('filter-fonction').value = '';
-      document.getElementById('filter-domaine').value = '';
-      document.querySelectorAll('.search-card input[type="checkbox"]').forEach(cb => cb.checked = false);
-      selectedIds.clear();
-      sortColumn = null;
-      appliquerFiltres();
     }
 
     function afficherTableau() {
-      const tbody = document.getElementById('results-table-body');
+      const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
-      const selectAllCb = document.getElementById('select-all');
-      if (selectAllCb) selectAllCb.checked = matchingRecords.length > 0 && matchingRecords.every(r => selectedIds.has(r.id));
-      
-      matchingRecords.forEach((rec, index) => {
+
+      if (matchingRecords.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
+        return;
+      }
+
+      matchingRecords.forEach(rec => {
         const tr = document.createElement('tr');
-        tr.className = 'result-row';
-        const isChecked = selectedIds.has(rec.id);
-        if (isChecked) tr.classList.add('checked-row');
-        if (index === selectedIndex) tr.classList.add('selected');
-        
+        if (rec.id === selectedId) tr.classList.add('selected');
+
         tr.innerHTML = `
-          <td>${getVal(rec, KEYS.NOM)}</td>
-          <td>${getVal(rec, KEYS.PRENOM)}</td>
-          <td>${getVal(rec, KEYS.STRUCTURE)}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
-          <td>${getVal(rec, KEYS.VILLE)}</td>
-          <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
-          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''}></td>
+          <td>${rec.NOM || ''}</td>
+          <td>${rec.PRENOM || ''}</td>
+          <td>${rec.NOM_Structure || ''}</td>
+          <td>${rec.EMAIL_PRINCIPAL || ''}</td>
         `;
-        
-        tr.querySelector('.row-checkbox').onclick = (e) => { e.stopPropagation(); gererClicLigne(index, e, true); };
-        tr.onclick = (e) => gererClicLigne(index, e, false);
-        tr.ondblclick = () => selectionnerContactActif(); // Double-clic pour sélectionner instantanément
+
+        // Au clic, on sélectionne immédiatement le contact dans Grist
+        tr.onclick = () => {
+          selectedId = rec.id;
+          grist.setSelectedRecord(rec.id);
+          mettreAJourSelectionVisuelle();
+        };
+
         tbody.appendChild(tr);
       });
-      initialiserRedimensionnementColonnes();
+
+      document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s)`;
     }
 
-    function gererClicLigne(indexIndex, event, isCheckbox) {
-      const rec = matchingRecords[indexIndex];
-      if (event.shiftKey && lastClickedIndex !== null) {
-        const start = Math.min(lastClickedIndex, indexIndex);
-        const end = Math.max(lastClickedIndex, indexIndex);
-        for (let i = start; i <= end; i++) selectedIds.add(matchingRecords[i].id);
-      } else if (isCheckbox) {
-        if (selectedIds.has(rec.id)) selectedIds.delete(rec.id);
-        else selectedIds.add(rec.id);
-        lastClickedIndex = indexIndex;
-      }
-      selectedIndex = indexIndex;
-      majBoutonsSelection();
-      majSelectionGraphique();
-    }
-
-    function majSelectionGraphique() {
-      document.querySelectorAll('#results-table-body tr').forEach((row, idx) => {
-        row.classList.toggle('selected', idx === selectedIndex);
-      });
-    }
-
-    function toutSelectionner(master) {
-      matchingRecords.forEach(r => master.checked ? selectedIds.add(r.id) : selectedIds.delete(r.id));
-      majBoutonsSelection();
-      afficherTableau();
-    }
-
-    function majBoutonsSelection() {
-      const count = selectedIds.size;
-      const btnTxt = document.getElementById('btn-export-selected-txt');
-      const btnCsv = document.getElementById('btn-export-selected-csv');
-      btnTxt.style.display = count ? 'inline-block' : 'none';
-      btnCsv.style.display = count ? 'inline-block' : 'none';
-      if (count) {
-        btnTxt.innerText = `📩 Exporter mails sélect. TXT (${count})`;
-        btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${count})`;
-      }
-    }
-
-    // Action clé pour renvoyer le contact sélectionné vers Grist
-    function selectionnerContactActif() {
-      if (matchingRecords.length && matchingRecords[selectedIndex]) {
-        const contactActif = matchingRecords[selectedIndex];
-        grist.setSelectedRecord(contactActif.id);
-      }
-    }
-
-    function naviguerTableau(dir) {
-      if (!matchingRecords.length) return;
-      selectedIndex = Math.max(0, Math.min(matchingRecords.length - 1, selectedIndex + dir));
-      majSelectionGraphique();
-      const rows = document.querySelectorAll('#results-table-body tr');
-      if (rows[selectedIndex]) rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-
-    function changerZoom(delta) {
-      currentFontSize = Math.max(12, Math.min(22, currentFontSize + delta));
-      document.querySelector('table').style.fontSize = `${currentFontSize}px`;
-    }
-
-    function copierEmails() {
-      const emails = matchingRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('; ');
-      if (!emails) return alert('Aucun email disponible.');
-      navigator.clipboard.writeText(emails).then(() => alert(`${matchingRecords.length} email(s) copié(s).`));
-    }
-
-    function exporterEmailsTXT() {
-      const emails = matchingRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('\n');
-      telechargerFichier(emails, 'emails_contacts.txt', 'text/plain');
-    }
-
-    function exporterMailsSelectionnesTXT() {
-      const selectedRecords = matchingRecords.filter(r => selectedIds.has(r.id));
-      const emails = selectedRecords.map(r => getVal(r, KEYS.EMAIL_PRINCIPAL)).filter(e => e && e.trim() !== '').join('\n');
-      telechargerFichier(emails, 'emails_selectionnes.txt', 'text/plain');
-    }
-
-    function exporterCSV() { genererEtTelechargerCSV(matchingRecords, 'export_contacts.csv'); }
-    function exporterFichesSelectionneesCSV() { genererEtTelechargerCSV(matchingRecords.filter(r => selectedIds.has(r.id)), 'export_selection.csv'); }
-
-    function genererEtTelechargerCSV(recordsList, filename) {
-      if (!recordsList.length) return alert('Aucune donnée à exporter.');
-      const headers = ["ID", "Nom", "Prénom", "Structure", "Service", "Code Postal", "Ville", "Email Principal", "Téléphone"];
-      const rows = recordsList.map(r => [
-        r.id,
-        `"${(getVal(r, KEYS.NOM) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.PRENOM) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.STRUCTURE) || '').replace(/"/g, '""')}"`,
-        `"${(normaliserChaine(getVal(r, KEYS.SERVICE)) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.CODE_POSTAL) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.VILLE) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.EMAIL_PRINCIPAL) || '').replace(/"/g, '""')}"`,
-        `"${(getVal(r, KEYS.TEL_PRINCIPAL) || '').replace(/"/g, '""')}"`
-      ]);
-      const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
-      telechargerFichier(csvContent, filename, 'text/csv;charset=utf-8;');
-    }
-
-    function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob([contenu], { type: typeMime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = nomFichier;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function initialiserRedimensionnementColonnes() {
-      const table = document.getElementById('main-table');
-      table.querySelectorAll('th').forEach(th => {
-        if (th.querySelector('.resizer')) return;
-        const resizer = document.createElement('div');
-        resizer.classList.add('resizer');
-        th.appendChild(resizer);
-        let x = 0, w = 0;
-        resizer.addEventListener('mousedown', function (e) {
-          e.stopPropagation();
-          x = e.clientX; w = th.offsetWidth;
-          resizer.classList.add('resizing');
-          const onMouseMove = (e) => th.style.width = `${w + (e.clientX - x)}px`;
-          const onMouseUp = () => {
-            resizer.classList.remove('resizing');
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-          };
-          document.addEventListener('mousemove', onMouseMove);
-          document.addEventListener('mouseup', onMouseUp);
-        });
+    function mettreAJourSelectionVisuelle() {
+      const rows = document.querySelectorAll('#table-body tr');
+      rows.forEach((tr, index) => {
+        const rec = matchingRecords[index];
+        if (rec && rec.id === selectedId) {
+          tr.classList.add('selected');
+        } else {
+          tr.classList.remove('selected');
+        }
       });
     }
   </script>
