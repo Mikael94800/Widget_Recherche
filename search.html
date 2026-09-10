@@ -194,7 +194,7 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    // 1. DÉFINITION RIGIDE DES COLONNES DE LISTES DE DIFFUSION
+    // Colonnes dédiées aux listes de diffusion
     const COLONNES_LISTES = [
       'Listes_Diffusion_Intervenants',
       'Listes_Diffusion_Cinema',
@@ -261,7 +261,6 @@
       return String(valeur);
     }
 
-    // Extraction consolidée depuis les 4 colonnes rigides
     function ObtenirListesParContact(rec) {
       let resultats = [];
       COLONNES_LISTES.forEach(col => {
@@ -321,7 +320,7 @@
       const liste = extraireToutesLesListesUnique();
 
       if (liste.length === 0) {
-        container.innerHTML = '<i>Aucune liste de diffusion trouvée dans les 4 colonnes.</i>';
+        container.innerHTML = '<i>Aucune liste de diffusion trouvée dans les colonnes.</i>';
         return;
       }
 
