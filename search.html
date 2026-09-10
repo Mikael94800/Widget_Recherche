@@ -182,15 +182,6 @@
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ && tServ.id) {
-          referenceTables.services = tServ.id.map((_, i) => tServ.Nom ? tServ.Nom[i] : tServ.Service ? tServ.Service[i] : '').filter(Boolean);
-        }
-        
-        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat && tStat.id) {
-          referenceTables.statuts = tStat.id.map((_, i) => tStat.Nom ? tStat.Nom[i] : tStat.Statut ? tStat.Statut[i] : '').filter(Boolean);
-        }
 
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
         if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
@@ -233,6 +224,8 @@
 
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
+          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine);
+          referenceTables.statuts = extraireCol(tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique || tEtiq.STATUT || tEtiq.Statut);
         }
       } catch(e) { console.warn("Erreur chargement références", e); }
     }
@@ -473,8 +466,7 @@
         <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
         <div class="viewer-field">
           <label>Service (Origine)</label>
-          <input type="text" id="edit-service" list="list-services" value="${valService}">
-          <datalist id="list-services">${referenceTables.services.map(s => `<option value="${s}">`).join('')}</datalist>
+          <select id="edit-service"></select>
         </div>
         <div class="viewer-field">
           <label>Statut Juridique</label>
@@ -543,7 +535,8 @@
         </div>
       `;
 
-      // Remplissage des listes déroulantes de choix uniques
+      // Remplissage des quatre listes déroulantes uniformes
+      alimenterSelectUnique('edit-service', referenceTables.services, valService);
       alimenterSelectUnique('edit-statut', referenceTables.statuts, valStatut);
       alimenterSelectUnique('edit-domaine', referenceTables.domaines, valDomaine);
       alimenterSelectUnique('edit-type-structure', referenceTables.typesStructure, valTypeStruct);
@@ -664,8 +657,8 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      // Récupération correcte des champs fermés (input texte avec datalist ou select)
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value.trim();
+      // Enregistrement des quatre champs fermés via les listes déroulantes unifiées
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value;
