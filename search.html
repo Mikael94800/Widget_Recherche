@@ -233,6 +233,16 @@
       appliquerFiltres();
     });
 
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
+      }
+      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
+      return String(valeur);
+    }
+
     async function chargerTablesDeReference() {
       try {
         const fetchTable = async (name) => {
@@ -248,39 +258,60 @@
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
         if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
 
-        // Chargement dynamique de la table ETIQUETTE
+        // Tentative de lecture de la table ETIQUETTE
         const tEtiquette = await fetchTable('ETIQUETTE') || await fetchTable('Etiquette') || await fetchTable('Etiquettes');
         if (tEtiquette) {
-          const nettoyerColonne = (colData) => {
+          const extraireEtiquettes = (colData) => {
             if (!colData) return [];
             let arr = Array.isArray(colData) ? colData : Object.values(colData);
             let resultats = [];
             arr.forEach(val => {
               if (!val) return;
+              if (typeof val === 'string' && val.trim().startsWith('{')) {
+                try { val = JSON.parse(val); } catch(e) {}
+              }
               let texte = "";
-              if (typeof val === 'object') {
-                texte = val.Nom || val.Libelle || val.L || val.Name || "";
+              if (typeof val === 'object' && val !== null) {
+                texte = val.Nom || val.Libelle || val.L || val.Name || val.fields?.Nom || "";
               } else {
                 texte = String(val);
               }
-              // Ignorer les erreurs Grist et les valeurs vides
               if (texte && !texte.includes("INVALIDTYPEDVALUE") && !texte.includes("DETAILS") && !texte.includes("MESSAGE")) {
                 resultats.push(texte.trim());
               }
             });
-            return Array.from(new Set(resultats)); // Évite les doublons
+            return Array.from(new Set(resultats));
           };
 
-          OPTIONS_DIFFUSION.CINEMA = nettoyerColonne(tEtiquette.Diffusion_Cinema || tEtiquette.Listes_Diffusion_Cinema || tEtiquette.Diffusion_Cinéma);
-          OPTIONS_DIFFUSION.DIRECTION = nettoyerColonne(tEtiquette.Diffusion_Direction || tEtiquette.Listes_Diffusion_Direction);
-          OPTIONS_DIFFUSION.HOUDREMONT = nettoyerColonne(tEtiquette.Diffusion_Houdremont || tEtiquette.Listes_Diffusion_Houdremont);
-          OPTIONS_DIFFUSION.INTERVENANT = nettoyerColonne(tEtiquette.Diffusion_Intervenant || tEtiquette.Listes_Diffusion_Intervenant);
+          OPTIONS_DIFFUSION.CINEMA = extraireEtiquettes(tEtiquette.Diffusion_Cinema || tEtiquette.Listes_Diffusion_Cinema || tEtiquette.Diffusion_Cinéma);
+          OPTIONS_DIFFUSION.DIRECTION = extraireEtiquettes(tEtiquette.Diffusion_Direction || tEtiquette.Listes_Diffusion_Direction);
+          OPTIONS_DIFFUSION.HOUDREMONT = extraireEtiquettes(tEtiquette.Diffusion_Houdremont || tEtiquette.Listes_Diffusion_Houdremont);
+          OPTIONS_DIFFUSION.INTERVENANT = extraireEtiquettes(tEtiquette.Diffusion_Intervenant || tEtiquette.Listes_Diffusion_Intervenant);
         }
       } catch(e) { 
-        console.warn("Erreur chargement références :", e); 
+        console.warn("Erreur chargement tables de référence :", e); 
       }
 
-      // Génération dynamique des cases à cocher dans les filtres de recherche
+      // FILETS DE SÉCURITÉ : Si la table ETIQUETTE est vide ou inaccessible, on extrait les valeurs directement depuis les contacts existants !
+      const extraireDepuisContacts = (cles) => {
+        const set = new Set();
+        allRecords.forEach(r => {
+          const val = getVal(r, cles);
+          if (val) {
+            normaliserChaine(val).split(/[,;]/).forEach(v => {
+              const clean = v.trim();
+              if (clean) set.add(clean);
+            });
+          }
+        });
+        return Array.from(set).sort();
+      };
+
+      if (!OPTIONS_DIFFUSION.CINEMA.length) OPTIONS_DIFFUSION.CINEMA = extraireDepuisContacts(KEYS.DIFF_CINEMA);
+      if (!OPTIONS_DIFFUSION.DIRECTION.length) OPTIONS_DIFFUSION.DIRECTION = extraireDepuisContacts(KEYS.DIFF_DIRECTION);
+      if (!OPTIONS_DIFFUSION.HOUDREMONT.length) OPTIONS_DIFFUSION.HOUDREMONT = extraireDepuisContacts(KEYS.DIFF_HOUDREMONT);
+      if (!OPTIONS_DIFFUSION.INTERVENANT.length) OPTIONS_DIFFUSION.INTERVENANT = extraireDepuisContacts(KEYS.DIFF_INTERVENANT);
+
       peuplerCheckboxesFiltres();
     }
 
@@ -314,15 +345,6 @@
         if (k in rec) return k;
       }
       return keys[0];
-    }
-    function normaliserChaine(valeur) {
-      if (!valeur) return "";
-      if (typeof valeur === "string") return valeur;
-      if (Array.isArray(valeur)) {
-        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
-      }
-      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
-      return String(valeur);
     }
     function contientCritere(champData, valeurRecherchee) {
       return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
@@ -364,6 +386,7 @@
       const directionChecked = Array.from(document.querySelectorAll('#group-direction input:checked')).map(cb => cb.value);
       const houdremontChecked = Array.from(document.querySelectorAll('#group-houdremont input:checked')).map(cb => cb.value);
       const intervenantChecked = Array.from(document.querySelectorAll('#group-intervenant input:checked')).map(cb => cb.value);
+      
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const textGlobal = [
@@ -519,7 +542,6 @@
       html += `</div>`;
       return html;
     }
-    /* --- GESTION DE LA MODALE ET MODIFICATION DE FICHE --- */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
@@ -702,7 +724,6 @@
         }
       }
     }
-    /* --- FONCTIONS D'EXPORT ET COPIE --- */
     function copierEmails() {
       const recordsToExport = selectedIds.size > 0 
         ? matchingRecords.filter(r => selectedIds.has(r.id))
@@ -754,7 +775,7 @@
           getVal(r, KEYS.CODE_POSTAL),
           getVal(r, KEYS.EMAIL_PRINCIPAL),
           getVal(r, KEYS.TEL_PRINCIPAL),
-          getVal(r, KEYS.FONCTION)
+          getVal(r, KEYS.FONCTION]
         ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";");
         csvContent += row + "\n";
       });
