@@ -121,7 +121,7 @@
     let selectedId = null;
     let currentEditingRecord = null;
     let referenceTables = { services: [], statuts: [], structures: [], domaines: [], typesStructure: [] };
-    let communesMap = {}; // Code Postal -> Ville(s)
+    let communesMap = {};
     
     let etiquettesMap = {};
     let optionsEtiquettes = {
@@ -195,7 +195,6 @@
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
         if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
 
-        // Chargement table COMMUNES_FRANCE_2026 pour le code postal -> ville
         const tCommunes = await fetchTable('COMMUNES_FRANCE_2026') || await fetchTable('Communes_France_2026') || await fetchTable('Communes');
         if (tCommunes) {
           const cpCol = tCommunes.Code_Postal || tCommunes.code_postal || tCommunes.CP;
@@ -232,7 +231,6 @@
           optionsEtiquettes['Diffusion Houdremont'] = extraireCol(tEtiq.Listes_Diffusion_Houdremont);
           optionsEtiquettes['Diffusion Intervenant'] = extraireCol(tEtiq.Listes_Diffusion_Intervenants);
 
-          // Récupération des choix uniques
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
         }
@@ -250,7 +248,6 @@
       return rec[keys] !== undefined && rec[keys] !== null ? rec[keys] : "";
     }
 
-    // Trouve la clé exacte existante ou correspondante dans l'objet record pour la sauvegarde
     function getExistingKey(rec, keys) {
       if (!rec) return keys[0];
       for (let k of keys) {
@@ -476,7 +473,8 @@
         <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
         <div class="viewer-field">
           <label>Service (Origine)</label>
-          <select id="edit-service"></select>
+          <input type="text" id="edit-service" list="list-services" value="${valService}">
+          <datalist id="list-services">${referenceTables.services.map(s => `<option value="${s}">`).join('')}</datalist>
         </div>
         <div class="viewer-field">
           <label>Statut Juridique</label>
@@ -545,8 +543,7 @@
         </div>
       `;
 
-      // Remplissage propre de toutes les listes déroulantes uniques (sans lignes vides)
-      alimenterSelectUnique('edit-service', referenceTables.services, valService);
+      // Remplissage des listes déroulantes de choix uniques
       alimenterSelectUnique('edit-statut', referenceTables.statuts, valStatut);
       alimenterSelectUnique('edit-domaine', referenceTables.domaines, valDomaine);
       alimenterSelectUnique('edit-type-structure', referenceTables.typesStructure, valTypeStruct);
@@ -666,10 +663,13 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.PRENOM)] = document.getElementById('edit-prenom').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value;
+      
+      // Récupération correcte des champs fermés (input texte avec datalist ou select)
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value;
+      
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.EMAIL_PRINCIPAL)] = mailInput.value.trim();
