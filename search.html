@@ -586,13 +586,11 @@
           <input type="text" id="edit-fonction" value="${valFonction}">
         </div>
         <div class="viewer-field">
-          <span class="viewer-label">Structure</span>
-          <input type="text" id="edit-structure" list="list-structures" value="${valStructure}">
-          <datalist id="list-structures">${referenceTables.structures.map(s => `<option value="${s}">`).join('')}</datalist>
-        </div>
-
-        <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
-        <div class="viewer-field">
+      <span class="viewer-label">Structure</span>
+      <input type="text" id="edit-structure" list="list-structures" value="${valStructure}">
+      <datalist id="list-structures">${(referenceTables.structures || []).map(s => `<option value="${s}">`).join('')}</datalist>
+    </div>
+    <div class="viewer-field">
       <span class="viewer-label">Service (Origine)</span>
       <input type="text" id="edit-service" list="list-services" value="${valService}">
       <datalist id="list-services">${(referenceTables.services || []).map(s => `<option value="${s}">`).join('')}</datalist>
@@ -610,6 +608,8 @@
     <div class="viewer-field">
       <span class="viewer-label">Domaine d'activités</span>
       <input type="text" id="edit-domaine" list="list-domaines" value="${valDomaine}">
+      <datalist id="list-domaines">${(referenceTables.domaines || []).map(s => `<option value="${s}">`).join('')}</datalist>
+    </div>
       <datalist id="list-domaines">${(referenceTables.domaines || []).map(s => `<option value="${s}">`).join('')}</datalist>
     </div>
       <datalist id="list-domaines">${referenceTables.domaines.map(s => `<option value="${s}">`).join('')}</datalist>
