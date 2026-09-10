@@ -112,7 +112,7 @@
     let allRecords = [];
     let matchingRecords = [];
     let selectedId = null;
-    let referenceTables = { services: [], statuts: [], typeStructures: [], domaines: [] };
+    let referenceTables = { services: [], statuts: [] };
     
     let etiquettesMap = {};
     let optionsEtiquettes = {
@@ -120,6 +120,12 @@
       'Diffusion Direction': [],
       'Diffusion Houdremont': [],
       'Diffusion Intervenant': []
+    };
+
+    // Options spécifiques issues de la table ETIQUETTES pour les champs de référence unique
+    let optionsChampsEtiquettes = {
+      typeStructure: [],
+      domaineActivite: []
     };
 
     const KEYS = {
@@ -176,27 +182,34 @@
           referenceTables.statuts = tStat.id.map((_, i) => tStat.Nom || tStat.Statut || '').filter(Boolean);
         }
 
-        const tTypeStruct = await fetchTable('TYPE_STRUCTURE') || await fetchTable('Type_Structure') || await fetchTable('TypeStructure');
-        if(tTypeStruct && tTypeStruct.id) {
-          referenceTables.typeStructures = tTypeStruct.id.map((_, i) => tTypeStruct.Nom || tTypeStruct.Type || '').filter(Boolean);
-        }
-
-        const tDomaine = await fetchTable('DOMAINES') || await fetchTable('Domaines') || await fetchTable('Domaine_Activites');
-        if(tDomaine && tDomaine.id) {
-          referenceTables.domaines = tDomaine.id.map((_, i) => tDomaine.Nom || tDomaine.Domaine || '').filter(Boolean);
-        }
-
+        // Chargement de la table ETIQUETTES (qui contient aussi les valeurs pour Type de structure et Domaine d'activités)
         const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
         if (tEtiq && tEtiq.id) {
+          const setTypeStruct = new Set();
+          const setDomaine = new Set();
+
           for (let i = 0; i < tEtiq.id.length; i++) {
             const rowId = tEtiq.id[i];
+            
+            // Récupération des colonnes potentielles pour Type de structure et Domaine dans ETIQUETTES
+            const valTypeStruct = tEtiq.Type_de_Structure || tEtiq['Type de Structure'] || tEtiq.Type_Structure || tEtiq.TypeStructure;
+            const valDomaine = tEtiq.Domaine_d_Activités || tEtiq['Domaine d’Activités'] || tEtiq.Domaine_Activites || tEtiq.Domaine;
+
+            if (valTypeStruct && valTypeStruct[i]) setTypeStruct.add(normaliserChaine(valTypeStruct[i]));
+            if (valDomaine && valDomaine[i]) setDomaine.add(normaliserChaine(valDomaine[i]));
+
             etiquettesMap[rowId] = {
               'Listes_Diffusion_Cinema': tEtiq.Listes_Diffusion_Cinema ? tEtiq.Listes_Diffusion_Cinema[i] : null,
               'Listes_Diffusion_Direction': tEtiq.Listes_Diffusion_Direction ? tEtiq.Listes_Diffusion_Direction[i] : null,
               'Listes_Diffusion_Houdremont': tEtiq.Listes_Diffusion_Houdremont ? tEtiq.Listes_Diffusion_Houdremont[i] : null,
-              'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null
+              'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null,
+              'Type_de_Structure': valTypeStruct ? valTypeStruct[i] : null,
+              'Domaine_d_Activités': valDomaine ? valDomaine[i] : null
             };
           }
+
+          optionsChampsEtiquettes.typeStructure = Array.from(setTypeStruct).filter(Boolean).sort();
+          optionsChampsEtiquettes.domaineActivite = Array.from(setDomaine).filter(Boolean).sort();
 
           const extraireCol = (colArr) => {
             if (!colArr) return [];
@@ -233,6 +246,26 @@
         return items.map(v => String(v)).join(", ");
       }
       return String(valeur);
+    }
+
+    // Résout une référence unique (ID pointant vers ETIQUETTES) pour afficher son libellé textuel
+    function getLibelleReferenceUnique(rec, keys, colNomEtiquette) {
+      const valBrute = getVal(rec, keys);
+      if (!valBrute) return "";
+      
+      // Si c'est un ID numérique pointant vers ETIQUETTES
+      let id = valBrute;
+      if (Array.isArray(valBrute)) {
+        if (valBrute[0] === 'L' && valBrute.length > 1) id = valBrute[1];
+        else id = valBrute[0];
+      }
+
+      if (etiquettesMap[id] && etiquettesMap[id][colNomEtiquette]) {
+        return normaliserChaine(etiquettesMap[id][colNomEtiquette]);
+      }
+      
+      // Fallback si la valeur stockée est déjà du texte brut
+      return normaliserChaine(valBrute);
     }
 
     function getLibellesDiffusion(rec, colKey) {
@@ -299,18 +332,18 @@
     }
 
     function peuplerListesDeroulantesFiltres() {
-      const alimenterSelect = (id, optionsRef, clesDonnees) => {
+      const alimenterSelect = (id, optionsRef, optionsEtiq, clesDonnees) => {
         const sel = document.getElementById(id);
         const curVal = sel.value;
-        const fusionOptions = Array.from(new Set([...optionsRef, ...extraireValeursUniques(clesDonnees)])).sort();
+        const fusionOptions = Array.from(new Set([...optionsRef, ...optionsEtiq, ...extraireValeursUniques(clesDonnees)])).sort();
         sel.innerHTML = '<option value="">-- Tous --</option>' + fusionOptions.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
       
-      alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
-      alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
-      alimenterSelect('filter-type-structure', referenceTables.typeStructures, KEYS.TYPE_STRUCTURE);
-      alimenterSelect('filter-domaine', referenceTables.domaines, KEYS.DOMAINE);
+      alimenterSelect('filter-service', referenceTables.services, [], KEYS.SERVICE);
+      alimenterSelect('filter-statut', referenceTables.statuts, [], KEYS.STATUT);
+      alimenterSelect('filter-type-structure', [], optionsChampsEtiquettes.typeStructure, KEYS.TYPE_STRUCTURE);
+      alimenterSelect('filter-domaine', [], optionsChampsEtiquettes.domaineActivite, KEYS.DOMAINE);
     }
 
     function appliquerFiltres() {
@@ -341,8 +374,14 @@
         }
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
-        if (typeStructFilter && !contientCritere(getVal(rec, KEYS.TYPE_STRUCTURE), typeStructFilter)) return false;
-        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
+        
+        // Utilisation de la résolution par référence pour Type de structure et Domaine d'activités
+        const typeStructText = getLibelleReferenceUnique(rec, KEYS.TYPE_STRUCTURE, 'Type_de_Structure');
+        if (typeStructFilter && !contientCritere(typeStructText, typeStructFilter)) return false;
+
+        const domaineText = getLibelleReferenceUnique(rec, KEYS.DOMAINE, 'Domaine_d_Activités');
+        if (domaineFilter && !contientCritere(domaineText, domaineFilter)) return false;
+
         if (fonctionFilter && !contientCritere(getVal(rec, KEYS.FONCTION), fonctionFilter)) return false;
         if (villeFilter && !contientCritere(getVal(rec, KEYS.VILLE), villeFilter)) return false;
         if (cpFilter && !contientCritere(getVal(rec, KEYS.CODE_POSTAL), cpFilter)) return false;
@@ -389,14 +428,17 @@
         const tr = document.createElement('tr');
         if (rec.id === selectedId) tr.classList.add('selected');
 
+        const typeStructDisplay = getLibelleReferenceUnique(rec, KEYS.TYPE_STRUCTURE, 'Type_de_Structure');
+        const domaineDisplay = getLibelleReferenceUnique(rec, KEYS.DOMAINE, 'Domaine_d_Activités');
+
         tr.innerHTML = `
           <td>${getVal(rec, KEYS.NOM)}</td>
           <td>${getVal(rec, KEYS.PRENOM)}</td>
           <td>${getVal(rec, KEYS.STRUCTURE)}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE))}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.DOMAINE))}</td>
+          <td>${typeStructDisplay}</td>
+          <td>${domaineDisplay}</td>
           <td>${getVal(rec, KEYS.FONCTION)}</td>
           <td>${getVal(rec, KEYS.TELEPHONE)}</td>
           <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
