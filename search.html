@@ -55,7 +55,7 @@
 <body>
   <div class="search-card">
     <div class="card-title">
-      <span>🔍 Recherche Multi-critères (Mode Consultation)</span>
+      <span>🔍 Recherche d'un Contact</span>
       <span id="result-count" class="count-badge">Chargement...</span>
     </div>
     <div class="filter-row">
@@ -143,9 +143,10 @@
       <span style="border-left: 1px solid #d1d5db; height: 18px; margin: 0 6px;"></span>
       <button class="btn-tool" onclick="changerZoom(-1)">🔍 -</button>
       <button class="btn-tool" onclick="changerZoom(1)">🔍 +</button>
-      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Shift+Clic : plage | Clic case : sélectionner)</i></span>
+      <span style="font-size: 13.5px; color: #6b7280; margin-left: 8px;"><i>(Double-clic ou bouton pour sélectionner le contact)</i></span>
     </div>
     <div class="toolbar-group">
+      <button class="btn-tool" style="background-color: #1677ff; color: white; border: none;" onclick="selectionnerContactActif()">📌 Sélectionner ce contact</button>
       <button class="btn-selected-txt" id="btn-export-selected-txt" style="display:none;" onclick="exporterMailsSelectionnesTXT()">📩 Exporter mails sélect. TXT</button>
       <button class="btn-selected-csv" id="btn-export-selected-csv" style="display:none;" onclick="exporterFichesSelectionneesCSV()">📄 Exporter fiches sélect. (.csv)</button>
       
@@ -214,7 +215,9 @@
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
-    grist.ready({ requiredAccess: 'read' });
+    // Initialisation Grist avec accès étendu pour permettre le retour de sélection
+    grist.ready({ requiredAccess: 'full' });
+    
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
@@ -242,7 +245,6 @@
               return tableData[col].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
             }
           }
-          // Si aucune colonne standard n'est trouvée, prendre la première colonne disponible contenant des tableaux
           for (let key in tableData) {
             if (Array.isArray(tableData[key])) {
               return tableData[key].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
@@ -251,20 +253,11 @@
           return [];
         };
 
-        const tStruct = await fetchTable(['STRUCTURES', 'Structures', 'structure', 'structures']);
-        referenceTables.structures = extraireNoms(tStruct);
-
-        const tServ = await fetchTable(['SERVICES', 'Services', 'service', 'services']);
-        referenceTables.services = extraireNoms(tServ);
-
-        const tStat = await fetchTable(['STATUTS', 'Statuts', 'statut', 'statuts', 'STATUT_JURIDIQUE']);
-        referenceTables.statuts = extraireNoms(tStat);
-
-        const tType = await fetchTable(['TYPES_STRUCTURE', 'Types_Structure', 'Type_Structure', 'TypesDeStructure', 'TYPE_DE_STRUCTURE']);
-        referenceTables.typesStructure = extraireNoms(tType);
-
-        const tDom = await fetchTable(['DOMAINES', 'Domaines', 'Domaine_Activites', 'Domaines_Activites']);
-        referenceTables.domaines = extraireNoms(tDom);
+        referenceTables.structures = extraireNoms(await fetchTable(['STRUCTURES', 'Structures', 'structure', 'structures']));
+        referenceTables.services = extraireNoms(await fetchTable(['SERVICES', 'Services', 'service', 'services']));
+        referenceTables.statuts = extraireNoms(await fetchTable(['STATUTS', 'Statuts', 'statut', 'statuts', 'STATUT_JURIDIQUE']));
+        referenceTables.typesStructure = extraireNoms(await fetchTable(['TYPES_STRUCTURE', 'Types_Structure', 'Type_Structure', 'TypesDeStructure', 'TYPE_DE_STRUCTURE']));
+        referenceTables.domaines = extraireNoms(await fetchTable(['DOMAINES', 'Domaines', 'Domaine_Activites', 'Domaines_Activites']));
 
       } catch(e) { console.warn("Erreur chargement tables de référence", e); }
     }
@@ -429,6 +422,7 @@
         
         tr.querySelector('.row-checkbox').onclick = (e) => { e.stopPropagation(); gererClicLigne(index, e, true); };
         tr.onclick = (e) => gererClicLigne(index, e, false);
+        tr.ondblclick = () => selectionnerContactActif(); // Double-clic pour sélectionner instantanément
         tbody.appendChild(tr);
       });
       initialiserRedimensionnementColonnes();
@@ -471,6 +465,14 @@
       if (count) {
         btnTxt.innerText = `📩 Exporter mails sélect. TXT (${count})`;
         btnCsv.innerText = `📄 Exporter fiches sélect. (.csv) (${count})`;
+      }
+    }
+
+    // Action clé pour renvoyer le contact sélectionné vers Grist
+    function selectionnerContactActif() {
+      if (matchingRecords.length && matchingRecords[selectedIndex]) {
+        const contactActif = matchingRecords[selectedIndex];
+        grist.setSelectedRecord(contactActif.id);
       }
     }
 
