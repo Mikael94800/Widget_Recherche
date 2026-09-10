@@ -144,7 +144,7 @@
     let matchingRecords = [];
     let selectedId = null;
     let currentEditingRecord = null;
-    let referenceTables = { services: [], statuts: [], structures: [], domaines: [], typesStructure: [] };
+    let referenceTables = { services: [], statuts: [], domaines: [], typesStructure: [] };
     let communesMap = {};
     
     let etiquettesMap = {};
@@ -217,9 +217,6 @@
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-
-        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
 
         const tCommunes = await fetchTable('COMMUNES_FRANCE_2026') || await fetchTable('Communes_France_2026') || await fetchTable('Communes');
         if (tCommunes) {
@@ -307,7 +304,6 @@
       if (referenceTables.statuts.length === 0) referenceTables.statuts = extraireChampUnique(KEYS.STATUT);
       if (referenceTables.domaines.length === 0) referenceTables.domaines = extraireChampUnique(KEYS.DOMAINE);
       if (referenceTables.typesStructure.length === 0) referenceTables.typesStructure = extraireChampUnique(KEYS.TYPE_STRUCTURE);
-      if (referenceTables.structures.length === 0) referenceTables.structures = extraireChampUnique(KEYS.STRUCTURE);
 
       for (const [groupe, options] of Object.entries(optionsEtiquettes)) {
         if (options.length === 0) {
@@ -509,7 +505,7 @@
         tr.innerHTML = `
           <td>${getVal(rec, KEYS.NOM)}</td>
           <td>${getVal(rec, KEYS.PRENOM)}</td>
-          <td>${getVal(rec, KEYS.STRUCTURE)}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.STRUCTURE))}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
           <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
