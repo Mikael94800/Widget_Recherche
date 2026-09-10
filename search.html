@@ -190,7 +190,7 @@
     let sortColumn = null;
     let sortAscending = true;
     let selectedIds = new Set();
-    let referenceTables = { structures: [], services: [], statuts: [] };
+    let referenceTables = { structures: [], services: [], statuts: [], typesStructure: [], domaines: [] };
     
     const KEYS = {
       NOM: ['NOM', 'Nom'],
@@ -199,7 +199,7 @@
       FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
-      TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure'],
+      TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure', 'Type_de_structure'],
       DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
       CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
       VILLE: ['Ville', 'VILLE'],
@@ -224,16 +224,49 @@
 
     async function chargerTablesDeReference() {
       try {
-        const fetchTable = async (name) => {
-          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
+        const fetchTable = async (names) => {
+          for (let name of names) {
+            try { 
+              const t = await grist.docApi.fetchTable(name); 
+              if (t) return t; 
+            } catch(e) {}
+          }
+          return null;
         };
-        const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
-        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
-        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
-      } catch(e) { console.warn(e); }
+
+        const extraireNoms = (tableData) => {
+          if (!tableData) return [];
+          const colonnesPossibles = ['Nom', 'NOM', 'Name', 'Libelle', 'Libellé', 'Service', 'Statut', 'Type', 'Domaine'];
+          for (let col of colonnesPossibles) {
+            if (tableData[col] && Array.isArray(tableData[col])) {
+              return tableData[col].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
+            }
+          }
+          // Si aucune colonne standard n'est trouvée, prendre la première colonne disponible contenant des tableaux
+          for (let key in tableData) {
+            if (Array.isArray(tableData[key])) {
+              return tableData[key].filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim());
+            }
+          }
+          return [];
+        };
+
+        const tStruct = await fetchTable(['STRUCTURES', 'Structures', 'structure', 'structures']);
+        referenceTables.structures = extraireNoms(tStruct);
+
+        const tServ = await fetchTable(['SERVICES', 'Services', 'service', 'services']);
+        referenceTables.services = extraireNoms(tServ);
+
+        const tStat = await fetchTable(['STATUTS', 'Statuts', 'statut', 'statuts', 'STATUT_JURIDIQUE']);
+        referenceTables.statuts = extraireNoms(tStat);
+
+        const tType = await fetchTable(['TYPES_STRUCTURE', 'Types_Structure', 'Type_Structure', 'TypesDeStructure', 'TYPE_DE_STRUCTURE']);
+        referenceTables.typesStructure = extraireNoms(tType);
+
+        const tDom = await fetchTable(['DOMAINES', 'Domaines', 'Domaine_Activites', 'Domaines_Activites']);
+        referenceTables.domaines = extraireNoms(tDom);
+
+      } catch(e) { console.warn("Erreur chargement tables de référence", e); }
     }
 
     function getVal(rec, keys) {
@@ -283,8 +316,8 @@
       
       alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
       alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
-      alimenterSelect('filter-type-structure', [], KEYS.TYPE_STRUCT);
-      alimenterSelect('filter-domaine', [], KEYS.DOMAINE);
+      alimenterSelect('filter-type-structure', referenceTables.typesStructure, KEYS.TYPE_STRUCT);
+      alimenterSelect('filter-domaine', referenceTables.domaines, KEYS.DOMAINE);
     }
 
     function appliquerFiltres() {
@@ -314,7 +347,7 @@
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
         if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
-        if (typeStructFilter && !normaliserChaine(getVal(rec, KEYS.TYPE_STRUCT)).toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
+        if (typeStructFilter && !contientCritere(getVal(rec, KEYS.TYPE_STRUCT), typeStructFilter)) return false;
         if (fonctionFilter && !normaliserChaine(getVal(rec, KEYS.FONCTION)).toLowerCase().includes(fonctionFilter)) return false;
         if (cinemaChecked.length && !cinemaChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_CINEMA), v))) return false;
         if (directionChecked.length && !directionChecked.some(v => contientCritere(getVal(rec, KEYS.DIFF_DIRECTION), v))) return false;
