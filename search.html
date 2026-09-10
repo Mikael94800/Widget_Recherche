@@ -148,6 +148,8 @@
     let communesMap = {};
     
     let etiquettesMap = {};
+    let texteVersIdGlobal = {}; 
+
     let texteVersIdEtiquette = {
       'Diffusion Cinéma': {},
       'Diffusion Direction': {},
@@ -243,10 +245,21 @@
               'Listes_Diffusion_Cinema': tEtiq.Listes_Diffusion_Cinema ? tEtiq.Listes_Diffusion_Cinema[i] : null,
               'Listes_Diffusion_Direction': tEtiq.Listes_Diffusion_Direction ? tEtiq.Listes_Diffusion_Direction[i] : null,
               'Listes_Diffusion_Houdremont': tEtiq.Listes_Diffusion_Houdremont ? tEtiq.Listes_Diffusion_Houdremont[i] : null,
-              'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null
+              'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null,
+              'DOMAINE_D_ACTIVITES': tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites ? (tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites)[i] : null,
+              'TYPE_DE_STRUCTURE_CONTACT': tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE ? (tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE)[i] : null,
+              'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine)[i] : null,
+              'STATUT_JURIDIQUE': tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique ? (tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique)[i] : null
             };
 
-            // Indexer les textes vers les IDs réels pour les Listes de Diffusion
+            for (const [colName, val] of Object.entries(etiquettesMap[rowId])) {
+              if (val) {
+                const texte = String(val).trim().toLowerCase();
+                if (!texteVersIdGlobal[colName]) texteVersIdGlobal[colName] = {};
+                texteVersIdGlobal[colName][texte] = rowId;
+              }
+            }
+
             const mapKeys = [
               { groupe: 'Diffusion Cinéma', val: tEtiq.Listes_Diffusion_Cinema?.[i] },
               { groupe: 'Diffusion Direction', val: tEtiq.Listes_Diffusion_Direction?.[i] },
@@ -333,7 +346,17 @@
         if (valeur.length > 0 && valeur[0] === 'L') {
           items = valeur.slice(1);
         }
-        return items.map(v => String(v)).join(", ");
+        return items.map(v => {
+          if (typeof v === 'number' && etiquettesMap[v]) {
+            const possibleTexts = Object.values(etiquettesMap[v]).filter(t => t);
+            if (possibleTexts.length > 0) return possibleTexts[0];
+          }
+          return String(v);
+        }).join(", ");
+      }
+      if (typeof valeur === 'number' && etiquettesMap[valeur]) {
+        const possibleTexts = Object.values(etiquettesMap[valeur]).filter(t => t);
+        if (possibleTexts.length > 0) return possibleTexts[0];
       }
       return String(valeur);
     }
@@ -409,7 +432,7 @@
       if (!sel) return;
       const cleanValActuelle = normaliserChaine(valeurActuelle).trim();
       const optionsFiltrees = (optionsRef || []).filter(s => s !== null && s !== undefined && String(s).trim() !== "");
-      sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${s}" ${s === cleanValActuelle ? 'selected' : ''}>${s}</option>`).join('');
+      sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${s}" ${s.toLowerCase() === cleanValActuelle.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('');
     }
 
     function appliquerFiltres() {
@@ -517,7 +540,6 @@
       });
     }
 
-    /* --- GESTION DE LA MODALE ET MODIFICATION --- */
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
@@ -725,6 +747,15 @@
       }
     }
 
+    function getRefId(colName, textValue) {
+      if (!textValue || !textValue.trim()) return null;
+      const cleanText = textValue.trim().toLowerCase();
+      if (texteVersIdGlobal[colName] && texteVersIdGlobal[colName][cleanText] !== undefined) {
+        return texteVersIdGlobal[colName][cleanText];
+      }
+      return null;
+    }
+
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
       const mailInput = document.getElementById('edit-email');
@@ -739,7 +770,6 @@
         return;
       }
 
-      // Conversion des textes cochés vers les IDs de la table ETIQUETTES au format RefList Grist ['L', id1, id2...]
       const getRefListIds = (titreGroupe) => {
         const box = document.getElementById(`modal-group-${titreGroupe}`);
         if (!box) return ['L'];
@@ -755,16 +785,26 @@
         return ids;
       };
 
+      const serviceKey = getExistingKey(currentEditingRecord, KEYS.SERVICE);
+      const statutKey = getExistingKey(currentEditingRecord, KEYS.STATUT);
+      const domaineKey = getExistingKey(currentEditingRecord, KEYS.DOMAINE);
+      const typeStructKey = getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE);
+
+      const serviceValText = document.getElementById('edit-service').value;
+      const statutValText = document.getElementById('edit-statut').value;
+      const domaineValText = document.getElementById('edit-domaine').value;
+      const typeStructValText = document.getElementById('edit-type-structure').value;
+
       const fieldsToUpdate = {};
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.NOM)] = document.getElementById('edit-nom').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.PRENOM)] = document.getElementById('edit-prenom').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value;
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value;
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
-      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value;
+      fieldsToUpdate[serviceKey] = getRefId('SERVICE', serviceValText) || serviceValText;
+      fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText) || statutValText;
+      fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText) || domaineValText;
+      fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText) || typeStructValText;
       
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
