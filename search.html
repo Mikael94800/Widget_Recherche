@@ -232,7 +232,7 @@
           optionsEtiquettes['Diffusion Houdremont'] = extraireCol(tEtiq.Listes_Diffusion_Houdremont);
           optionsEtiquettes['Diffusion Intervenant'] = extraireCol(tEtiq.Listes_Diffusion_Intervenants);
 
-          // Récupération des choix uniques pour Domaine d'activités et Type de structure depuis ETIQUETTES
+          // Récupération des choix uniques
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
         }
@@ -250,8 +250,12 @@
       return rec[keys] !== undefined && rec[keys] !== null ? rec[keys] : "";
     }
 
-    function findExactExistingKey(rec, keys) {
+    // Trouve la clé exacte existante ou correspondante dans l'objet record pour la sauvegarde
+    function getExistingKey(rec, keys) {
       if (!rec) return keys[0];
+      for (let k of keys) {
+        if (rec[k] !== undefined && rec[k] !== null) return k;
+      }
       for (let k of keys) {
         if (k in rec) return k;
       }
@@ -324,7 +328,7 @@
       const alimenterSelectFilter = (id, optionsRef) => {
         const sel = document.getElementById(id);
         const curVal = sel.value;
-        const optionsFiltrees = (optionsRef || []).filter(s => s && String(s).trim() !== "");
+        const optionsFiltrees = (optionsRef || []).filter(s => s !== null && s !== undefined && String(s).trim() !== "");
         sel.innerHTML = '<option value="">-- Tous --</option>' + optionsFiltrees.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
@@ -337,7 +341,7 @@
       const sel = document.getElementById(id);
       if (!sel) return;
       const cleanValActuelle = normaliserChaine(valeurActuelle).trim();
-      const optionsFiltrees = (optionsRef || []).filter(s => s && String(s).trim() !== "");
+      const optionsFiltrees = (optionsRef || []).filter(s => s !== null && s !== undefined && String(s).trim() !== "");
       sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${s}" ${s === cleanValActuelle ? 'selected' : ''}>${s}</option>`).join('');
     }
 
@@ -429,23 +433,6 @@
     }
 
     /* --- GESTION DE LA MODALE ET MODIFICATION --- */
-    function genererCheckboxesModale(titreGroupe, valeursActuelles) {
-      const options = optionsEtiquettes[titreGroupe] || OPTIONS_DIFFUSION_MODALE[titreGroupe] || [];
-      const colKey = KEYS.DIFFUSION_CONTACTS[titreGroupe];
-      const libellesActuels = getLibellesDiffusion(currentEditingRecord, colKey).map(s => s.toLowerCase());
-      
-      let html = `<div class="diffusion-box" style="max-height: 130px; overflow-y: auto;" id="modal-group-${titreGroupe}">`;
-      options.forEach(opt => {
-        const isChecked = libellesActuels.includes(opt.toLowerCase());
-        html += `
-          <label class="checkbox-label">
-            <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
-          </label>`;
-      });
-      html += `</div>`;
-      return html;
-    }
-
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
@@ -489,13 +476,11 @@
         <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
         <div class="viewer-field">
           <label>Service (Origine)</label>
-          <input type="text" id="edit-service" list="list-services" value="${valService}">
-          <datalist id="list-services">${referenceTables.services.map(s => `<option value="${s}">`).join('')}</datalist>
+          <select id="edit-service"></select>
         </div>
         <div class="viewer-field">
           <label>Statut Juridique</label>
-          <input type="text" id="edit-statut" list="list-statuts" value="${valStatut}">
-          <datalist id="list-statuts">${referenceTables.statuts.map(s => `<option value="${s}">`).join('')}</datalist>
+          <select id="edit-statut"></select>
         </div>
         <div class="viewer-field">
           <label>Type de structure / contact</label>
@@ -560,7 +545,9 @@
         </div>
       `;
 
-      // Remplissage propre des listes déroulantes uniques sans lignes vides
+      // Remplissage propre de toutes les listes déroulantes uniques (sans lignes vides)
+      alimenterSelectUnique('edit-service', referenceTables.services, valService);
+      alimenterSelectUnique('edit-statut', referenceTables.statuts, valStatut);
       alimenterSelectUnique('edit-domaine', referenceTables.domaines, valDomaine);
       alimenterSelectUnique('edit-type-structure', referenceTables.typesStructure, valTypeStruct);
 
@@ -568,6 +555,23 @@
       validerFormatEmail(document.getElementById('edit-email'), 'email-validation-msg');
       validerFormatEmailsSecondaires(document.getElementById('edit-emails-sec'), 'emails-sec-validation-msg');
       onCodePostalChange(valCP);
+    }
+
+    function genererCheckboxesModale(titreGroupe) {
+      const options = optionsEtiquettes[titreGroupe] || OPTIONS_DIFFUSION_MODALE[titreGroupe] || [];
+      const colKey = KEYS.DIFFUSION_CONTACTS[titreGroupe];
+      const libellesActuels = getLibellesDiffusion(currentEditingRecord, colKey).map(s => s.toLowerCase());
+      
+      let html = `<div class="diffusion-box" style="max-height: 130px; overflow-y: auto;" id="modal-group-${titreGroupe}">`;
+      options.forEach(opt => {
+        const isChecked = libellesActuels.includes(opt.toLowerCase());
+        html += `
+          <label class="checkbox-label">
+            <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
+          </label>`;
+      });
+      html += `</div>`;
+      return html;
     }
 
     function fermerModal(e) {
@@ -606,7 +610,6 @@
         msgElem.innerText = '';
         return true;
       }
-      // Sépare par virgule ou point-virgule
       const emails = val.split(/[,;]+/).map(e => e.trim()).filter(e => e.length > 0);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const allValid = emails.every(e => emailRegex.test(e));
@@ -633,7 +636,6 @@
       const villes = communesMap[cleanCp] || [];
       datalistVille.innerHTML = villes.map(v => `<option value="${v}">`).join('');
       
-      // Renseignement automatique si une seule ville correspond exactement
       if (villes.length === 1 && !villeInput.value.trim()) {
         villeInput.value = villes[0];
       }
@@ -660,21 +662,21 @@
       };
 
       const fieldsToUpdate = {};
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.NOM)] = document.getElementById('edit-nom').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.PRENOM)] = document.getElementById('edit-prenom').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value;
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.EMAIL_PRINCIPAL)] = mailInput.value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.EMAILS_SECONDAIRES)] = mailSecInput.value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.TEL_PRINCIPAL)] = document.getElementById('edit-tel').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.TELS_SECONDAIRES)] = document.getElementById('edit-tels-sec').value.trim();
-      fieldsToUpdate[findExactExistingKey(currentEditingRecord, KEYS.COMMENTAIRE)] = document.getElementById('edit-commentaire').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.NOM)] = document.getElementById('edit-nom').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.PRENOM)] = document.getElementById('edit-prenom').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value;
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value;
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value;
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value;
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.EMAIL_PRINCIPAL)] = mailInput.value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.EMAILS_SECONDAIRES)] = mailSecInput.value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TEL_PRINCIPAL)] = document.getElementById('edit-tel').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TELS_SECONDAIRES)] = document.getElementById('edit-tels-sec').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.COMMENTAIRE)] = document.getElementById('edit-commentaire').value.trim();
       
       fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Cinéma']] = getCheckedList('Diffusion Cinéma');
       fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Direction']] = getCheckedList('Diffusion Direction');
