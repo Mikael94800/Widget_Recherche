@@ -2,31 +2,50 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche de Contact</title>
+  <title>Recherche de Contact Avancée</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; display: flex; flex-direction: column; height: 100vh; }
     
-    .search-box { margin-bottom: 12px; }
-    input[type="text"] { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; outline: none; background: #fff; }
-    input[type="text"]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+    .search-card { background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
+    
+    input[type="text"], select { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #fff; width: 100%; }
+    input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
 
     .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; }
+    th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
     td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
     tr { cursor: pointer; }
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
     
-    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; }
+    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; display: flex; justify-content: space-between; align-items: center; }
+    .btn-reset { background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #334155; font-size: 12px; }
+    .btn-reset:hover { background: #cbd5e1; }
   </style>
 </head>
 <body>
 
-  <div class="search-box">
-    <input type="text" id="search-input" placeholder="Rechercher par nom, prénom, structure, email..." oninput="filtrerContacts()">
+  <div class="search-card">
+    <div class="filter-row">
+      <div class="field-group">
+        <label>Recherche Texte</label>
+        <input type="text" id="filter-text" placeholder="Nom, prénom, structure, email..." oninput="appliquerFiltres()">
+      </div>
+      <div class="field-group">
+        <label>Service (Origine)</label>
+        <select id="filter-service" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+      <div class="field-group">
+        <label>Statut Juridique</label>
+        <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+    </div>
   </div>
 
   <div class="table-container">
@@ -36,31 +55,46 @@
           <th>Nom</th>
           <th>Prénom</th>
           <th>Structure</th>
+          <th>Service</th>
+          <th>Statut</th>
           <th>Email</th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+        <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
       </tbody>
     </table>
   </div>
 
-  <div class="info-bar" id="info-count">0 contact(s)</div>
+  <div class="info-bar">
+    <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser les filtres</button>
+    <span id="info-count">0 / 0 contact(s)</span>
+  </div>
 
   <script>
     let allRecords = [];
     let matchingRecords = [];
     let selectedId = null;
+    let referenceTables = { structures: [], services: [], statuts: [] };
 
-    // Connexion à Grist en écriture/sélection
+    const KEYS = {
+      NOM: ['NOM', 'Nom'],
+      PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
+      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
+      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
+      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
+      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']
+    };
+
     grist.ready({ requiredAccess: 'full' });
 
-    grist.onRecords(function(records) {
+    grist.onRecords(async function(records) {
       allRecords = records;
-      filtrerContacts();
+      await chargerTablesDeReference();
+      peuplerListesDeroulantesFiltres();
+      appliquerFiltres();
     });
 
-    // Écoute aussi si Grist change la sélection active par ailleurs
     grist.onSelectedRow(function(recordId) {
       if (recordId && recordId !== selectedId) {
         selectedId = recordId;
@@ -68,23 +102,94 @@
       }
     });
 
-    function filtrerContacts() {
-      const query = document.getElementById('search-input').value.toLowerCase().trim();
-      
-      matchingRecords = allRecords.filter(rec => {
-        if (!query) return true;
-        // Recherche globale tolérante sur les champs principaux
-        const ligneTexte = [
-          rec.NOM || '',
-          rec.PRENOM || '',
-          rec.NOM_Structure || '',
-          rec.EMAIL_PRINCIPAL || ''
-        ].join(' ').toLowerCase();
+    async function chargerTablesDeReference() {
+      try {
+        const fetchTable = async (name) => {
+          try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
+        };
+        const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
+        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
+        const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
+        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
+      } catch(e) { console.warn(e); }
+    }
 
-        return query.split(/\s+/).every(mot => ligneTexte.includes(mot));
+    function getVal(rec, keys) {
+      if (!rec) return "";
+      for (let k of keys) {
+        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+      }
+      return "";
+    }
+
+    function normaliserChaine(valeur) {
+      if (!valeur) return "";
+      if (typeof valeur === "string") return valeur;
+      if (Array.isArray(valeur)) {
+        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
+      }
+      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
+      return String(valeur);
+    }
+
+    function contientCritere(champData, valeurRecherchee) {
+      return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
+    }
+
+    function extraireValeursUniques(cles) {
+      const valeursSet = new Set();
+      allRecords.forEach(r => {
+        const val = getVal(r, cles);
+        if (val) {
+          normaliserChaine(val).split(/[,;]/).forEach(v => {
+            const clean = v.trim();
+            if (clean) valeursSet.add(clean);
+          });
+        }
+      });
+      return Array.from(valeursSet).sort();
+    }
+
+    function peuplerListesDeroulantesFiltres() {
+      const alimenterSelect = (id, optionsRef, clesDonnees) => {
+        const sel = document.getElementById(id);
+        const curVal = sel.value;
+        const fusionOptions = Array.from(new Set([...optionsRef, ...extraireValeursUniques(clesDonnees)])).sort();
+        sel.innerHTML = '<option value="">-- Tous --</option>' + fusionOptions.map(s => `<option value="${s}">${s}</option>`).join('');
+        sel.value = curVal;
+      };
+      
+      alimenterSelect('filter-service', referenceTables.services, KEYS.SERVICE);
+      alimenterSelect('filter-statut', referenceTables.statuts, KEYS.STATUT);
+    }
+
+    function appliquerFiltres() {
+      if (!allRecords.length) return;
+      const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
+      const serviceFilter = document.getElementById('filter-service').value;
+      const statutFilter = document.getElementById('filter-statut').value;
+
+      matchingRecords = allRecords.filter(rec => {
+        if (textFilter) {
+          const textGlobal = [
+            getVal(rec, KEYS.NOM), getVal(rec, KEYS.PRENOM), getVal(rec, KEYS.STRUCTURE),
+            getVal(rec, KEYS.EMAIL_PRINCIPAL)
+          ].map(c => normaliserChaine(c)).join(' ').toLowerCase();
+          if (!textFilter.split(/\s+/).every(m => textGlobal.includes(m))) return false;
+        }
+        if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
+        if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
+        return true;
       });
 
       afficherTableau();
+    }
+
+    function reinitialiserFiltres() {
+      document.getElementById('filter-text').value = '';
+      document.getElementById('filter-service').value = '';
+      document.getElementById('filter-statut').value = '';
+      appliquerFiltres();
     }
 
     function afficherTableau() {
@@ -92,7 +197,7 @@
       tbody.innerHTML = '';
 
       if (matchingRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
         document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
         return;
       }
@@ -102,13 +207,14 @@
         if (rec.id === selectedId) tr.classList.add('selected');
 
         tr.innerHTML = `
-          <td>${rec.NOM || ''}</td>
-          <td>${rec.PRENOM || ''}</td>
-          <td>${rec.NOM_Structure || ''}</td>
-          <td>${rec.EMAIL_PRINCIPAL || ''}</td>
+          <td>${getVal(rec, KEYS.NOM)}</td>
+          <td>${getVal(rec, KEYS.PRENOM)}</td>
+          <td>${getVal(rec, KEYS.STRUCTURE)}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
+          <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
+          <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
         `;
 
-        // Au clic, on sélectionne immédiatement le contact dans Grist
         tr.onclick = () => {
           selectedId = rec.id;
           grist.setSelectedRecord(rec.id);
