@@ -475,6 +475,7 @@
     });
 
     // Chargement dynamique des tables de référence et d'étiquettes
+    // Utilise la même méthode de parsing tableau/objet que le widget Création de contact
     async function chargerTablesDeReference() {
       try {
         const fetchTable = async (name) => {
@@ -482,21 +483,46 @@
         };
         
         const tStruct = await fetchTable('STRUCTURES') || await fetchTable('Structures');
-        if(tStruct) referenceTables.structures = tStruct.Nom || tStruct.NOM || tStruct.Name || [];
+        if (tStruct) {
+          if (Array.isArray(tStruct)) {
+            referenceTables.structures = tStruct.map(r => r.Nom || r.NOM || r.Name).filter(Boolean);
+          } else {
+            referenceTables.structures = (tStruct.Nom || tStruct.NOM || tStruct.Name || []).filter(Boolean);
+          }
+        }
         
         const tServ = await fetchTable('SERVICES') || await fetchTable('Services');
-        if(tServ) referenceTables.services = tServ.Nom || tServ.Service || [];
+        if (tServ) {
+          if (Array.isArray(tServ)) {
+            referenceTables.services = tServ.map(r => r.Nom || r.Service).filter(Boolean);
+          } else {
+            referenceTables.services = (tServ.Nom || tServ.Service || []).filter(Boolean);
+          }
+        }
         
         const tStat = await fetchTable('STATUTS') || await fetchTable('Statuts');
-        if(tStat) referenceTables.statuts = tStat.Nom || tStat.Statut || [];
+        if (tStat) {
+          if (Array.isArray(tStat)) {
+            referenceTables.statuts = tStat.map(r => r.Nom || r.Statut).filter(Boolean);
+          } else {
+            referenceTables.statuts = (tStat.Nom || tStat.Statut || []).filter(Boolean);
+          }
+        }
 
-        // Lecture dynamique de la table ETIQUETTES / Etiquettes
+        // Lecture de la table ETIQUETTES / Etiquettes
         const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
         if (tEtiq) {
-          OPTIONS_DIFFUSION.CINEMA = (tEtiq.Listes_Diffusion_Cinema || []).filter(Boolean);
-          OPTIONS_DIFFUSION.DIRECTION = (tEtiq.Listes_Diffusion_Direction || []).filter(Boolean);
-          OPTIONS_DIFFUSION.HOUDREMONT = (tEtiq.Listes_Diffusion_Houdremont || []).filter(Boolean);
-          OPTIONS_DIFFUSION.INTERVENANT = (tEtiq.Listes_Diffusion_Intervenants || []).filter(Boolean);
+          if (Array.isArray(tEtiq)) {
+            OPTIONS_DIFFUSION.CINEMA = tEtiq.map(r => r.Listes_Diffusion_Cinema).filter(Boolean);
+            OPTIONS_DIFFUSION.DIRECTION = tEtiq.map(r => r.Listes_Diffusion_Direction).filter(Boolean);
+            OPTIONS_DIFFUSION.HOUDREMONT = tEtiq.map(r => r.Listes_Diffusion_Houdremont).filter(Boolean);
+            OPTIONS_DIFFUSION.INTERVENANT = tEtiq.map(r => r.Listes_Diffusion_Intervenants).filter(Boolean);
+          } else {
+            OPTIONS_DIFFUSION.CINEMA = (tEtiq.Listes_Diffusion_Cinema || []).filter(Boolean);
+            OPTIONS_DIFFUSION.DIRECTION = (tEtiq.Listes_Diffusion_Direction || []).filter(Boolean);
+            OPTIONS_DIFFUSION.HOUDREMONT = (tEtiq.Listes_Diffusion_Houdremont || []).filter(Boolean);
+            OPTIONS_DIFFUSION.INTERVENANT = (tEtiq.Listes_Diffusion_Intervenants || []).filter(Boolean);
+          }
         }
       } catch(e) { 
         console.warn("Erreur lors du chargement des étiquettes :", e); 
