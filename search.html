@@ -148,6 +148,13 @@
     let communesMap = {};
     
     let etiquettesMap = {};
+    let texteVersIdEtiquette = {
+      'Diffusion Cinéma': {},
+      'Diffusion Direction': {},
+      'Diffusion Houdremont': {},
+      'Diffusion Intervenant': {}
+    };
+
     let optionsEtiquettes = {
       'Diffusion Cinéma': [],
       'Diffusion Direction': [],
@@ -161,7 +168,7 @@
       STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
       FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)', 'SERVICE'],
-      STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
+      STATUT: ['STATUT_JURidique', 'STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       TYPE_STRUCTURE: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure / contact', 'Type de structure'],
       DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
       CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
@@ -238,7 +245,24 @@
               'Listes_Diffusion_Houdremont': tEtiq.Listes_Diffusion_Houdremont ? tEtiq.Listes_Diffusion_Houdremont[i] : null,
               'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null
             };
+
+            // Indexer les textes vers les IDs réels pour les Listes de Diffusion
+            const mapKeys = [
+              { groupe: 'Diffusion Cinéma', val: tEtiq.Listes_Diffusion_Cinema?.[i] },
+              { groupe: 'Diffusion Direction', val: tEtiq.Listes_Diffusion_Direction?.[i] },
+              { groupe: 'Diffusion Houdremont', val: tEtiq.Listes_Diffusion_Houdremont?.[i] },
+              { groupe: 'Diffusion Intervenant', val: tEtiq.Listes_Diffusion_Intervenants?.[i] }
+            ];
+            mapKeys.forEach(item => {
+              if (item.val) {
+                const texte = String(item.val).trim();
+                if (texte) {
+                  texteVersIdEtiquette[item.groupe][texte.toLowerCase()] = rowId;
+                }
+              }
+            });
           }
+
           const extraireCol = (colArr) => {
             if (!colArr) return [];
             return Array.from(new Set(colArr.map(v => normaliserChaine(v)).filter(v => v !== ""))).sort();
@@ -256,7 +280,6 @@
       } catch(e) { console.warn("Erreur chargement références", e); }
     }
 
-    // Cheminement identique pour tous les champs : si la table externe ne renvoie rien, on extrait dynamiquement les valeurs uniques de la table Contacts
     function extraireValeursDepuisContactsSiBesoin() {
       const extraireChampUnique = (keys) => {
         const valeurs = new Set();
@@ -716,10 +739,20 @@
         return;
       }
 
-      const getCheckedList = (titreGroupe) => {
+      // Conversion des textes cochés vers les IDs de la table ETIQUETTES au format RefList Grist ['L', id1, id2...]
+      const getRefListIds = (titreGroupe) => {
         const box = document.getElementById(`modal-group-${titreGroupe}`);
-        if (!box) return [];
-        return Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        if (!box) return ['L'];
+        const checkedValues = Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        
+        let ids = ['L'];
+        checkedValues.forEach(val => {
+          const id = texteVersIdEtiquette[titreGroupe][val.toLowerCase()];
+          if (id !== undefined) {
+            ids.push(id);
+          }
+        });
+        return ids;
       };
 
       const fieldsToUpdate = {};
@@ -741,10 +774,10 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TELS_SECONDAIRES)] = document.getElementById('edit-tels-sec').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.COMMENTAIRE)] = document.getElementById('edit-commentaire').value.trim();
       
-      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Cinéma']] = getCheckedList('Diffusion Cinéma');
-      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Direction']] = getCheckedList('Diffusion Direction');
-      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Houdremont']] = getCheckedList('Diffusion Houdremont');
-      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Intervenant']] = getCheckedList('Diffusion Intervenant');
+      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Cinéma']] = getRefListIds('Diffusion Cinéma');
+      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Direction']] = getRefListIds('Diffusion Direction');
+      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Houdremont']] = getRefListIds('Diffusion Houdremont');
+      fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Intervenant']] = getRefListIds('Diffusion Intervenant');
 
       try {
         const tableId = await grist.selectedTable.getTableId();
