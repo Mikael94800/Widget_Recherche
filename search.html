@@ -576,8 +576,7 @@
         </div>
         <div class="viewer-field">
           <label>Structure</label>
-          <input type="text" id="edit-structure" list="list-structures" value="${valStructure}">
-          <datalist id="list-structures">${referenceTables.structures.map(s => `<option value="${s}">`).join('')}</datalist>
+          <input type="text" id="edit-structure" value="${valStructure}">
         </div>
 
         <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
@@ -813,9 +812,7 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      // Service passe en texte brut (champ Choice/Texte de Grist)
       fieldsToUpdate[serviceKey] = serviceValText ? serviceValText.trim() : "";
-      
       fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText);
       fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText);
       fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText);
