@@ -748,12 +748,24 @@
     }
 
     function getRefId(colName, textValue) {
-      if (!textValue || !textValue.trim()) return null;
+      if (!textValue || !textValue.trim()) return 0;
       const cleanText = textValue.trim().toLowerCase();
+      
       if (texteVersIdGlobal[colName] && texteVersIdGlobal[colName][cleanText] !== undefined) {
         return texteVersIdGlobal[colName][cleanText];
       }
-      return null;
+      
+      for (const [key, map] of Object.entries(texteVersIdGlobal)) {
+        if (map[cleanText] !== undefined) {
+          return map[cleanText];
+        }
+      }
+
+      if (!isNaN(textValue)) {
+        return Number(textValue);
+      }
+
+      return textValue;
     }
 
     async function sauvegarderContactModifie() {
@@ -801,10 +813,10 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      fieldsToUpdate[serviceKey] = getRefId('SERVICE', serviceValText) || serviceValText;
-      fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText) || statutValText;
-      fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText) || domaineValText;
-      fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText) || typeStructValText;
+      fieldsToUpdate[serviceKey] = getRefId('SERVICE', serviceValText);
+      fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText);
+      fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText);
+      fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText);
       
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
