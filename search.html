@@ -258,14 +258,18 @@ grist.ready({
     }
 
     function normaliserChaine(valeur) {
-      if (!valeur) return "";
-      if (typeof valeur === "string") return valeur;
-      if (Array.isArray(valeur)) {
-        return valeur.map(v => (typeof v === 'object' && v !== null && v.L) ? v.L : (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(", ");
-      }
-      if (typeof valeur === "object") return valeur.L || JSON.stringify(valeur);
-      return String(valeur);
-    }
+  if (!valeur) return "";
+  if (typeof valeur === "string") return valeur;
+  if (Array.isArray(valeur)) {
+    return valeur.map(v => normaliserChaine(v)).filter(Boolean).join(", ");
+  }
+  if (typeof valeur === "object") {
+    if (valeur.L) return Array.isArray(valeur.L) ? valeur.L.map(v => normaliserChaine(v)).filter(Boolean).join(", ") : String(valeur.L);
+    if (valeur.NAME === "NONETYPE" || valeur.kind === "N") return "";
+    return "";
+  }
+  return String(valeur);
+}
 
     function contientCritere(champData, valeurRecherchee) {
       return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
