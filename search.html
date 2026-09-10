@@ -254,11 +254,21 @@
           const nettoyerColonne = (colData) => {
             if (!colData) return [];
             let arr = Array.isArray(colData) ? colData : Object.values(colData);
-            return arr.map(val => {
-              if (!val) return "";
-              if (typeof val === 'object') return val.Nom || val.Libelle || val.L || "";
-              return String(val);
-            }).filter(v => v && v.trim() !== "" && !v.includes("DETAILS"));
+            let resultats = [];
+            arr.forEach(val => {
+              if (!val) return;
+              let texte = "";
+              if (typeof val === 'object') {
+                texte = val.Nom || val.Libelle || val.L || val.Name || "";
+              } else {
+                texte = String(val);
+              }
+              // Ignorer les erreurs Grist et les valeurs vides
+              if (texte && !texte.includes("INVALIDTYPEDVALUE") && !texte.includes("DETAILS") && !texte.includes("MESSAGE")) {
+                resultats.push(texte.trim());
+              }
+            });
+            return Array.from(new Set(resultats)); // Évite les doublons
           };
 
           OPTIONS_DIFFUSION.CINEMA = nettoyerColonne(tEtiquette.Diffusion_Cinema || tEtiquette.Listes_Diffusion_Cinema || tEtiquette.Diffusion_Cinéma);
