@@ -211,21 +211,9 @@
     };
 
     // Correctif de l'initialisation Grist (déclarations optionnelles)
-    grist.ready({
-      requiredAccess: 'full',
-      columns: [
-        { name: 'NOM', optional: true },
-        { name: 'PRENOM', optional: true },
-        { name: 'STRUCTURE', optional: true },
-        { name: 'SERVICE', optional: true },
-        { name: 'VILLE', optional: true },
-        { name: 'EMAIL', optional: true },
-        { name: 'FONCTION', optional: true },
-        { name: 'STATUT_JURIDIQUE', optional: true },
-        { name: 'TYPE_DE_STRUCTURE', optional: true },
-        { name: 'DOMAINE_D_ACTIVITES', optional: true }
-      ]
-    });
+grist.ready({
+  requiredAccess: 'full'
+});
 
     grist.onRecords(async function(records) {
       allRecords = records;
