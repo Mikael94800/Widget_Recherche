@@ -70,7 +70,6 @@
     .viewer-field { display: flex; flex-direction: column; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
     .viewer-field.full { grid-column: span 2; }
     .viewer-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
-    
     .modal-section-title { grid-column: span 2; font-size: 15px; font-weight: bold; color: #1f2937; margin-top: 10px; padding-bottom: 4px; border-bottom: 2px solid #e5e7eb; }
     .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
   </style>
@@ -195,22 +194,29 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
+    // 1. DÉFINITION RIGIDE DES COLONNES DE LISTES DE DIFFUSION
+    const COLONNES_LISTES = [
+      'Listes_Diffusion_Intervenants',
+      'Listes_Diffusion_Cinema',
+      'Listes_Diffusion_Direction',
+      'Listes_Diffusion_Houdremont'
+    ];
+
     const KEYS = {
       NOM: ['NOM', 'Nom'],
       PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
-      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
+      STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure'],
       FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       TYPE_STRUCT: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure'],
-      DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
+      DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités"],
       CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
       VILLE: ['Ville', 'VILLE'],
       EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
       EMAILS_SECONDAIRES: ['EMAILS_SECONDAIRES', 'Emails Secondaires'],
       TEL_PRINCIPAL: ['Telephone_Principal', 'Téléphone Principal', 'Tel_Principal'],
       TELS_SECONDAIRES: ['Telephones_Secondaires', 'Téléphones Secondaires'],
-      ETIQUETTES: ['Etiquettes', 'ETIQUETTES', 'Listes_Diffusion', 'Listes_Diffusion_Cinema', 'Listes_Diffusion_Direction', 'Listes_Diffusion_Houdremont', 'Listes_Diffusion_Intervenant', 'Listes_Diffusion_Intervenants'],
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
@@ -224,15 +230,10 @@
 
     function getVal(rec, keys) {
       if (!rec) return "";
-      let values = [];
       for (let k of keys) {
-        if (rec[k] !== undefined && rec[k] !== null) {
-          values.push(rec[k]);
-        }
+        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
       }
-      if (values.length === 0) return "";
-      if (values.length === 1) return values[0];
-      return values;
+      return "";
     }
 
     function findExactExistingKey(rec, keys) {
@@ -260,8 +261,27 @@
       return String(valeur);
     }
 
-    function contientCritere(champData, valeurRecherchee) {
-      return normaliserChaine(champData).toLowerCase().includes(valeurRecherchee.toLowerCase());
+    // Extraction consolidée depuis les 4 colonnes rigides
+    function ObtenirListesParContact(rec) {
+      let resultats = [];
+      COLONNES_LISTES.forEach(col => {
+        if (rec[col]) {
+          const str = normaliserChaine(rec[col]);
+          str.split(/[,;]/).forEach(item => {
+            const clean = item.trim();
+            if (clean) resultats.push(clean);
+          });
+        }
+      });
+      return resultats;
+    }
+
+    function extraireToutesLesListesUnique() {
+      const ensemble = new Set();
+      allRecords.forEach(r => {
+        ObtenirListesParContact(r).forEach(item => ensemble.add(item));
+      });
+      return Array.from(ensemble).sort();
     }
 
     function extraireValeursUniques(cles) {
@@ -271,9 +291,7 @@
         if (val) {
           normaliserChaine(val).split(/[,;]/).forEach(v => {
             const clean = v.trim();
-            if (clean && clean !== 'NONETYPE' && !clean.includes('NONETYPE')) {
-              valeursSet.add(clean);
-            }
+            if (clean) valeursSet.add(clean);
           });
         }
       });
@@ -300,10 +318,10 @@
       const container = document.getElementById('dynamic-etiquettes-container');
       if (!container) return;
 
-      const liste = extraireValeursUniques(KEYS.ETIQUETTES);
+      const liste = extraireToutesLesListesUnique();
 
       if (liste.length === 0) {
-        container.innerHTML = '<i>Aucune liste de diffusion trouvée</i>';
+        container.innerHTML = '<i>Aucune liste de diffusion trouvée dans les 4 colonnes.</i>';
         return;
       }
 
@@ -335,15 +353,15 @@
           ].map(c => normaliserChaine(c)).join(' ').toLowerCase();
           if (!textFilter.split(/\s+/).every(m => textGlobal.includes(m))) return false;
         }
-        if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
-        if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
-        if (domaineFilter && !contientCritere(getVal(rec, KEYS.DOMAINE), domaineFilter)) return false;
+        if (serviceFilter && !normaliserChaine(getVal(rec, KEYS.SERVICE)).toLowerCase().includes(serviceFilter.toLowerCase())) return false;
+        if (statutFilter && !normaliserChaine(getVal(rec, KEYS.STATUT)).toLowerCase().includes(statutFilter.toLowerCase())) return false;
+        if (domaineFilter && !normaliserChaine(getVal(rec, KEYS.DOMAINE)).toLowerCase().includes(domaineFilter.toLowerCase())) return false;
         if (typeStructFilter && !normaliserChaine(getVal(rec, KEYS.TYPE_STRUCT)).toLowerCase().includes(typeStructFilter.toLowerCase())) return false;
         if (fonctionFilter && !normaliserChaine(getVal(rec, KEYS.FONCTION)).toLowerCase().includes(fonctionFilter)) return false;
 
         if (etiquettesCochees.length > 0) {
-          const etiquettesContact = getVal(rec, KEYS.ETIQUETTES);
-          if (!etiquettesCochees.some(e => contientCritere(etiquettesContact, e))) return false;
+          const listesDuContact = ObtenirListesParContact(rec);
+          if (!etiquettesCochees.some(e => listesDuContact.includes(e))) return false;
         }
 
         return true;
@@ -482,11 +500,10 @@
       document.querySelector('table').style.fontSize = `${currentFontSize}px`;
     }
 
-    function genererCheckboxesModale(idGroupe, options, valeursActuelles) {
-      const listeActuelle = normaliserChaine(valeursActuelles).split(/[,;]/).map(s => s.trim().toLowerCase());
+    function genererCheckboxesModale(idGroupe, options, listesActuellesContact) {
       let html = `<div class="checkbox-group" id="${idGroupe}">`;
       options.forEach(opt => {
-        const isChecked = listeActuelle.includes(opt.toLowerCase());
+        const isChecked = listesActuellesContact.includes(opt);
         html += `
           <label class="checkbox-item">
             <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
@@ -499,7 +516,8 @@
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
-      const optionsEtiquettes = extraireValeursUniques(KEYS.ETIQUETTES);
+      const optionsEtiquettes = extraireToutesLesListesUnique();
+      const listesActuelles = ObtenirListesParContact(rec);
 
       container.innerHTML = `
         <div class="modal-section-title">👤 Identité & Structure</div>
@@ -529,7 +547,7 @@
         <div class="modal-section-title">📢 Listes de Diffusion (Étiquettes)</div>
         <div class="viewer-field full">
           <span class="viewer-label">Étiquettes sélectionnées</span>
-          ${genererCheckboxesModale('modal-etiquettes-container', optionsEtiquettes, getVal(rec, KEYS.ETIQUETTES))}
+          ${genererCheckboxesModale('modal-etiquettes-container', optionsEtiquettes, listesActuelles)}
         </div>
 
         <div class="modal-section-title">📝 Remarques</div>
@@ -597,12 +615,6 @@
       mapSingleField(KEYS.TEL_PRINCIPAL, 'edit-tel-principal');
       mapSingleField(KEYS.TELS_SECONDAIRES, 'edit-tels-secondaires');
       mapSingleField(KEYS.COMMENTAIRE, 'edit-commentaire');
-
-      const exactKeyEtiq = findExactExistingKey(r, KEYS.ETIQUETTES);
-      if (exactKeyEtiq) {
-        const checkedValues = Array.from(document.querySelectorAll('#modal-etiquettes-container input:checked')).map(cb => cb.value);
-        updatedFields[exactKeyEtiq] = ['L', ...checkedValues];
-      }
 
       try {
         await grist.docApi.applyUserActions([
