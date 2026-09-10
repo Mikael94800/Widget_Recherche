@@ -105,7 +105,6 @@
       </div>
     </div>
     
-    <!-- Liste dynamique issue de la table ETIQUETTES de Grist -->
     <div class="field-group" style="margin-bottom: 12px;">
       <label>Listes de diffusion (Étiquettes)</label>
       <div class="checkbox-group" id="dynamic-etiquettes-container">
@@ -211,7 +210,23 @@
       COMMENTAIRE: ['Commentaire_Description', 'Commentaire / Description', 'Commentaire']
     };
 
-    grist.ready({ requiredAccess: 'full' });
+    // Correctif de l'initialisation Grist (déclarations optionnelles)
+    grist.ready({
+      requiredAccess: 'full',
+      columns: [
+        { name: 'NOM', optional: true },
+        { name: 'PRENOM', optional: true },
+        { name: 'STRUCTURE', optional: true },
+        { name: 'SERVICE', optional: true },
+        { name: 'VILLE', optional: true },
+        { name: 'EMAIL', optional: true },
+        { name: 'FONCTION', optional: true },
+        { name: 'STATUT_JURIDIQUE', optional: true },
+        { name: 'TYPE_DE_STRUCTURE', optional: true },
+        { name: 'DOMAINE_D_ACTIVITES', optional: true }
+      ]
+    });
+
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
@@ -637,7 +652,6 @@
       mapSingleField(KEYS.TELS_SECONDAIRES, 'edit-tels-secondaires');
       mapSingleField(KEYS.COMMENTAIRE, 'edit-commentaire');
 
-      // Sauvegarde des étiquettes au format ChoiceList Grist ['L', val1, val2]
       const exactKeyEtiq = findExactExistingKey(r, KEYS.ETIQUETTES);
       if (exactKeyEtiq) {
         const checkedValues = Array.from(document.querySelectorAll('#modal-etiquettes-container input:checked')).map(cb => cb.value);
