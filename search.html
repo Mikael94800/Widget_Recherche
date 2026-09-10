@@ -154,12 +154,13 @@
       'Diffusion Houdremont': [],
       'Diffusion Intervenant': []
     };
+    
     const KEYS = {
       NOM: ['NOM', 'Nom'],
       PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
       STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
       FONCTION: ['Fonction_Profession', 'Fonction / Profession', 'Fonction'],
-      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
+      SERVICE: ['Service', 'Service_Origine', 'Service (Origine)', 'SERVICE'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       TYPE_STRUCTURE: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure / contact', 'Type de structure'],
       DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
@@ -189,6 +190,7 @@
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
+      extraireValeursDepuisContactsSiBesoin();
       initialiserInterfaceDiffusion();
       peuplerListesDeroulantesFiltres();
       appliquerFiltres();
@@ -248,10 +250,34 @@
 
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
-          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine);
+          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq['Service (Origine)']);
           referenceTables.statuts = extraireCol(tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique || tEtiq.STATUT || tEtiq.Statut);
         }
       } catch(e) { console.warn("Erreur chargement références", e); }
+    }
+
+    // Cheminement identique pour tous les champs : si la table externe ne renvoie rien, on extrait dynamiquement les valeurs uniques de la table Contacts
+    function extraireValeursDepuisContactsSiBesoin() {
+      const extraireChampUnique = (keys) => {
+        const valeurs = new Set();
+        allRecords.forEach(rec => {
+          const val = normaliserChaine(getVal(rec, keys)).trim();
+          if (val) valeurs.add(val);
+        });
+        return Array.from(valeurs).sort();
+      };
+
+      if (referenceTables.services.length === 0) referenceTables.services = extraireChampUnique(KEYS.SERVICE);
+      if (referenceTables.statuts.length === 0) referenceTables.statuts = extraireChampUnique(KEYS.STATUT);
+      if (referenceTables.domaines.length === 0) referenceTables.domaines = extraireChampUnique(KEYS.DOMAINE);
+      if (referenceTables.typesStructure.length === 0) referenceTables.typesStructure = extraireChampUnique(KEYS.TYPE_STRUCTURE);
+      if (referenceTables.structures.length === 0) referenceTables.structures = extraireChampUnique(KEYS.STRUCTURE);
+
+      for (const [groupe, options] of Object.entries(optionsEtiquettes)) {
+        if (options.length === 0) {
+          optionsEtiquettes[groupe] = OPTIONS_DIFFUSION_MODALE[groupe] || [];
+        }
+      }
     }
 
     function getVal(rec, keys) {
@@ -303,6 +329,8 @@
         if (etiquettesMap[id]) {
           const texte = etiquettesMap[id][colKey];
           if (texte) resultats.push(normaliserChaine(texte));
+        } else {
+          resultats.push(normaliserChaine(id));
         }
       });
       return resultats;
