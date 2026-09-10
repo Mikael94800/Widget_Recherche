@@ -696,8 +696,10 @@
     }
 
     function recupererCochésGroupeModal(idGroupe) {
-      return Array.from(document.querySelectorAll(`#${idGroupe} input[type="checkbox"]:checked`)).map(cb => cb.value);
-    }
+    const ids = Array.from(document.querySelectorAll(`#${idGroupe} input[type="checkbox"]:checked`))
+                     .map(cb => Number(cb.value));
+    return ['L', ...ids];
+}
 
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
