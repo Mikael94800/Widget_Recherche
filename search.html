@@ -634,9 +634,9 @@
       return isValid;
     }
     function recupererCochésGroupeModal(idGroupe) {
-      const ids = Array.from(document.querySelectorAll(`#${idGroupe} input[type="checkbox"]:checked`))
-                       .map(cb => Number(cb.value));
-      return ['L', ...ids];
+     const valeurs = Array.from(document.querySelectorAll(`#${idGroupe} input[type="checkbox"]:checked`))
+                     .map(cb => cb.value);
+    return ['L', ...valeurs];
     }
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
