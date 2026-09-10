@@ -9,12 +9,21 @@
     body { margin: 0; padding: 12px; background-color: #f8fafc; font-size: 14px; display: flex; flex-direction: column; height: 100vh; }
     
     .search-card { background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+    .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
     
     input[type="text"], select { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #fff; width: 100%; }
     input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+
+    /* Listes de diffusion (Checkboxes en grille) */
+    .diffusion-section { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 4px; }
+    .diffusion-title { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px; }
+    .diffusion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .diffusion-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; background: #f8fafc; max-height: 110px; overflow-y: auto; }
+    .diffusion-box-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; margin-bottom: 4px; cursor: pointer; }
+    .checkbox-label input { cursor: pointer; }
 
     .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -44,6 +53,13 @@
       <div class="field-group">
         <label>Statut Juridique</label>
         <select id="filter-statut" onchange="appliquerFiltres()"><option value="">-- Tous --</option></select>
+      </div>
+    </div>
+
+    <div class="diffusion-section">
+      <div class="diffusion-title">Listes de diffusion</div>
+      <div class="diffusion-grid" id="diffusion-grid-container">
+        <!-- Généré dynamiquement -->
       </div>
     </div>
   </div>
@@ -83,7 +99,13 @@
       STRUCTURE: ['NOM_Structure', 'NOM Structure', 'Structure', 'Structure_Contact', 'Nom_Structure'],
       SERVICE: ['Service', 'Service_Origine', 'Service (Origine)'],
       STATUT: ['STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
-      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email']
+      EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
+      DIFFUSION: {
+        'Diffusion Cinéma': ['DIFFUSION_CINEMA', 'Diffusion Cinéma', 'Diffusion_Cinema'],
+        'Diffusion Direction': ['DIFFUSION_DIRECTION', 'Diffusion Direction', 'Diffusion_Direction'],
+        'Diffusion Houdremont': ['DIFFUSION_HOUDREMONT', 'Diffusion Houdremont', 'Diffusion_Houdremont'],
+        'Diffusion Intervenant': ['DIFFUSION_INTERVENANT', 'Diffusion Intervenant', 'Diffusion_Intervenant']
+      }
     };
 
     grist.ready({ requiredAccess: 'full' });
@@ -91,6 +113,7 @@
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
+      initialiserInterfaceDiffusion();
       peuplerListesDeroulantesFiltres();
       appliquerFiltres();
     });
@@ -116,10 +139,13 @@
 
     function getVal(rec, keys) {
       if (!rec) return "";
-      for (let k of keys) {
-        if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+      if (Array.isArray(keys)) {
+        for (let k of keys) {
+          if (rec[k] !== undefined && rec[k] !== null) return rec[k];
+        }
+        return "";
       }
-      return "";
+      return rec[keys] !== undefined && rec[keys] !== null ? rec[keys] : "";
     }
 
     function normaliserChaine(valeur) {
@@ -150,6 +176,53 @@
       return Array.from(valeursSet).sort();
     }
 
+    function extraireOptionsDiffusion(clesMap) {
+      const optionsMap = {};
+      for (const [titre, cles] of Object.entries(clesMap)) {
+        const valeursSet = new Set();
+        allRecords.forEach(r => {
+          const val = getVal(r, cles);
+          if (val) {
+            normaliserChaine(val).split(/[,;]/).forEach(v => {
+              const clean = v.trim();
+              if (clean) valeursSet.add(clean);
+            });
+          }
+        });
+        optionsMap[titre] = Array.from(valeursSet).sort();
+      }
+      return optionsMap;
+    }
+
+    function initialiserInterfaceDiffusion() {
+      const container = document.getElementById('diffusion-grid-container');
+      const optionsParGroupe = extraireOptionsDiffusion(KEYS.DIFFUSION);
+      
+      let html = '';
+      for (const [titreGroupe, cles] of Object.entries(KEYS.DIFFUSION)) {
+        const options = optionsParGroupe[titreGroupe] || [];
+        html += `
+          <div class="diffusion-box">
+            <div class="diffusion-box-title">${titreGroupe}</div>
+            <div id="chk-group-${titreGroupe.replace(/\s+/g, '-')}">
+        `;
+        if (options.length === 0) {
+          html += `<div style="font-size:11px; color:#94a3b8;">Aucune option</div>`;
+        } else {
+          options.forEach(opt => {
+            html += `
+              <label class="checkbox-label">
+                <input type="checkbox" value="${opt}" data-groupe="${titreGroupe}" onchange="appliquerFiltres()">
+                <span>${opt}</span>
+              </label>
+            `;
+          });
+        }
+        html += `</div></div>`;
+      }
+      container.innerHTML = html;
+    }
+
     function peuplerListesDeroulantesFiltres() {
       const alimenterSelect = (id, optionsRef, clesDonnees) => {
         const sel = document.getElementById(id);
@@ -169,6 +242,14 @@
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
 
+      // Récupérer les cases à cocher sélectionnées par groupe de diffusion
+      const selectedDiffusions = {};
+      document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
+        const groupe = chk.getAttribute('data-groupe');
+        if (!selectedDiffusions[groupe]) selectedDiffusions[groupe] = [];
+        selectedDiffusions[groupe].append ? selectedDiffusions[groupe].push(chk.value) : selectedDiffusions[groupe] = [chk.value];
+      });
+
       matchingRecords = allRecords.filter(rec => {
         if (textFilter) {
           const textGlobal = [
@@ -179,6 +260,17 @@
         }
         if (serviceFilter && !contientCritere(getVal(rec, KEYS.SERVICE), serviceFilter)) return false;
         if (statutFilter && !contientCritere(getVal(rec, KEYS.STATUT), statutFilter)) return false;
+
+        // Filtrage des listes de diffusion (ET entre les groupes, OU au sein d'un même groupe)
+        for (const [groupe, valeursCochees] of Object.entries(selectedDiffusions)) {
+          if (valeursCochees.length > 0) {
+            const clesGroupe = KEYS.DIFFUSION[groupe];
+            const valeurContact = normaliserChaine(getVal(rec, clesGroupe));
+            const matchUnGroupe = valeursCochees.some(v => valeurContact.toLowerCase().includes(v.toLowerCase()));
+            if (!matchUnGroupe) return false;
+          }
+        }
+
         return true;
       });
 
@@ -189,6 +281,7 @@
       document.getElementById('filter-text').value = '';
       document.getElementById('filter-service').value = '';
       document.getElementById('filter-statut').value = '';
+      document.querySelectorAll('.diffusion-box input[type="checkbox"]').forEach(chk => chk.checked = false);
       appliquerFiltres();
     }
 
