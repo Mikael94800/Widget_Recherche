@@ -244,8 +244,13 @@
     let sortAscending = true;
     let selectedIds = new Set();
 
-    let referenceTables = { structures: [], services: [], statuts: [] };
-
+let referenceTables = { 
+    structures: [], 
+    services: [], 
+    statuts: [], 
+    typesStruct: [], 
+    domaines: [] 
+};
     const KEYS = {
     NOM: ['NOM', 'Nom'],
     PRENOM: ['PRENOM', 'Prénom', 'Prenom'],
@@ -289,13 +294,13 @@
         const fetchTable = async (name) => {
             try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
-        const tEtiquettes = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
+        const tEtiquettes = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes') || await fetchTable('etiquettes');
         if (tEtiquettes) {
-            referenceTables.structures = tEtiquettes.ORIGINE_CONTACT || [];
+            referenceTables.structures = tEtiquettes.ORIGINE_CONTACT || tEtiquettes.Origine_Contact || [];
             referenceTables.services = tEtiquettes.ORIGINE_CONTACT || [];
-            referenceTables.statuts = tEtiquettes.STATUT_JURIDIQUE || [];
-            referenceTables.domaines = tEtiquettes.DOMAINE_D_ACTIVITES || tEtiquettes.DOMAINE_D_ACTIVITÉS || [];
-            referenceTables.typesStruct = tEtiquettes.TYPE_DE_STRUCTURE || [];
+            referenceTables.statuts = tEtiquettes.STATUT_JURIDIQUE || tEtiquettes.Statut_Juridique || [];
+            referenceTables.domaines = tEtiquettes.DOMAINE_D_ACTIVITES || tEtiquettes.Domaine_D_Activites || [];
+            referenceTables.typesStruct = tEtiquettes.TYPE_DE_STRUCTURE || tEtiquettes.Type_De_Structure || [];
         }
     } catch(e) { 
         console.warn("Erreur chargement tables de référence:", e); 
