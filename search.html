@@ -489,7 +489,7 @@
     let matchingRecords = [];
     let selectedId = null;
     let checkedIds = new Set();
-    let lastCheckedIndex = null; // Pour la sélection Shift
+    let lastCheckedIndex = null;
 
     const diffusionLists = [
       { key: 'Diffusion_cinema_creche', label: 'CRÈCHE', cat: 'DIFFUSION CINÉMA' },
@@ -544,16 +544,10 @@
       return String(str).trim();
     }
 
-    grist.ready({
-      requiredColumns: [KEYS.NOM],
-      columns: Object.values(KEYS)
-    });
+    // Correction : Suppression de l'obligation de mapper toutes les colonnes dans Grist
+    grist.ready();
 
-    grist.onRecords(function(records, mappings) {
-      if (mappings) {
-        const rev = grist.mapColumnNames(records);
-        if (rev) KEYS = Object.assign(KEYS, rev);
-      }
+    grist.onRecords(function(records) {
       allRecords = records;
       peuplerSelectsDynamiques();
       appliquerFiltres();
@@ -683,7 +677,6 @@
       document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s) (${checkedIds.size} cochés)`;
     }
 
-    // Gestion de la sélection individuelle et Shift + Clic
     function cocherLigne(event, recordId, index) {
       const isChecked = event.target.checked;
 
@@ -701,7 +694,6 @@
             }
           }
         }
-        // Rafraichir l'affichage des cases à cocher pour tout l'intervalle
         afficherTableau();
       } else {
         if (isChecked) {
@@ -867,7 +859,6 @@
       document.body.removeChild(link);
     }
 
-    // Initialisation du redimensionnement des colonnes au glisser-déposer
     function initResizableColumns() {
       const table = document.getElementById('main-table');
       const cols = table.querySelectorAll('th');
