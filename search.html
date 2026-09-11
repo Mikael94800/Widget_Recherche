@@ -578,6 +578,7 @@
       }
       lastCheckedIndex = index;
       mettreAJourMasterCheckbox();
+      document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s) (${checkedIds.size} cochés)`;
     }
 
     function toutCocher(masterCheckbox) {
