@@ -21,7 +21,7 @@
     .email-msg { font-size: 11px; margin-top: 2px; font-weight: 600; }
     .email-msg.error { color: #dc2626; }
     .email-msg.success { color: #16a34a; }
-    
+
     .diffusion-section { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 4px; }
     .diffusion-title { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px; }
     .diffusion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -30,12 +30,6 @@
     .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; margin-bottom: 4px; cursor: pointer; }
     .checkbox-label input { cursor: pointer; }
     
-    .export-toolbar { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0; align-items: center; flex-wrap: wrap; }
-    .btn-export { background: #0f172a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
-    .btn-export:hover { background: #1e293b; }
-    .btn-export-txt { background: #0369a1; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
-    .btn-export-txt:hover { background: #0284c7; }
-
     .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
@@ -49,7 +43,7 @@
     .btn-reset:hover { background: #cbd5e1; }
     .btn-primary { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary:hover { background: #1d4ed8; }
-    
+
     /* Modal Styling */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 8px; width: 90%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -107,14 +101,7 @@
       <div class="diffusion-title">Listes de diffusion</div>
       <div class="diffusion-grid" id="diffusion-grid-container"></div>
     </div>
-    <div class="export-toolbar">
-      <button class="btn-export" onclick="exporterCSVRecherche()">📥 CSV Recherche</button>
-      <button class="btn-export" onclick="exporterCSVSelection()">📥 CSV Sélection</button>
-      <button class="btn-export-txt" onclick="exporterTXTRecherche()">📥 TXT Recherche</button>
-      <button class="btn-export-txt" onclick="exporterTXTSelection()">📥 TXT Sélection</button>
-    </div>
   </div>
-  
   <div class="table-container">
     <table>
       <thead>
@@ -132,7 +119,6 @@
       </tbody>
     </table>
   </div>
-  
   <div class="info-bar">
     <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser les filtres</button>
     <span id="info-count">0 / 0 contact(s)</span>
@@ -163,12 +149,14 @@
     
     let etiquettesMap = {};
     let texteVersIdGlobal = {}; 
+
     let texteVersIdEtiquette = {
       'Diffusion Cinéma': {},
       'Diffusion Direction': {},
       'Diffusion Houdremont': {},
       'Diffusion Intervenant': {}
     };
+
     let optionsEtiquettes = {
       'Diffusion Cinéma': [],
       'Diffusion Direction': [],
@@ -208,7 +196,6 @@
     };
 
     grist.ready({ requiredAccess: 'full' });
-
     grist.onRecords(async function(records) {
       allRecords = records;
       await chargerTablesDeReference();
@@ -230,6 +217,7 @@
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
+
         const tCommunes = await fetchTable('COMMUNES_FRANCE_2026') || await fetchTable('Communes_France_2026') || await fetchTable('Communes');
         if (tCommunes) {
           const cpCol = tCommunes.Code_Postal || tCommunes.code_postal || tCommunes.CP;
@@ -245,6 +233,7 @@
             }
           }
         }
+
         const tEtiq = await fetchTable('ETIQUETTES') || await fetchTable('Etiquettes');
         if (tEtiq && tEtiq.id) {
           for (let i = 0; i < tEtiq.id.length; i++) {
@@ -259,6 +248,7 @@
               'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine)[i] : null,
               'STATUT_JURIDIQUE': tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique ? (tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique)[i] : null
             };
+
             for (const [colName, val] of Object.entries(etiquettesMap[rowId])) {
               if (val) {
                 const texte = String(val).trim().toLowerCase();
@@ -266,6 +256,7 @@
                 texteVersIdGlobal[colName][texte] = rowId;
               }
             }
+
             const mapKeys = [
               { groupe: 'Diffusion Cinéma', val: tEtiq.Listes_Diffusion_Cinema?.[i] },
               { groupe: 'Diffusion Direction', val: tEtiq.Listes_Diffusion_Direction?.[i] },
@@ -281,6 +272,7 @@
               }
             });
           }
+
           const extraireCol = (colArr) => {
             if (!colArr) return [];
             return Array.from(new Set(colArr.map(v => normaliserChaine(v)).filter(v => v !== ""))).sort();
@@ -289,6 +281,7 @@
           optionsEtiquettes['Diffusion Direction'] = extraireCol(tEtiq.Listes_Diffusion_Direction);
           optionsEtiquettes['Diffusion Houdremont'] = extraireCol(tEtiq.Listes_Diffusion_Houdremont);
           optionsEtiquettes['Diffusion Intervenant'] = extraireCol(tEtiq.Listes_Diffusion_Intervenants);
+
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
           referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq['Service (Origine)']);
@@ -306,10 +299,12 @@
         });
         return Array.from(valeurs).sort();
       };
+
       if (referenceTables.services.length === 0) referenceTables.services = extraireChampUnique(KEYS.SERVICE);
       if (referenceTables.statuts.length === 0) referenceTables.statuts = extraireChampUnique(KEYS.STATUT);
       if (referenceTables.domaines.length === 0) referenceTables.domaines = extraireChampUnique(KEYS.DOMAINE);
       if (referenceTables.typesStructure.length === 0) referenceTables.typesStructure = extraireChampUnique(KEYS.TYPE_STRUCTURE);
+
       for (const [groupe, options] of Object.entries(optionsEtiquettes)) {
         if (options.length === 0) {
           optionsEtiquettes[groupe] = OPTIONS_DIFFUSION_MODALE[groupe] || [];
@@ -365,6 +360,7 @@
     function getLibellesDiffusion(rec, colKey) {
       const valBrute = getVal(rec, colKey);
       if (!valBrute) return [];
+      
       let ids = valBrute;
       if (Array.isArray(ids) && ids.length > 0 && ids[0] === 'L') {
         ids = ids.slice(1);
@@ -420,6 +416,7 @@
         sel.innerHTML = '<option value="">-- Tous --</option>' + optionsFiltrees.map(s => `<option value="${s}">${s}</option>`).join('');
         sel.value = curVal;
       };
+      
       alimenterSelectFilter('filter-service', referenceTables.services);
       alimenterSelectFilter('filter-statut', referenceTables.statuts);
       alimenterSelectFilter('filter-domaine', referenceTables.domaines);
@@ -444,7 +441,7 @@
       const professionFilter = document.getElementById('filter-profession').value.toLowerCase().trim();
       const cpFilter = document.getElementById('filter-cp').value.toLowerCase().trim();
       const villeFilter = document.getElementById('filter-ville').value.toLowerCase().trim();
-      
+
       const selectedDiffusions = {};
       document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
         const groupe = chk.getAttribute('data-groupe');
@@ -538,193 +535,6 @@
         }
       });
     }
-
-    // ==========================================
-    // FONCTIONS D'EXPORT (CSV et TXT)
-    // ==========================================
-
-    function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob([contenu], { type: typeMime + ';charset=utf-8;' });
-      const lien = document.createElement('a');
-      lien.href = URL.createObjectURL(blob);
-      lien.download = nomFichier;
-      document.body.appendChild(lien);
-      lien.click();
-      document.body.removeChild(lien);
-    }
-
-    function obtenirFichesCibles(mode) {
-      if (mode === 'recherche') {
-        return matchingRecords;
-      } else if (mode === 'selection') {
-        if (!selectedId) {
-          alert("Aucune fiche actuellement sélectionnée dans la vue Grist.");
-          return [];
-        }
-        const rec = allRecords.find(r => r.id === selectedId);
-        return rec ? [rec] : [];
-      }
-      return [];
-    }
-
-    // --- EXPORTS CSV ---
-    function genererCSVContenu(fiches) {
-      if (!fiches || fiches.length === 0) return "";
-      
-      const en-tetes = [
-        "ID", "Nom", "Prénom", "Structure", "Fonction / Profession", "Service (Origine)", 
-        "Statut Juridique", "Type de structure / contact", "Domaine d'activités", 
-        "Code Postal", "Ville", "Email Principal", "Emails Secondaires", 
-        "Téléphone Principal", "Téléphones Secondaires", "Commentaire / Description",
-        "Diffusion Cinéma", "Diffusion Direction", "Diffusion Houdremont", "Diffusion Intervenant"
-      ];
-
-      const echapperCSV = (val) => {
-        if (val === null || val === undefined) return '""';
-        let str = String(val);
-        str = str.replace(/"/g, '""');
-        return `"${str}"`;
-      };
-
-      let lignes = [en-tetes.map(echapperCSV).join(';')];
-
-      fiches.forEach(rec => {
-        const valNom = getVal(rec, KEYS.NOM);
-        const valPrenom = getVal(rec, KEYS.PRENOM);
-        const valStructure = normaliserChaine(getVal(rec, KEYS.STRUCTURE));
-        const valFonction = getVal(rec, KEYS.FONCTION);
-        const valService = normaliserChaine(getVal(rec, KEYS.SERVICE));
-        const valStatut = normaliserChaine(getVal(rec, KEYS.STATUT));
-        const valTypeStruct = normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE));
-        const valDomaine = normaliserChaine(getVal(rec, KEYS.DOMAINE));
-        const valCP = getVal(rec, KEYS.CODE_POSTAL);
-        const valVille = getVal(rec, KEYS.VILLE);
-        const valEmail = getVal(rec, KEYS.EMAIL_PRINCIPAL);
-        const valEmailsSec = getVal(rec, KEYS.EMAILS_SECONDAIRES);
-        const valTel = getVal(rec, KEYS.TEL_PRINCIPAL);
-        const valTelsSec = getVal(rec, KEYS.TELS_SECONDAIRES);
-        const valCommentaire = getVal(rec, KEYS.COMMENTAIRE);
-
-        const diffCinema = getLibellesDiffusion(rec, KEYS.DIFFUSION_CONTACTS['Diffusion Cinéma']).join(', ');
-        const diffDirection = getLibellesDiffusion(rec, KEYS.DIFFUSION_CONTACTS['Diffusion Direction']).join(', ');
-        const diffHoudremont = getLibellesDiffusion(rec, KEYS.DIFFUSION_CONTACTS['Diffusion Houdremont']).join(', ');
-        const diffIntervenant = getLibellesDiffusion(rec, KEYS.DIFFUSION_CONTACTS['Diffusion Intervenant']).join(', ');
-
-        const ligneDonnees = [
-          rec.id, valNom, valPrenom, valStructure, valFonction, valService,
-          valStatut, valTypeStruct, valDomaine, valCP, valVille, valEmail,
-          valEmailsSec, valTel, valTelsSec, valCommentaire,
-          diffCinema, diffDirection, diffHoudremont, diffIntervenant
-        ];
-
-        lignes.push(ligneDonnees.map(echapperCSV).join(';'));
-      });
-
-      return lignes.join('\\r\\n');
-    }
-
-    function exporterCSVRecherche() {
-      const fiches = obtenirFichesCibles('recherche');
-      if (fiches.length === 0) {
-        alert("Aucun contact à exporter pour cette recherche.");
-        return;
-      }
-      const csv = genererCSVContenu(fiches);
-      telechargerFichier(csv, "export_contacts_recherche.csv", "text/csv");
-    }
-
-    function exporterCSVSelection() {
-      const fiches = obtenirFichesCibles('selection');
-      if (fiches.length === 0) return;
-      const csv = genererCSVContenu(fiches);
-      telechargerFichier(csv, "export_contact_selection.csv", "text/csv");
-    }
-
-
-    // --- EXPORTS TXT (Mails) ---
-    // Règles :
-    // - Colonnes "Email principal" et "Emails secondaires"
-    // - Emails séparés par des ";"
-    // - Les emails principaux et secondaires d'un même contact se suivent
-    // - Réunis par paquet de 30 au maximum dans le fichier txt
-    // - Chaque paquet est séparé par une ligne vierge et précédé d'un titre (envoi 1, envoi 2, envoi 3 etc.)
-    
-    function extraireEmailsContact(rec) {
-      let emailsContact = [];
-      const emailPrinc = String(getVal(rec, KEYS.EMAIL_PRINCIPAL) || '').trim();
-      if (emailPrinc && emailPrinc.includes('@')) {
-        emailsContact.push(emailPrinc);
-      }
-      const emailsSecBrut = String(getVal(rec, KEYS.EMAILS_SECONDAIRES) || '').trim();
-      if (emailsSecBrut) {
-        const secondaires = emailsSecBrut.split(/[,;]+/).map(e => e.trim()).filter(e => e.length > 0 && e.includes('@'));
-        emailsContact.push(...secondaires);
-      }
-      return emailsContact;
-    }
-
-    function genererTXTContenu(fiches) {
-      if (!fiches || fiches.length === 0) return "";
-
-      // 1. Récupérer tous les emails dans l'ordre des fiches (principaux puis secondaires d'un même contact qui se suivent)
-      let tousLesEmails = [];
-      fiches.forEach(rec => {
-        const mails = extraireEmailsContact(rec);
-        tousLesEmails.push(...mails);
-      });
-
-      if (tousLesEmails.length === 0) {
-        return "";
-      }
-
-      // 2. Découper en paquets de 30 max
-      const taillePaquet = 30;
-      let paquets = [];
-      for (let i = 0; i < tousLesEmails.length; i += taillePaquet) {
-        paquets.push(tousLesEmails.slice(i, i + taillePaquet));
-      }
-
-      // 3. Formater avec titre (envoi 1, envoi 2, ...) et séparés par une ligne vierge
-      let blocsTexte = [];
-      paquets.forEach((paquet, index) => {
-        const numeroEnvoi = index + 1;
-        const titre = `envoi ${numeroEnvoi}`;
-        const chaineMails = paquet.join(';');
-        blocsTexte.push(`${titre}\\n${chaineMails}`);
-      });
-
-      return blocsTexte.join('\\n\\n');
-    }
-
-    function exporterTXTRecherche() {
-      const fiches = obtenirFichesCibles('recherche');
-      if (fiches.length === 0) {
-        alert("Aucun contact à exporter pour cette recherche.");
-        return;
-      }
-      const txt = genererTXTContenu(fiches);
-      if (!txt) {
-        alert("Aucun email valide trouvé pour les contacts de cette recherche.");
-        return;
-      }
-      telechargerFichier(txt, "export_emails_recherche.txt", "text/plain");
-    }
-
-    function exporterTXTSelection() {
-      const fiches = obtenirFichesCibles('selection');
-      if (fiches.length === 0) return;
-      const txt = genererTXTContenu(fiches);
-      if (!txt) {
-        alert("Aucun email valide trouvé pour le contact sélectionné.");
-        return;
-      }
-      telechargerFichier(txt, "export_emails_selection.txt", "text/plain");
-    }
-
-
-    // ==========================================
-    // MODALE DE MODIFICATION ET VALIDATION
-    // ==========================================
 
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
@@ -888,7 +698,7 @@
       } else {
         input.className = 'invalid-email';
         msgElem.className = 'email-msg error';
-        msgElem.innerText = '⚠ Format d\\'email invalide';
+        msgElem.innerText = '⚠ Format d\'email invalide';
       }
       return isValid;
     }
@@ -904,6 +714,7 @@
       const emails = val.split(/[,;]+/).map(e => e.trim()).filter(e => e.length > 0);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const allValid = emails.every(e => emailRegex.test(e));
+
       if (allValid && emails.length > 0) {
         input.className = 'valid-email';
         msgElem.className = 'email-msg success';
@@ -922,8 +733,10 @@
       const datalistVille = document.getElementById('list-villes');
       const villeInput = document.getElementById('edit-ville');
       if (!datalistVille) return;
+
       const villes = communesMap[cleanCp] || [];
       datalistVille.innerHTML = villes.map(v => `<option value="${v}">`).join('');
+      
       if (villes.length === 1 && !villeInput.value.trim()) {
         villeInput.value = villes[0];
       }
@@ -932,17 +745,21 @@
     function getRefId(colName, textValue) {
       if (!textValue || !textValue.trim()) return 0;
       const cleanText = textValue.trim().toLowerCase();
+      
       if (texteVersIdGlobal[colName] && texteVersIdGlobal[colName][cleanText] !== undefined) {
         return texteVersIdGlobal[colName][cleanText];
       }
+      
       for (const [key, map] of Object.entries(texteVersIdGlobal)) {
         if (map[cleanText] !== undefined) {
           return map[cleanText];
         }
       }
+
       if (!isNaN(textValue)) {
         return Number(textValue);
       }
+
       return textValue;
     }
 
@@ -964,6 +781,7 @@
         const box = document.getElementById(`modal-group-${titreGroupe}`);
         if (!box) return ['L'];
         const checkedValues = Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        
         let ids = ['L'];
         checkedValues.forEach(val => {
           const id = texteVersIdEtiquette[titreGroupe][val.toLowerCase()];
@@ -1021,10 +839,3 @@
   </script>
 </body>
 </html>
-"""
-
-file_path = "index.html"
-with open(file_path, "w", encoding="utf-8") as f:
-    f.write(html_content)
-
-print("HTML file generated successfully.")
