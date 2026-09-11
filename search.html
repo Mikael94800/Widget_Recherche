@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+# Let's write a python script to generate the complete, updated HTML file for the widget.
+# This ensures we have clean, precise code with zero typos, perfectly structured.
+
+html_content = """<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -620,7 +623,7 @@
         lignes.push(ligneDonnees.map(echapperCSV).join(';'));
       });
 
-      return lignes.join('\r\n');
+      return lignes.join('\\r\\n');
     }
 
     function exporterCSVRecherche() {
@@ -690,10 +693,10 @@
         const numeroEnvoi = index + 1;
         const titre = `envoi ${numeroEnvoi}`;
         const chaineMails = paquet.join(';');
-        blocsTexte.push(`${titre}\n${chaineMails}`);
+        blocsTexte.push(`${titre}\\n${chaineMails}`);
       });
 
-      return blocsTexte.join('\n\n');
+      return blocsTexte.join('\\n\\n');
     }
 
     function exporterTXTRecherche() {
@@ -888,7 +891,7 @@
       } else {
         input.className = 'invalid-email';
         msgElem.className = 'email-msg error';
-        msgElem.innerText = '⚠ Format d\'email invalide';
+        msgElem.innerText = '⚠ Format d\\'email invalide';
       }
       return isValid;
     }
@@ -1021,6 +1024,10 @@
   </script>
 </body>
 </html>
+"""
 
-index.html
-Affichage de index.html.
+file_path = "index.html"
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print("HTML file generated successfully.")
