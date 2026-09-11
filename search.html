@@ -200,8 +200,9 @@
     }
 
     .table-container {
-      overflow-y: auto;
+      overflow: auto;
       flex: 1;
+      position: relative;
     }
 
     table {
@@ -209,11 +210,15 @@
       border-collapse: collapse;
       text-align: left;
       font-size: 13px;
+      table-layout: fixed;
     }
 
     th, td {
       padding: 10px 14px;
       border-bottom: 1px solid var(--border-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     th {
@@ -224,6 +229,24 @@
       top: 0;
       z-index: 10;
       border-bottom: 2px solid var(--border-color);
+      user-select: none;
+      position: relative;
+    }
+
+    /* Poignée de redimensionnement des colonnes */
+    .resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      cursor: col-resize;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .resizer:hover, th.resizing .resizer {
+      background: var(--primary-color);
     }
 
     tbody tr {
@@ -240,7 +263,9 @@
     }
 
     th.col-check, td.col-check {
-      width: 40px;
+      width: 40px !important;
+      min-width: 40px;
+      max-width: 40px;
       text-align: center;
       padding: 0 8px;
     }
@@ -331,6 +356,7 @@
       border: 1px solid var(--border-color);
       border-radius: 6px;
       min-height: 35px;
+      white-space: normal;
     }
   </style>
 </head>
@@ -386,7 +412,7 @@
       <div class="diffusion-section">
         <div class="diffusion-title">Listes de diffusion</div>
         <div class="diffusion-grid" id="diffusion-checkboxes-container">
-          <!-- Généré dynamiquement ou statique selon colonnes -->
+          <!-- Généré dynamiquement -->
         </div>
       </div>
     </div>
@@ -407,16 +433,16 @@
     <!-- TABLEAU -->
     <div class="table-card">
       <div class="table-container">
-        <table>
+        <table id="main-table">
           <thead>
             <tr>
-              <th class="col-check"><input type="checkbox" id="master-checkbox" onchange="toggleToutCocher(event)"></th>
-              <th>Nom</th>
-              <th>Prénom</th>
-              <th>Structure</th>
-              <th>Service</th>
-              <th>Statut</th>
-              <th>Email</th>
+              <th class="col-check"><input type="checkbox" id="master-checkbox" onchange="toggleToutCocher(event)"><div class="resizer"></div></th>
+              <th>Nom<div class="resizer"></div></th>
+              <th>Prénom<div class="resizer"></div></th>
+              <th>Structure<div class="resizer"></div></th>
+              <th>Service<div class="resizer"></div></th>
+              <th>Statut<div class="resizer"></div></th>
+              <th>Email<div class="resizer"></div></th>
             </tr>
           </thead>
           <tbody id="table-body">
@@ -444,7 +470,6 @@
   </div>
 
   <script>
-    // Configuration des clés de colonnes par défaut dans Grist
     let KEYS = {
       ID: 'id',
       NOM: 'Nom',
@@ -464,8 +489,8 @@
     let matchingRecords = [];
     let selectedId = null;
     let checkedIds = new Set();
+    let lastCheckedIndex = null;
 
-    // Définition des listes de diffusion gérées
     const diffusionLists = [
       { key: 'Diffusion_cinema_creche', label: 'CRÈCHE', cat: 'DIFFUSION CINÉMA' },
       { key: 'Diffusion_cinema_enfance', label: 'ENFANCE & JEUNESSE', cat: 'DIFFUSION CINÉMA' },
@@ -484,8 +509,6 @@
     function initDiffusionCheckboxes() {
       const container = document.getElementById('diffusion-checkboxes-container');
       container.innerHTML = '';
-      
-      // Grouper par catégorie
       const cats = {};
       diffusionLists.forEach(d => {
         if (!cats[d.cat]) cats[d.cat] = [];
@@ -495,7 +518,6 @@
       for (const [catName, items] of Object.entries(cats)) {
         const box = document.createElement('div');
         box.className = 'diffusion-box';
-        
         let html = `<div class="diffusion-box-title">${catName}</div>`;
         items.forEach(item => {
           html += `
@@ -522,21 +544,11 @@
       return String(str).trim();
     }
 
-    // Initialisation Grist
-    grist.ready({
-      requiredColumns: [KEYS.NOM],
-      columns: Object.values(KEYS)
-    });
+    // Correction : Suppression de l'obligation de mapper toutes les colonnes dans Grist
+    grist.ready();
 
-    grist.onRecords(function(records, mappings) {
-      if (mappings) {
-        // Mappage personnalisé des colonnes si configuré dans Grist
-        const rev = grist.mapColumnNames(records);
-        if (rev) KEYS = Object.assign(KEYS, rev);
-      }
+    grist.onRecords(function(records) {
       allRecords = records;
-      
-      // Remplir les menus déroulants dynamiques à partir des données
       peuplerSelectsDynamiques();
       appliquerFiltres();
     });
@@ -589,12 +601,9 @@
       const profQuery = document.getElementById('filter-profession').value.toLowerCase().trim();
       const cpQuery = document.getElementById('filter-cp').value.toLowerCase().trim();
       const villeQuery = document.getElementById('filter-ville').value.toLowerCase().trim();
-
-      // Récupérer les listes de diffusion cochées
       const checkedDiffusionBoxes = Array.from(document.querySelectorAll('.filter-diffusion:checked')).map(cb => cb.value);
 
       matchingRecords = allRecords.filter(rec => {
-        // 1. Recherche Texte globale
         if (textQuery) {
           const combinedText = [
             getVal(rec, KEYS.NOM),
@@ -603,32 +612,27 @@
             getVal(rec, KEYS.EMAIL_PRINCIPAL),
             getVal(rec, KEYS.VILLE)
           ].join(' ').toLowerCase();
-          
           if (!combinedText.includes(textQuery)) return false;
         }
 
-        // 2. Selects stricts
         if (serviceVal && normaliserChaine(getVal(rec, KEYS.SERVICE)) !== serviceVal) return false;
         if (statutVal && normaliserChaine(getVal(rec, KEYS.STATUT)) !== statutVal) return false;
         if (domaineVal && normaliserChaine(getVal(rec, KEYS.DOMAINE)) !== domaineVal) return false;
         if (typeStructVal && normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE)) !== typeStructVal) return false;
 
-        // 3. Champs texte partiels
         if (profQuery && !getVal(rec, KEYS.PROFESSION).toLowerCase().includes(profQuery)) return false;
         if (cpQuery && !String(getVal(rec, KEYS.CP)).toLowerCase().includes(cpQuery)) return false;
         if (villeQuery && !getVal(rec, KEYS.VILLE).toLowerCase().includes(villeQuery)) return false;
 
-        // 4. Listes de diffusion (Doit correspondre à toutes les cases cochées - mode ET ou OU selon besoin, ici OU si l'un est coché, ou ET strict. Faisons une correspondance si au moins une case cochée correspond, ou toutes)
         if (checkedDiffusionBoxes.length > 0) {
-          const matchAllDiffusion = checkedDiffusionBoxes.every(diffKey => {
-            return Boolean(rec[diffKey]);
-          });
+          const matchAllDiffusion = checkedDiffusionBoxes.every(diffKey => Boolean(rec[diffKey]));
           if (!matchAllDiffusion) return false;
         }
 
         return true;
       });
 
+      lastCheckedIndex = null;
       afficherTableau();
     }
 
@@ -648,7 +652,7 @@
         const isChecked = checkedIds.has(rec.id);
         tr.innerHTML = `
           <td class="col-check" onclick="event.stopPropagation()">
-            <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} onchange="cocherLigne(event, ${rec.id}, ${index})">
+            <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} onclick="cocherLigne(event, ${rec.id}, ${index})">
           </td>
           <td>${getVal(rec, KEYS.NOM)}</td>
           <td>${getVal(rec, KEYS.PRENOM)}</td>
@@ -674,13 +678,34 @@
     }
 
     function cocherLigne(event, recordId, index) {
-      if (event.target.checked) {
-        checkedIds.add(recordId);
+      const isChecked = event.target.checked;
+
+      if (event.shiftKey && lastCheckedIndex !== null) {
+        const start = Math.min(lastCheckedIndex, index);
+        const end = Math.max(lastCheckedIndex, index);
+
+        for (let i = start; i <= end; i++) {
+          const currentRec = matchingRecords[i];
+          if (currentRec) {
+            if (isChecked) {
+              checkedIds.add(currentRec.id);
+            } else {
+              checkedIds.delete(currentRec.id);
+            }
+          }
+        }
+        afficherTableau();
       } else {
-        checkedIds.delete(recordId);
+        if (isChecked) {
+          checkedIds.add(recordId);
+        } else {
+          checkedIds.delete(recordId);
+        }
+        mettreAJourMasterCheckbox();
+        document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s) (${checkedIds.size} cochés)`;
       }
-      mettreAJourMasterCheckbox();
-      document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s) (${checkedIds.size} cochés)`;
+
+      lastCheckedIndex = index;
     }
 
     function toggleToutCocher(event) {
@@ -736,12 +761,10 @@
       document.getElementById('filter-profession').value = '';
       document.getElementById('filter-cp').value = '';
       document.getElementById('filter-ville').value = '';
-      
       document.querySelectorAll('.filter-diffusion').forEach(cb => cb.checked = false);
       appliquerFiltres();
     }
 
-    // Gestion de la modale de fiche contact détaillée
     function ouvrirModal(rec) {
       const modal = document.getElementById('contact-modal');
       const titleText = document.getElementById('modal-title-text');
@@ -780,7 +803,6 @@
       document.getElementById('contact-modal').classList.remove('active');
     }
 
-    // Fonctions d'export CSV / TXT
     function exporterCSV(seulementCoches) {
       const recordsToExport = seulementCoches 
         ? allRecords.filter(r => checkedIds.has(r.id))
@@ -837,8 +859,44 @@
       document.body.removeChild(link);
     }
 
-    // Lancer l'initialisation des cases de diffusion au chargement
+    function initResizableColumns() {
+      const table = document.getElementById('main-table');
+      const cols = table.querySelectorAll('th');
+
+      cols.forEach((col) => {
+        const resizer = col.querySelector('.resizer');
+        if (!resizer) return;
+
+        let x = 0;
+        let w = 0;
+
+        const mouseDownHandler = function (e) {
+          x = e.clientX;
+          w = col.offsetWidth;
+          col.classList.add('resizing');
+
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+          e.preventDefault();
+        };
+
+        const mouseMoveHandler = function (e) {
+          const dx = e.clientX - x;
+          col.style.width = `${w + dx}px`;
+        };
+
+        const mouseUpHandler = function () {
+          col.classList.remove('resizing');
+          document.removeEventListener('mousemove', mouseMoveHandler);
+          document.removeEventListener('mouseup', mouseUpHandler);
+        };
+
+        resizer.addEventListener('mousedown', mouseDownHandler);
+      });
+    }
+
     initDiffusionCheckboxes();
+    initResizableColumns();
   </script>
 </body>
 </html>
