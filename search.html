@@ -38,8 +38,10 @@
     .table-container { flex: 1; overflow: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; position: relative; }
     table { width: 100%; border-collapse: collapse; text-align: left; table-layout: auto; }
     th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; cursor: pointer; user-select: none; white-space: nowrap; resize: horizontal; overflow: hidden; }
-    th:hover { background: #e2e8f0; }
+    th.no-resize { resize: none; cursor: default; width: 40px; text-align: center; }
+    th:hover:not(.no-resize) { background: #e2e8f0; }
     td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; white-space: nowrap; }
+    td.col-check { text-align: center; width: 40px; }
     tr { cursor: pointer; }
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
@@ -112,15 +114,16 @@
   <!-- Barre d'outils des exports -->
   <div class="export-toolbar">
     <button class="btn-export" onclick="exporterCSVRecherche()">📥 CSV Recherche</button>
-    <button class="btn-export" onclick="exporterCSVSelection()">📥 CSV Sélection</button>
+    <button class="btn-export" onclick="exporterCSVSelection()">📥 CSV Sélection / Cochés</button>
     <button class="btn-export" onclick="exporterTXTRecherche()">📥 TXT Recherche</button>
-    <button class="btn-export" onclick="exporterTXTSelection()">📥 TXT Sélection</button>
+    <button class="btn-export" onclick="exporterTXTSelection()">📥 TXT Sélection / Cochés</button>
   </div>
 
   <div class="table-container">
     <table>
       <thead>
         <tr>
+          <th class="no-resize"><input type="checkbox" id="select-all-checkbox" onclick="toutCocher(this)" title="Tout cocher / décocher"></th>
           <th onclick="trierTableau('nom')">Nom <span id="sort-nom">↕</span></th>
           <th onclick="trierTableau('prenom')">Prénom <span id="sort-prenom">↕</span></th>
           <th onclick="trierTableau('structure')">Structure <span id="sort-structure">↕</span></th>
@@ -130,7 +133,7 @@
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+        <tr><td colspan="7" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
       </tbody>
     </table>
   </div>
@@ -159,6 +162,8 @@
     let allRecords = [];
     let matchingRecords = [];
     let selectedId = null;
+    let checkedIds = new Set(); // Gestion des lignes cochées
+    let lastCheckedIndex = null; // Pour la sélection Shift-click
     let currentEditingRecord = null;
     let referenceTables = { services: [], statuts: [], domaines: [], typesStructure: [] };
     let communesMap = {};
@@ -178,7 +183,6 @@
       'Diffusion Intervenant': []
     };
     
-    // Variables de tri
     let currentSortColumn = null;
     let currentSortDirection = 'asc';
 
@@ -220,7 +224,8 @@
       extraireValeursDepuisContactsSiBesoin();
       initialiserInterfaceDiffusion();
       peuplerListesDeroulantesFiltres();
-      appliquerFiltres();
+      // Option 1 : Conserve et réapplique automatiquement les filtres actuels de la recherche
+      appliquerFiltres(); 
     });
     
     grist.onSelectedRow(function(recordId) {
@@ -487,7 +492,6 @@
       afficherTableau();
     }
 
-    // Gestion du tri par colonne
     function trierTableau(colonne) {
       if (currentSortColumn === colonne) {
         if (currentSortDirection === 'asc') {
@@ -548,24 +552,73 @@
       document.getElementById('filter-cp').value = '';
       document.getElementById('filter-ville').value = '';
       document.querySelectorAll('.diffusion-box input[type="checkbox"]').forEach(chk => chk.checked = false);
+      checkedIds.clear();
+      document.getElementById('select-all-checkbox').checked = false;
       currentSortColumn = null;
       currentSortDirection = 'asc';
       mettreAJourIndicateursTri();
       appliquerFiltres();
     }
 
+    // Gestion de la sélection multiple par case à cocher + touche Shift
+    function cocherLigne(event, recordId, index) {
+      const checkbox = event.target;
+      const isChecked = checkbox.checked;
+
+      if (event.shiftKey && lastCheckedIndex !== null) {
+        const start = Math.min(lastCheckedIndex, index);
+        const end = Math.max(lastCheckedIndex, index);
+        for (let i = start; i <= end; i++) {
+          const rec = matchingRecords[i];
+          if (rec) {
+            if (isChecked) checkedIds.add(rec.id);
+            else checkedIds.delete(rec.id);
+          }
+        }
+        afficherTableau(); // Redessine pour appliquer l'état visuel aux cases de la plage
+      } else {
+        if (isChecked) checkedIds.add(recordId);
+        else checkedIds.delete(recordId);
+      }
+      lastCheckedIndex = index;
+      mettreAJourMasterCheckbox();
+    }
+
+    function toutCocher(masterCheckbox) {
+      const isChecked = masterCheckbox.checked;
+      matchingRecords.forEach(rec => {
+        if (isChecked) checkedIds.add(rec.id);
+        else checkedIds.delete(rec.id);
+      });
+      afficherTableau();
+    }
+
+    function mettreAJourMasterCheckbox() {
+      const master = document.getElementById('select-all-checkbox');
+      if (!master || matchingRecords.length === 0) return;
+      const allChecked = matchingRecords.every(rec => checkedIds.has(rec.id));
+      const someChecked = matchingRecords.some(rec => checkedIds.has(rec.id));
+      master.checked = allChecked;
+      master.indeterminate = someChecked && !allChecked;
+    }
+
     function afficherTableau() {
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
       if (matchingRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
         document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
         return;
       }
-      matchingRecords.forEach(rec => {
+      matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         if (rec.id === selectedId) tr.classList.add('selected');
+        
+        const isChecked = checkedIds.has(rec.id);
         tr.innerHTML = `
+          <td class="col-check" onclick="event.stopPropagation()">
+            <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} onchange="cocherLigne(event, ${rec.id}, ${index})">
+          </td>
           <td>${getVal(rec, KEYS.NOM)}</td>
           <td>${getVal(rec, KEYS.PRENOM)}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.STRUCTURE))}</td>
@@ -584,7 +637,8 @@
         };
         tbody.appendChild(tr);
       });
-      document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s)`;
+      mettreAJourMasterCheckbox();
+      document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s) (${checkedIds.size} cochés)`;
     }
 
     function mettreAJourSelectionVisuelle() {
@@ -599,7 +653,6 @@
       });
     }
 
-    // Extraction des emails valides (Principal + Secondaires) pour un contact
     function recupererTousEmailsContact(rec) {
       let emails = [];
       const mailPrinc = String(getVal(rec, KEYS.EMAIL_PRINCIPAL)).trim();
@@ -618,7 +671,6 @@
       return emails;
     }
 
-    // Fonctions d'Export CSV
     function telechargerFichier(contenu, nomFichier, typeMime) {
       const blob = new Blob([contenu], { type: typeMime + ';charset=utf-8;' });
       const lien = document.createElement('a');
@@ -649,6 +701,18 @@
       return csv;
     }
 
+    function obtenirCiblesExport() {
+      // Si des lignes sont cochées, on les priorise. Sinon, on prend la sélection Grist active, ou à défaut toute la recherche.
+      if (checkedIds.size > 0) {
+        return allRecords.filter(r => checkedIds.has(r.id));
+      }
+      const selectedRecords = matchingRecords.filter(r => r.id === selectedId);
+      if (selectedRecords.length > 0) {
+        return selectedRecords;
+      }
+      return matchingRecords;
+    }
+
     function exporterCSVRecherche() {
       if (matchingRecords.length === 0) {
         alert("Aucun contact à exporter pour la recherche actuelle.");
@@ -659,16 +723,15 @@
     }
 
     function exporterCSVSelection() {
-      const selectedRecords = matchingRecords.filter(r => r.id === selectedId);
-      if (selectedRecords.length === 0) {
-        alert("Avertissement : Aucune fiche n'est actuellement sélectionnée dans la vue Grist liée.");
+      const cibles = obtenirCiblesExport();
+      if (cibles.length === 0) {
+        alert("Aucun contact sélectionné ou coché.");
         return;
       }
-      const csv = recordsVersCSV(selectedRecords);
-      telechargerFichier(csv, "export_selection_contact.csv", "text/csv");
+      const csv = recordsVersCSV(cibles);
+      telechargerFichier(csv, "export_selection_contacts.csv", "text/csv");
     }
 
-    // Fonctions d'Export TXT (Paquets de 30, séparés par ;, ligne vierge et titre d'envoi)
     function genererTexteEmails(records) {
       let tousEmails = [];
       records.forEach(rec => {
@@ -709,20 +772,19 @@
     }
 
     function exporterTXTSelection() {
-      const selectedRecords = matchingRecords.filter(r => r.id === selectedId);
-      if (selectedRecords.length === 0) {
-        alert("Avertissement : Aucune fiche n'est actuellement sélectionnée dans la vue Grist liée.");
+      const cibles = obtenirCiblesExport();
+      if (cibles.length === 0) {
+        alert("Aucun contact sélectionné ou coché.");
         return;
       }
-      const texte = genererTexteEmails(selectedRecords);
+      const texte = genererTexteEmails(cibles);
       if (!texte) {
-        alert("Aucun email valide trouvé pour la fiche sélectionnée.");
+        alert("Aucun email valide trouvé pour les fiches cibles.");
         return;
       }
       telechargerFichier(texte, "emails_selection.txt", "text/plain");
     }
 
-    // Gestion de la modale de modification
     function ouvrirModal(rec) {
       currentEditingRecord = rec;
       const container = document.getElementById('modal-content');
