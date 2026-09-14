@@ -30,6 +30,12 @@
     .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; margin-bottom: 4px; cursor: pointer; }
     .checkbox-label input { cursor: pointer; }
     
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+    .info-count-large { font-size: 18px; font-weight: 700; color: #1e293b; }
+    .export-buttons-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn-export { background: #10b981; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #fff; font-size: 13px; }
+    .btn-export:hover { background: #059669; }
+
     .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
@@ -38,13 +44,10 @@
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
     
-    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .export-buttons-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .btn-export { background: #10b981; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #fff; font-size: 11px; }
-    .btn-export:hover { background: #059669; }
-
+    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; display: flex; justify-content: flex-start; align-items: center; }
     .btn-reset { background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #334155; font-size: 12px; }
     .btn-reset:hover { background: #cbd5e1; }
+    
     .btn-primary { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary:hover { background: #1d4ed8; }
 
@@ -105,6 +108,17 @@
       <div class="diffusion-grid" id="diffusion-grid-container"></div>
     </div>
   </div>
+
+  <div class="table-toolbar">
+    <div id="info-count" class="info-count-large">0 / 0 contact(s)</div>
+    <div class="export-buttons-group">
+      <button class="btn-export" onclick="exporterTxtRecherche()">Export recherche .txt</button>
+      <button class="btn-export" onclick="exporterCsvRecherche()">Export recherche .csv</button>
+      <button class="btn-export" onclick="exporterTxtSelection()">Export sélection .txt</button>
+      <button class="btn-export" onclick="exporterCsvSelection()">Export sélection .csv</button>
+    </div>
+  </div>
+
   <div class="table-container">
     <table>
       <thead>
@@ -123,15 +137,9 @@
       </tbody>
     </table>
   </div>
+  
   <div class="info-bar">
     <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser les filtres</button>
-    <div class="export-buttons-group">
-      <button class="btn-export" onclick="exporterTxtRecherche()">Export recherche .txt</button>
-      <button class="btn-export" onclick="exporterCsvRecherche()">Export recherche .csv</button>
-      <button class="btn-export" onclick="exporterTxtSelection()">Export sélection .txt</button>
-      <button class="btn-export" onclick="exporterCsvSelection()">Export sélection .csv</button>
-    </div>
-    <span id="info-count">0 / 0 contact(s)</span>
   </div>
 
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
