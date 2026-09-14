@@ -818,13 +818,19 @@
       const cleanCp = cpVal.trim();
       const datalistVille = document.getElementById('list-villes');
       const villeInput = document.getElementById('edit-ville');
-      if (!datalistVille) return;
+      if (!datalistVille || !villeInput) return;
 
       const villes = communesMap[cleanCp] || [];
       datalistVille.innerHTML = villes.map(v => `<option value="${v}">`).join('');
       
-      if (villes.length === 1 && !villeInput.value.trim()) {
+      if (villes.length === 1) {
         villeInput.value = villes[0];
+      } else if (villes.length === 0) {
+        // Laisse la saisie libre
+      } else {
+        if (!villes.includes(villeInput.value)) {
+          villeInput.value = '';
+        }
       }
     }
 
@@ -939,7 +945,6 @@
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
-      // Ajout du BOM UTF-8 ("\uFEFF") pour que les accents (ex: Cinéma) s'affichent correctement dans Excel
       const blob = new Blob(["\uFEFF" + contenu], { type: typeMime + ";charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const lien = document.createElement('a');
