@@ -38,7 +38,11 @@
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
     
-    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; display: flex; justify-content: space-between; align-items: center; }
+    .info-bar { font-size: 12px; color: #64748b; margin-top: 8px; text-align: right; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .export-buttons-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .btn-export { background: #10b981; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #fff; font-size: 11px; }
+    .btn-export:hover { background: #059669; }
+
     .btn-reset { background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #334155; font-size: 12px; }
     .btn-reset:hover { background: #cbd5e1; }
     .btn-primary { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
@@ -122,6 +126,12 @@
   </div>
   <div class="info-bar">
     <button class="btn-reset" onclick="reinitialiserFiltres()">Réinitialiser les filtres</button>
+    <div class="export-buttons-group">
+      <button class="btn-export" onclick="exporterTxtRecherche()">Export recherche .txt</button>
+      <button class="btn-export" onclick="exporterCsvRecherche()">Export recherche .csv</button>
+      <button class="btn-export" onclick="exporterTxtSelection()">Export sélection .txt</button>
+      <button class="btn-export" onclick="exporterCsvSelection()">Export sélection .csv</button>
+    </div>
     <span id="info-count">0 / 0 contact(s)</span>
   </div>
 
@@ -249,7 +259,7 @@
               'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null,
               'DOMAINE_D_ACTIVITES': tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites ? (tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites)[i] : null,
               'TYPE_DE_STRUCTURE_CONTACT': tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE ? (tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE)[i] : null,
-              'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine)[i] : null,
+              'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact)[i] : null,
               'STATUT_JURIDIQUE': tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique ? (tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique)[i] : null
             };
 
@@ -288,7 +298,7 @@
 
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
-          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq['Service (Origine)']);
+          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact || tEtiq['Service (Origine)']);
           referenceTables.statuts = extraireCol(tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique || tEtiq.STATUT || tEtiq.Statut);
         }
       } catch(e) { console.warn("Erreur chargement références", e); }
@@ -815,29 +825,10 @@
       }
     }
 
-    function getRefId(colName, textValue) {
-      if (!textValue || !textValue.trim()) return 0;
-      const cleanText = textValue.trim().toLowerCase();
-      
-      if (texteVersIdGlobal[colName] && texteVersIdGlobal[colName][cleanText] !== undefined) {
-        return texteVersIdGlobal[colName][cleanText];
-      }
-      
-      for (const [key, map] of Object.entries(texteVersIdGlobal)) {
-        if (map[cleanText] !== undefined) {
-          return map[cleanText];
-        }
-      }
-
-      if (!isNaN(textValue)) {
-        return Number(textValue);
-      }
-
-      return textValue;
-    }
-
     async function sauvegarderContactModifie() {
       if (!currentEditingRecord) return;
+      const recordIdToEdit = currentEditingRecord.id; // Stockage sécurisé de l'ID
+
       const mailInput = document.getElementById('edit-email');
       const mailSecInput = document.getElementById('edit-emails-sec');
       
@@ -865,26 +856,17 @@
         return ids;
       };
 
-      const serviceKey = getExistingKey(currentEditingRecord, KEYS.SERVICE);
-      const statutKey = getExistingKey(currentEditingRecord, KEYS.STATUT);
-      const domaineKey = getExistingKey(currentEditingRecord, KEYS.DOMAINE);
-      const typeStructKey = getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE);
-
-      const serviceValText = document.getElementById('edit-service').value;
-      const statutValText = document.getElementById('edit-statut').value;
-      const domaineValText = document.getElementById('edit-domaine').value;
-      const typeStructValText = document.getElementById('edit-type-structure').value;
-
       const fieldsToUpdate = {};
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.NOM)] = document.getElementById('edit-nom').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.PRENOM)] = document.getElementById('edit-prenom').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      fieldsToUpdate[serviceKey] = getRefId('SERVICE', serviceValText);
-      fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText);
-      fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText);
-      fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText);
+      // Enregistrement direct des valeurs textuelles pour éviter l'affichage de chiffres
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = document.getElementById('edit-statut').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = document.getElementById('edit-domaine').value.trim();
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = document.getElementById('edit-type-structure').value.trim();
       
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
@@ -902,12 +884,155 @@
       try {
         const tableId = await grist.selectedTable.getTableId();
         await grist.docApi.applyUserActions([
-          ['UpdateRecord', tableId, currentEditingRecord.id, fieldsToUpdate]
+          ['UpdateRecord', tableId, recordIdToEdit, fieldsToUpdate]
         ]);
+        
         fermerModal();
+
+        const recIndex = allRecords.findIndex(r => r.id === recordIdToEdit);
+        if (recIndex !== -1) {
+          allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
+        }
+        
+        appliquerFiltres();
+
       } catch (err) {
         alert("Erreur lors de la sauvegarde dans Grist: " + err.message);
       }
+    }
+
+    // --- FONCTIONS D'EXPORT ---
+
+    function extraireTousLesEmails(rec) {
+      let emails = [];
+      const emailPrinc = String(getVal(rec, KEYS.EMAIL_PRINCIPAL) || '').trim();
+      if (emailPrinc) emails.push(emailPrinc);
+
+      const emailsSec = String(getVal(rec, KEYS.EMAILS_SECONDAIRES) || '').trim();
+      if (emailsSec) {
+        const splitSec = emailsSec.split(/[,;]+/).map(e => e.trim()).filter(e => e.length > 0);
+        emails.push(...splitSec);
+      }
+      return Array.from(new Set(emails));
+    }
+
+    function telechargerFichier(contenu, nomFichier, typeMime) {
+      const blob = new Blob([contenu], { type: typeMime + ';charset=utf-8;' });
+      const lien = document.createElement('a');
+      lien.href = URL.createObjectURL(blob);
+      lien.download = nomFichier;
+      document.body.appendChild(lien);
+      lien.click();
+      document.body.removeChild(lien);
+    }
+
+    function genererContenuTxtParLots(records) {
+      let tousLesEmails = [];
+      records.forEach(rec => {
+        tousLesEmails.push(...extraireTousLesEmails(rec));
+      });
+      tousLesEmails = Array.from(new Set(tousLesEmails));
+
+      if (tousLesEmails.length === 0) return "";
+
+      let lots = [];
+      for (let i = 0; i < tousLesEmails.length; i += 30) {
+        lots.push(tousLesEmails.slice(i, i + 30));
+      }
+
+      let lignesTexte = [];
+      lots.forEach((lot, index) => {
+        lignesTexte.push(`Envoi ${index + 1}`);
+        lot.forEach(email => {
+          lignesTexte.push(email);
+        });
+        lignesTexte.push(''); // Ligne vierge de séparation
+      });
+
+      return lignesTexte.join('\n');
+    }
+
+    function genererContenuCsv(records) {
+      if (records.length === 0) return "";
+
+      const headers = [
+        'ID', 'Nom', 'Prénom', 'Structure', 'Fonction', 'Service', 'Statut Juridique', 
+        'Type de structure', "Domaine d'activités", 'Code Postal', 'Ville', 
+        'Email Principal', 'Emails Secondaires', 'Téléphone Principal', 'Téléphones Secondaires', 'Commentaire'
+      ];
+
+      let lignesCsv = [headers.join(';')];
+
+      records.forEach(rec => {
+        const valeurs = [
+          rec.id || '',
+          String(getVal(rec, KEYS.NOM) || ''),
+          String(getVal(rec, KEYS.PRENOM) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.STRUCTURE)) || ''),
+          String(getVal(rec, KEYS.FONCTION) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.SERVICE)) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.STATUT)) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE)) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.DOMAINE)) || ''),
+          String(getVal(rec, KEYS.CODE_POSTAL) || ''),
+          String(getVal(rec, KEYS.VILLE) || ''),
+          String(getVal(rec, KEYS.EMAIL_PRINCIPAL) || ''),
+          String(getVal(rec, KEYS.EMAILS_SECONDAIRES) || ''),
+          String(getVal(rec, KEYS.TEL_PRINCIPAL) || ''),
+          String(getVal(rec, KEYS.TELS_SECONDAIRES) || ''),
+          String(getVal(rec, KEYS.COMMENTAIRE) || '')
+        ];
+
+        const valeursEchappees = valeurs.map(val => {
+          let v = val.replace(/"/g, '""');
+          if (v.includes(';') || v.includes('\n') || v.includes('"')) {
+            v = `"${v}"`;
+          }
+          return v;
+        });
+
+        lignesCsv.push(valeursEchappees.join(';'));
+      });
+
+      return lignesCsv.join('\r\n');
+    }
+
+    function exporterTxtRecherche() {
+      if (!matchingRecords || matchingRecords.length === 0) {
+        alert("Aucun contact dans la recherche en cours.");
+        return;
+      }
+      const contenu = genererContenuTxtParLots(matchingRecords);
+      telechargerFichier(contenu, 'export_recherche_emails.txt', 'text/plain');
+    }
+
+    function exporterCsvRecherche() {
+      if (!matchingRecords || matchingRecords.length === 0) {
+        alert("Aucun contact dans la recherche en cours.");
+        return;
+      }
+      const contenu = genererContenuCsv(matchingRecords);
+      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv');
+    }
+
+    function exporterTxtSelection() {
+      const recordsSelectionnes = allRecords.filter(r => selectedRecordIds.has(r.id));
+      if (recordsSelectionnes.length === 0) {
+        alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
+        return;
+      }
+      const contenu = genererContenuTxtParLots(recordsSelectionnes);
+      telechargerFichier(contenu, 'export_selection_emails.txt', 'text/plain');
+    }
+
+    function exporterCsvSelection() {
+      const recordsSelectionnes = allRecords.filter(r => selectedRecordIds.has(r.id));
+      if (recordsSelectionnes.length === 0) {
+        alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
+        return;
+      }
+      const contenu = genererContenuCsv(recordsSelectionnes);
+      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv');
     }
   </script>
 </body>
