@@ -112,10 +112,11 @@
           <th>Service</th>
           <th>Statut</th>
           <th>Email</th>
+          <th style="width: 45px; text-align: center;"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" title="Tout sélectionner"></th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+        <tr><td colspan="7" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
       </tbody>
     </table>
   </div>
@@ -146,6 +147,9 @@
     let currentEditingRecord = null;
     let referenceTables = { services: [], statuts: [], domaines: [], typesStructure: [] };
     let communesMap = {};
+    
+    let selectedRecordIds = new Set();
+    let lastCheckedIndex = null;
     
     let etiquettesMap = {};
     let texteVersIdGlobal = {}; 
@@ -495,13 +499,15 @@
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
       if (matchingRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
         document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
+        updateSelectAllState();
         return;
       }
-      matchingRecords.forEach(rec => {
+      matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         if (rec.id === selectedId) tr.classList.add('selected');
+        const isChecked = selectedRecordIds.has(rec.id) ? 'checked' : '';
         tr.innerHTML = `
           <td>${getVal(rec, KEYS.NOM)}</td>
           <td>${getVal(rec, KEYS.PRENOM)}</td>
@@ -509,6 +515,7 @@
           <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
           <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
           <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
+          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${rec.id}" data-index="${index}" ${isChecked} onclick="event.stopPropagation(); handleCheckboxClick(event, ${index}, this)"></td>
         `;
         tr.onclick = () => {
           selectedId = rec.id;
@@ -522,6 +529,72 @@
         tbody.appendChild(tr);
       });
       document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s)`;
+      updateSelectAllState();
+    }
+
+    function handleCheckboxClick(event, index, checkbox) {
+      const rec = matchingRecords[index];
+      if (!rec) return;
+
+      if (event.shiftKey && lastCheckedIndex !== null) {
+        const start = Math.min(lastCheckedIndex, index);
+        const end = Math.max(lastCheckedIndex, index);
+        const shouldCheck = checkbox.checked;
+
+        for (let i = start; i <= end; i++) {
+          const r = matchingRecords[i];
+          if (r) {
+            if (shouldCheck) {
+              selectedRecordIds.add(r.id);
+            } else {
+              selectedRecordIds.delete(r.id);
+            }
+          }
+        }
+        updateCheckboxesUI();
+      } else {
+        if (checkbox.checked) {
+          selectedRecordIds.add(rec.id);
+        } else {
+          selectedRecordIds.delete(rec.id);
+        }
+        lastCheckedIndex = index;
+      }
+      updateSelectAllState();
+    }
+
+    function updateCheckboxesUI() {
+      const checkboxes = document.querySelectorAll('.row-checkbox');
+      checkboxes.forEach((cb, idx) => {
+        const rec = matchingRecords[idx];
+        if (rec) {
+          cb.checked = selectedRecordIds.has(rec.id);
+        }
+      });
+      updateSelectAllState();
+    }
+
+    function toggleSelectAll(masterCb) {
+      if (masterCb.checked) {
+        matchingRecords.forEach(rec => selectedRecordIds.add(rec.id));
+      } else {
+        matchingRecords.forEach(rec => selectedRecordIds.delete(rec.id));
+      }
+      updateCheckboxesUI();
+    }
+
+    function updateSelectAllState() {
+      const masterCb = document.getElementById('select-all-checkbox');
+      if (!masterCb) return;
+      if (matchingRecords.length === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+        return;
+      }
+      const allChecked = matchingRecords.every(rec => selectedRecordIds.has(rec.id));
+      const someChecked = matchingRecords.some(rec => selectedRecordIds.has(rec.id));
+      masterCb.checked = allChecked;
+      masterCb.indeterminate = someChecked && !allChecked;
     }
 
     function mettreAJourSelectionVisuelle() {
