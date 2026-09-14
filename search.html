@@ -253,7 +253,7 @@
           if (cpCol && villeCol) {
             for (let i = 0; i < tCommunes.id.length; i++) {
               let cp = String(cpCol[i] || '').trim();
-              if (cp.length === 4) cp = '0' + cp; // Gestion des zéros initiaux pour les codes postaux numériques
+              if (cp.length === 4) cp = '0' + cp;
               let ville = String(villeCol[i] || '').trim();
               if (cp && ville) {
                 if (!communesMap[cp]) communesMap[cp] = [];
@@ -651,7 +651,6 @@
       const valTelsSec = getVal(rec, KEYS.TELS_SECONDAIRES);
       const valCommentaire = getVal(rec, KEYS.COMMENTAIRE);
 
-      // Réinitialiser le message de succès à l'ouverture
       const successMsg = document.getElementById('save-success-msg');
       if (successMsg) {
         successMsg.style.display = 'none';
@@ -832,7 +831,7 @@
 
     function onCodePostalChange(cpVal) {
       let cleanCp = cpVal.trim();
-      if (cleanCp.length === 4) cleanCp = '0' + cleanCp; // Gérer les codes postaux commençant par 0
+      if (cleanCp.length === 4) cleanCp = '0' + cleanCp;
       
       const datalistVille = document.getElementById('list-villes');
       const villeInput = document.getElementById('edit-ville');
@@ -946,8 +945,10 @@
           allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
         }
         
+        // Fermeture de la modale et actualisation de la recherche en cours (sans réinitialiser les filtres)
         setTimeout(() => {
-          fermerModal();
+          document.getElementById('modal-overlay').style.display = 'none';
+          currentEditingRecord = null;
           appliquerFiltres();
         }, 1000);
 
@@ -967,7 +968,6 @@
           ['RemoveRecord', tableId, currentEditingRecord.id]
         ]);
 
-        // Fermer la modale et nettoyer l'état local
         document.getElementById('modal-overlay').style.display = 'none';
         allRecords = allRecords.filter(r => r.id !== currentEditingRecord.id);
         selectedRecordIds.delete(currentEditingRecord.id);
