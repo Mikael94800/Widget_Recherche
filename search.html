@@ -830,7 +830,6 @@
         }
       }
 
-      // Recherche de secours directe dans etiquettesMap si non trouvé par index
       for (let k of keysArray) {
         for (const [rId, data] of Object.entries(etiquettesMap)) {
           const val = data[k];
@@ -879,10 +878,8 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      // Service (Texte simple ou Choice)
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.SERVICE)] = document.getElementById('edit-service').value.trim();
       
-      // Statut, Type de structure et Domaine sont des colonnes de référence (nécessitent un ID numérique)
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STATUT)] = getIdRefPourChamp(KEYS.STATUT, document.getElementById('edit-statut').value);
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = getIdRefPourChamp(KEYS.TYPE_STRUCTURE, document.getElementById('edit-type-structure').value);
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = getIdRefPourChamp(KEYS.DOMAINE, document.getElementById('edit-domaine').value);
@@ -934,10 +931,10 @@
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob([contenu], { type: typeMime + ';charset=utf-8;' });
+      const encodedUri = encodeURI("data:" + typeMime + ";charset=utf-8," + contenu);
       const lien = document.createElement('a');
-      lien.href = URL.createObjectURL(blob);
-      lien.download = nomFichier;
+      lien.setAttribute('href', encodedUri);
+      lien.setAttribute('download', nomFichier);
       document.body.appendChild(lien);
       lien.click();
       document.body.removeChild(lien);
