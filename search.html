@@ -881,7 +881,7 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.STRUCTURE)] = document.getElementById('edit-structure').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.FONCTION)] = document.getElementById('edit-fonction').value.trim();
       
-      fieldsToUpdate[serviceKey] = serviceValText ? serviceValText.trim() : "";
+      fieldsToUpdate[serviceKey] = getRefId('SERVICE', serviceValText);
       fieldsToUpdate[statutKey] = getRefId('STATUT_JURIDIQUE', statutValText);
       fieldsToUpdate[domaineKey] = getRefId('DOMAINE_D_ACTIVITES', domaineValText);
       fieldsToUpdate[typeStructKey] = getRefId('TYPE_DE_STRUCTURE_CONTACT', typeStructValText);
