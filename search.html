@@ -249,7 +249,7 @@
               'Listes_Diffusion_Intervenants': tEtiq.Listes_Diffusion_Intervenants ? tEtiq.Listes_Diffusion_Intervenants[i] : null,
               'DOMAINE_D_ACTIVITES': tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites ? (tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites)[i] : null,
               'TYPE_DE_STRUCTURE_CONTACT': tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE ? (tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE)[i] : null,
-              'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine)[i] : null,
+              'SERVICE': tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact ? (tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact)[i] : null,
               'STATUT_JURIDIQUE': tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique ? (tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique)[i] : null
             };
 
@@ -288,7 +288,7 @@
 
           referenceTables.domaines = extraireCol(tEtiq.DOMAINE_D_ACTIVITES || tEtiq.Domaine_d_activites);
           referenceTables.typesStructure = extraireCol(tEtiq.TYPE_DE_STRUCTURE_CONTACT || tEtiq.Type_de_structure_contact || tEtiq.TYPE_DE_STRUCTURE);
-          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq['Service (Origine)']);
+          referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact || tEtiq['Service (Origine)']);
           referenceTables.statuts = extraireCol(tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique || tEtiq.STATUT || tEtiq.Statut);
         }
       } catch(e) { console.warn("Erreur chargement références", e); }
@@ -904,7 +904,17 @@
         await grist.docApi.applyUserActions([
           ['UpdateRecord', tableId, currentEditingRecord.id, fieldsToUpdate]
         ]);
+        
         fermerModal();
+
+        // Mise à jour immédiate du cache local et relance des filtres pour éviter de devoir recharger la page
+        const recIndex = allRecords.findIndex(r => r.id === currentEditingRecord.id);
+        if (recIndex !== -1) {
+          allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
+        }
+        
+        appliquerFiltres();
+
       } catch (err) {
         alert("Erreur lors de la sauvegarde dans Grist: " + err.message);
       }
