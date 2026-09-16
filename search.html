@@ -945,7 +945,6 @@
           allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
         }
         
-        // Fermeture de la modale et actualisation de la recherche en cours (sans réinitialiser les filtres)
         setTimeout(() => {
           document.getElementById('modal-overlay').style.display = 'none';
           currentEditingRecord = null;
@@ -996,7 +995,7 @@
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob(["\uFEFF" + contenu], { type: typeMime + ";charset=utf-8;" });
+      const blob = new Blob(["\uFEFF" + contenu], { type: typeMime });
       const url = URL.createObjectURL(blob);
       const lien = document.createElement('a');
       lien.setAttribute('href', url);
@@ -1075,7 +1074,7 @@
         lignesCsv.push(valeursEchappees.join(';'));
       });
 
-      return lignesCsv.join('\r\n');
+      return lignesCsv.join('\n');
     }
 
     function exporterTxtRecherche() {
@@ -1084,7 +1083,7 @@
         return;
       }
       const contenu = genererContenuTxtParLots(matchingRecords);
-      telechargerFichier(contenu, 'export_recherche_emails.txt', 'text/plain');
+      telechargerFichier(contenu, 'export_recherche_emails.txt', 'text/plain;charset=utf-8;');
     }
 
     function exporterCsvRecherche() {
@@ -1093,7 +1092,7 @@
         return;
       }
       const contenu = genererContenuCsv(matchingRecords);
-      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv');
+      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv;charset=utf-8;');
     }
 
     function exporterTxtSelection() {
@@ -1103,7 +1102,7 @@
         return;
       }
       const contenu = genererContenuTxtParLots(recordsSelectionnes);
-      telechargerFichier(contenu, 'export_selection_emails.txt', 'text/plain');
+      telechargerFichier(contenu, 'export_selection_emails.txt', 'text/plain;charset=utf-8;');
     }
 
     function exporterCsvSelection() {
@@ -1113,7 +1112,7 @@
         return;
       }
       const contenu = genererContenuCsv(recordsSelectionnes);
-      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv');
+      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv;charset=utf-8;');
     }
   </script>
 </body>
