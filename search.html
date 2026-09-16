@@ -116,10 +116,10 @@
   <div class="table-toolbar">
     <div id="info-count" class="info-count-large">0 / 0 contact(s)</div>
     <div class="export-buttons-group">
-      <button class="btn-export" onclick="exporterTxtRecherche()">Export recherche .txt</button>
-      <button class="btn-export" onclick="exporterCsvRecherche()">Export recherche .csv</button>
-      <button class="btn-export" onclick="exporterTxtSelection()">Export sélection .txt</button>
-      <button class="btn-export" onclick="exporterCsvSelection()">Export sélection .csv</button>
+      <button class="btn-export" id="btn-exp-txt-rech">Export recherche .txt</button>
+      <button class="btn-export" id="btn-exp-csv-rech">Export recherche .csv</button>
+      <button class="btn-export" id="btn-exp-txt-sel">Export sélection .txt</button>
+      <button class="btn-export" id="btn-exp-csv-sel">Export sélection .csv</button>
     </div>
   </div>
 
@@ -238,6 +238,19 @@
         selectedId = recordId;
         mettreAJourSelectionVisuelle();
       }
+    });
+
+    // Branchement direct des écouteurs d'événements au chargement de la page
+    document.addEventListener("DOMContentLoaded", () => {
+      const btnTxtRech = document.getElementById('btn-exp-txt-rech');
+      const btnCsvRech = document.getElementById('btn-exp-csv-rech');
+      const btnTxtSel = document.getElementById('btn-exp-txt-sel');
+      const btnCsvSel = document.getElementById('btn-exp-csv-sel');
+
+      if (btnTxtRech) btnTxtRech.addEventListener('click', exporterTxtRecherche);
+      if (btnCsvRech) btnCsvRech.addEventListener('click', exporterCsvRecherche);
+      if (btnTxtSel) btnTxtSel.addEventListener('click', exporterTxtSelection);
+      if (btnCsvSel) btnCsvSel.addEventListener('click', exporterCsvSelection);
     });
 
     async function chargerTablesDeReference() {
@@ -1040,7 +1053,6 @@
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
-      // Contourne la sécurité des iframes Grist en affichant une modale de copie propre
       afficherFenetreExport(contenu, nomFichier);
     }
 
@@ -1116,6 +1128,7 @@
     }
 
     function exporterTxtRecherche() {
+      console.log("Export TXT Recherche déclenché");
       if (!matchingRecords || matchingRecords.length === 0) {
         alert("Aucun contact dans la recherche en cours.");
         return;
@@ -1125,6 +1138,7 @@
     }
 
     function exporterCsvRecherche() {
+      console.log("Export CSV Recherche déclenché");
       if (!matchingRecords || matchingRecords.length === 0) {
         alert("Aucun contact dans la recherche en cours.");
         return;
@@ -1134,6 +1148,7 @@
     }
 
     function exporterTxtSelection() {
+      console.log("Export TXT Sélection déclenché");
       const recordsSelectionnes = allRecords.filter(r => selectedRecordIds.has(r.id));
       if (recordsSelectionnes.length === 0) {
         alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
@@ -1144,6 +1159,7 @@
     }
 
     function exporterCsvSelection() {
+      console.log("Export CSV Sélection déclenché");
       const recordsSelectionnes = allRecords.filter(r => selectedRecordIds.has(r.id));
       if (recordsSelectionnes.length === 0) {
         alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
