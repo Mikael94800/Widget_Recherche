@@ -945,7 +945,6 @@
           allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
         }
         
-        // Fermeture de la modale et actualisation de la recherche en cours (sans réinitialiser les filtres)
         setTimeout(() => {
           document.getElementById('modal-overlay').style.display = 'none';
           currentEditingRecord = null;
@@ -1036,32 +1035,36 @@
     function genererContenuCsv(records) {
       if (records.length === 0) return "";
 
+      // En-têtes du fichier CSV correspondant aux 11 critères ciblés
       const headers = [
-        'ID', 'Nom', 'Prénom', 'Structure', 'Fonction', 'Service', 'Statut Juridique', 
-        'Type de structure', "Domaine d'activités", 'Code Postal', 'Ville', 
-        'Email Principal', 'Emails Secondaires', 'Téléphone Principal', 'Téléphones Secondaires', 'Commentaire'
+        "Domaine d'activités",
+        "Commentaire / Description",
+        "Statut Juridique",
+        "Type de structure",
+        "Structure",
+        "Nom",
+        "Prénom",
+        "Email Principal",
+        "Emails Secondaires",
+        "Fonction / Profession",
+        "Ville"
       ];
 
       let lignesCsv = [headers.join(';')];
 
       records.forEach(rec => {
         const valeurs = [
-          rec.id || '',
-          String(getVal(rec, KEYS.NOM) || ''),
-          String(getVal(rec, KEYS.PRENOM) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.STRUCTURE)) || ''),
-          String(getVal(rec, KEYS.FONCTION) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.SERVICE)) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.DOMAINE)) || ''),
+          String(getVal(rec, KEYS.COMMENTAIRE) || ''),
           String(normaliserChaine(getVal(rec, KEYS.STATUT)) || ''),
           String(normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE)) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.DOMAINE)) || ''),
-          String(getVal(rec, KEYS.CODE_POSTAL) || ''),
-          String(getVal(rec, KEYS.VILLE) || ''),
+          String(normaliserChaine(getVal(rec, KEYS.STRUCTURE)) || ''),
+          String(getVal(rec, KEYS.NOM) || ''),
+          String(getVal(rec, KEYS.PRENOM) || ''),
           String(getVal(rec, KEYS.EMAIL_PRINCIPAL) || ''),
           String(getVal(rec, KEYS.EMAILS_SECONDAIRES) || ''),
-          String(getVal(rec, KEYS.TEL_PRINCIPAL) || ''),
-          String(getVal(rec, KEYS.TELS_SECONDAIRES) || ''),
-          String(getVal(rec, KEYS.COMMENTAIRE) || '')
+          String(getVal(rec, KEYS.FONCTION) || ''),
+          String(getVal(rec, KEYS.VILLE) || '')
         ];
 
         const valeursEchappees = valeurs.map(val => {
