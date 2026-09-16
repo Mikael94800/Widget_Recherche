@@ -240,7 +240,6 @@
       }
     });
 
-    // Branchement direct des écouteurs d'événements au chargement de la page
     document.addEventListener("DOMContentLoaded", () => {
       const btnTxtRech = document.getElementById('btn-exp-txt-rech');
       const btnCsvRech = document.getElementById('btn-exp-csv-rech');
@@ -1083,7 +1082,7 @@
     }
 
     function genererContenuCsv(records) {
-      if (records.length === 0) return "";
+      if (!records || records.length === 0) return "";
 
       const headers = [
         'ID', 'Nom', 'Prénom', 'Structure', 'Fonction', 'Service', 'Statut Juridique', 
@@ -1095,7 +1094,7 @@
 
       records.forEach(rec => {
         const valeurs = [
-          rec.id || '',
+          String(rec.id || ''),
           String(getVal(rec, KEYS.NOM) || ''),
           String(getVal(rec, KEYS.PRENOM) || ''),
           String(normaliserChaine(getVal(rec, KEYS.STRUCTURE)) || ''),
@@ -1143,8 +1142,12 @@
         alert("Aucun contact dans la recherche en cours.");
         return;
       }
-      const contenu = genererContenuCsv(matchingRecords);
-      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv;charset=utf-8;');
+      try {
+        const contenu = genererContenuCsv(matchingRecords);
+        afficherFenetreExport(contenu, 'export_recherche_contacts.csv');
+      } catch (err) {
+        alert("Erreur lors de la génération du CSV recherche : " + err.message);
+      }
     }
 
     function exporterTxtSelection() {
@@ -1165,8 +1168,12 @@
         alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
         return;
       }
-      const contenu = genererContenuCsv(recordsSelectionnes);
-      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv;charset=utf-8;');
+      try {
+        const contenu = genererContenuCsv(recordsSelectionnes);
+        afficherFenetreExport(contenu, 'export_selection_contacts.csv');
+      } catch (err) {
+        alert("Erreur lors de la génération du CSV sélection : " + err.message);
+      }
     }
   </script>
 </body>
