@@ -998,12 +998,15 @@
       const blob = new Blob(["\uFEFF" + contenu], { type: typeMime });
       const url = URL.createObjectURL(blob);
       const lien = document.createElement('a');
-      lien.setAttribute('href', url);
-      lien.setAttribute('download', nomFichier);
+      lien.href = url;
+      lien.download = nomFichier;
       document.body.appendChild(lien);
       lien.click();
-      document.body.removeChild(lien);
-      URL.revokeObjectURL(url);
+      
+      setTimeout(() => {
+        document.body.removeChild(lien);
+        URL.revokeObjectURL(url);
+      }, 100);
     }
 
     function genererContenuTxtParLots(records) {
