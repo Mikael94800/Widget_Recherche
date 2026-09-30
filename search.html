@@ -196,6 +196,19 @@
   <div id="toast-message" class="toast" role="status" aria-live="polite"></div>
 
   <script>
+    // Sécurité V19 : toutes les données provenant de Grist et réinjectées
+    // dans un fragment HTML sont échappées avant passage par innerHTML.
+    // Cela évite qu'une valeur de contact ou de référence contenant du HTML
+    // soit interprétée comme du code par le navigateur.
+    function echapperHtml(valeur) {
+      return String(valeur ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     let allRecords = [];
     let matchingRecords = [];
     let selectedId = null;
@@ -518,7 +531,7 @@
       for (const [titreGroupe, options] of Object.entries(optionsEtiquettes)) {
         html += `
           <div class="diffusion-box">
-            <div class="diffusion-box-title">${titreGroupe}</div>
+            <div class="diffusion-box-title">${echapperHtml(titreGroupe)}</div>
             <div>
         `;
         if (options.length === 0) {
@@ -527,8 +540,8 @@
           options.forEach(opt => {
             html += `
               <label class="checkbox-label">
-                <input type="checkbox" value="${opt}" data-groupe="${titreGroupe}" ${checkedBefore[titreGroupe]?.has(String(opt).toLowerCase()) ? 'checked' : ''} onchange="appliquerFiltres()">
-                <span>${opt}</span>
+                <input type="checkbox" value="${echapperHtml(opt)}" data-groupe="${echapperHtml(titreGroupe)}" ${checkedBefore[titreGroupe]?.has(String(opt).toLowerCase()) ? 'checked' : ''} onchange="appliquerFiltres()">
+                <span>${echapperHtml(opt)}</span>
               </label>
             `;
           });
@@ -543,7 +556,7 @@
         const sel = document.getElementById(id);
         const curVal = sel.value;
         const optionsFiltrees = (optionsRef || []).filter(s => s !== null && s !== undefined && String(s).trim() !== "");
-        sel.innerHTML = '<option value="">-- Tous --</option>' + optionsFiltrees.map(s => `<option value="${s}">${s}</option>`).join('');
+        sel.innerHTML = '<option value="">-- Tous --</option>' + optionsFiltrees.map(s => `<option value="${echapperHtml(s)}">${echapperHtml(s)}</option>`).join('');
         sel.value = curVal;
       };
       
@@ -558,7 +571,7 @@
       if (!sel) return;
       const cleanValActuelle = normaliserChaine(valeurActuelle).trim();
       const optionsFiltrees = (optionsRef || []).filter(s => s !== null && s !== undefined && String(s).trim() !== "");
-      sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${s}" ${s.toLowerCase() === cleanValActuelle.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('');
+      sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${echapperHtml(s)}" ${s.toLowerCase() === cleanValActuelle.toLowerCase() ? 'selected' : ''}>${echapperHtml(s)}</option>`).join('');
     }
 
     function obtenirValeurTri(rec, key) {
@@ -972,19 +985,19 @@
         <div class="modal-section-title">👤 Identité & Rôle</div>
         <div class="viewer-field">
           <label>Nom</label>
-          <input type="text" id="edit-nom" value="${valNom}">
+          <input type="text" id="edit-nom" value="${echapperHtml(valNom)}">
         </div>
         <div class="viewer-field">
           <label>Prénom</label>
-          <input type="text" id="edit-prenom" value="${valPrenom}">
+          <input type="text" id="edit-prenom" value="${echapperHtml(valPrenom)}">
         </div>
         <div class="viewer-field">
           <label>Fonction / Profession</label>
-          <input type="text" id="edit-fonction" value="${valFonction}">
+          <input type="text" id="edit-fonction" value="${echapperHtml(valFonction)}">
         </div>
         <div class="viewer-field">
           <label>Structure</label>
-          <input type="text" id="edit-structure" value="${valStructure}">
+          <input type="text" id="edit-structure" value="${echapperHtml(valStructure)}">
         </div>
 
         <div class="modal-section-title">🏛️ Service, Statut & Domaine</div>
@@ -1008,33 +1021,33 @@
         <div class="modal-section-title">📍 Coordonnées & Contacts</div>
         <div class="viewer-field">
           <label>Email Principal</label>
-          <input type="email" id="edit-email" value="${valEmail}" oninput="validerFormatEmail(this, 'email-validation-msg')">
+          <input type="email" id="edit-email" value="${echapperHtml(valEmail)}" oninput="validerFormatEmail(this, 'email-validation-msg')">
           <span id="email-validation-msg" class="email-msg"></span>
         </div>
         <div class="viewer-field">
           <label>Emails Secondaires (séparés par ; ou ,)</label>
-          <input type="text" id="edit-emails-sec" value="${valEmailsSec}" oninput="validerFormatEmailsSecondaires(this, 'emails-sec-validation-msg')">
+          <input type="text" id="edit-emails-sec" value="${echapperHtml(valEmailsSec)}" oninput="validerFormatEmailsSecondaires(this, 'emails-sec-validation-msg')">
           <span id="emails-sec-validation-msg" class="email-msg"></span>
         </div>
         <div class="viewer-field">
           <label>Téléphone Principal</label>
-          <input type="text" id="edit-tel" value="${valTel}">
+          <input type="text" id="edit-tel" value="${echapperHtml(valTel)}">
         </div>
         <div class="viewer-field">
           <label>Téléphones Secondaires</label>
-          <input type="text" id="edit-tels-sec" value="${valTelsSec}">
+          <input type="text" id="edit-tels-sec" value="${echapperHtml(valTelsSec)}">
         </div>
         <div class="viewer-field full" style="grid-column: 1 / -1 !important;">
           <label>Adresse postale</label>
-          <input type="text" id="edit-adresse" value="${valAdresse}" placeholder="Adresse postale complète...">
+          <input type="text" id="edit-adresse" value="${echapperHtml(valAdresse)}" placeholder="Adresse postale complète...">
         </div>
         <div class="viewer-field">
           <label>Code Postal</label>
-          <input type="text" id="edit-cp" value="${valCP}" oninput="onCodePostalChange(this.value)">
+          <input type="text" id="edit-cp" value="${echapperHtml(valCP)}" oninput="onCodePostalChange(this.value)">
         </div>
         <div class="viewer-field">
           <label>Ville</label>
-          <input type="text" id="edit-ville" list="list-villes" value="${valVille}">
+          <input type="text" id="edit-ville" list="list-villes" value="${echapperHtml(valVille)}">
           <datalist id="list-villes"></datalist>
         </div>
 
@@ -1059,7 +1072,7 @@
         <div class="modal-section-title">📝 Commentaire</div>
         <div class="viewer-field full">
           <label>Commentaire / Description</label>
-          <textarea id="edit-commentaire" rows="2">${valCommentaire}</textarea>
+          <textarea id="edit-commentaire" rows="2">${echapperHtml(valCommentaire)}</textarea>
         </div>
       `;
 
@@ -1120,12 +1133,12 @@
       const colKey = KEYS.DIFFUSION_CONTACTS[titreGroupe];
       const libellesActuels = getLibellesDiffusion(currentEditingRecord, colKey).map(s => s.toLowerCase());
       
-      let html = `<div class="diffusion-box" style="max-height: 130px; overflow-y: auto;" id="modal-group-${titreGroupe}">`;
+      let html = `<div class="diffusion-box" style="max-height: 130px; overflow-y: auto;" id="modal-group-${echapperHtml(titreGroupe)}">`;
       options.forEach(opt => {
         const isChecked = libellesActuels.includes(opt.toLowerCase());
         html += `
           <label class="checkbox-label">
-            <input type="checkbox" value="${opt}" ${isChecked ? 'checked' : ''}> ${opt}
+            <input type="checkbox" value="${echapperHtml(opt)}" ${isChecked ? 'checked' : ''}> ${echapperHtml(opt)}
           </label>`;
       });
       html += `</div>`;
@@ -1198,7 +1211,7 @@
       if (!datalistVille || !villeInput) return;
 
       const villes = communesMap[cleanCp] || [];
-      datalistVille.innerHTML = villes.map(v => `<option value="${v}">`).join('');
+      datalistVille.innerHTML = villes.map(v => `<option value="${echapperHtml(v)}">`).join('');
       
       if (villes.length === 1) {
         villeInput.value = villes[0];
