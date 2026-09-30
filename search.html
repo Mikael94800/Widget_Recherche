@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Recherche de Contact Avancée</title>
+  <title>Recherche de Contact Avancée - V18</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -36,10 +36,20 @@
     .btn-export { background: #10b981; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #fff; font-size: 13px; }
     .btn-export:hover { background: #059669; }
 
-    .table-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f1f5f9; color: #475569; padding: 10px 12px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; }
-    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    .table-container { flex: 1 1 auto; min-height: 420px; max-height: 65vh; overflow: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
+    table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+    th { background: #f1f5f9; color: #475569; padding: 8px 10px; position: sticky; top: 0; border-bottom: 1px solid #cbd5e1; font-weight: 600; z-index: 5; white-space: nowrap; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background: #e2e8f0; }
+    .sort-indicator { display: inline-block; margin-left: 5px; color: #2563eb; font-size: 11px; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b; white-space: nowrap; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+    th:first-child, td:first-child { position: sticky; left: 0; background: inherit; z-index: 6; }
+    th:first-child { z-index: 8; }
+    td:nth-child(2), td:nth-child(3) { max-width: 180px; }
+    td:nth-child(4) { max-width: 220px; }
+    td:nth-child(5) { max-width: 260px; }
+    td:nth-child(6), td:nth-child(8) { max-width: 280px; }
+    td:nth-child(7), td:nth-child(9) { max-width: 180px; }
     tr { cursor: pointer; }
     tr:hover { background-color: #f8fafc; }
     tr.selected { background-color: #eff6ff !important; font-weight: 500; color: #1d4ed8; }
@@ -57,14 +67,21 @@
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal-card { background: #fff; border-radius: 8px; width: 90%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px; }
-    .modal-title { font-size: 16px; font-weight: bold; color: #1e293b; }
+    .modal-title { font-size: 16px; font-weight: bold; color: #1e293b; text-align: center; flex: 1; }
+    .modal-navigation { display: flex; align-items: center; gap: 8px; min-width: 135px; }
+    .btn-nav { width: 32px; height: 30px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e293b; font-size: 22px; line-height: 24px; cursor: pointer; padding: 0; }
+    .btn-nav:hover:not(:disabled) { background: #e2e8f0; }
+    .btn-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+    .modal-position { min-width: 48px; text-align: center; font-size: 12px; font-weight: 700; color: #475569; }
     .btn-close { background: none; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #64748b; }
     .viewer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .viewer-field { display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; }
-    .viewer-field.full { grid-column: span 2; }
+    .viewer-field.full { grid-column: 1 / -1 !important; }
     .modal-section-title { grid-column: span 2; font-size: 13px; font-weight: bold; color: #2563eb; margin-top: 10px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; }
     .modal-footer { margin-top: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; }
     .modal-footer-actions { display: flex; gap: 8px; align-items: center; }
+    .toast { position: fixed; right: 18px; bottom: 18px; z-index: 300; display: none; max-width: 460px; padding: 12px 16px; border-radius: 8px; color: #fff; background: #16a34a; box-shadow: 0 8px 24px rgba(0,0,0,0.18); font-weight: 600; }
+    .toast.error { background: #dc2626; }
   </style>
 </head>
 <body>
@@ -114,12 +131,17 @@
   </div>
 
   <div class="table-toolbar">
-    <div id="info-count" class="info-count-large">0 / 0 contact(s)</div>
+    <div>
+      <div id="info-count" class="info-count-large">0 / 0 contact(s)</div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">Cliquez sur un en-tête pour trier · recliquez pour inverser l'ordre</div>
+    </div>
     <div class="export-buttons-group">
-      <button class="btn-export" onclick="exporterTxtRecherche()">Export recherche .txt</button>
-      <button class="btn-export" onclick="exporterCsvRecherche()">Export recherche .csv</button>
-      <button class="btn-export" onclick="exporterTxtSelection()">Export sélection .txt</button>
-      <button class="btn-export" onclick="exporterCsvSelection()">Export sélection .csv</button>
+      <button class="btn-export" onclick="exporterTxtRecherche()">✉️ Export recherche .txt</button>
+      <button class="btn-export" onclick="exporterCsvRecherche()">📄 Export recherche CSV</button>
+      <button class="btn-export" onclick="exporterExcelRecherche()">📊 Export recherche Excel</button>
+      <button class="btn-export" onclick="exporterTxtSelection()">✉️ Export sélection .txt</button>
+      <button class="btn-export" onclick="exporterCsvSelection()">📄 Export sélection CSV</button>
+      <button class="btn-export" onclick="exporterExcelSelection()">📊 Export sélection Excel</button>
     </div>
   </div>
 
@@ -127,17 +149,19 @@
     <table>
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Prénom</th>
-          <th>Structure</th>
-          <th>Service</th>
-          <th>Statut</th>
-          <th>Email</th>
-          <th style="width: 45px; text-align: center;"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" title="Tout sélectionner"></th>
+          <th style="width:45px; text-align:center;"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" title="Tout sélectionner"></th>
+          <th class="sortable" data-sort-key="PRENOM" onclick="trierParColonne('PRENOM')">Prénom <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="NOM" onclick="trierParColonne('NOM')">Nom <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="FONCTION" onclick="trierParColonne('FONCTION')">Fonction <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="STRUCTURE" onclick="trierParColonne('STRUCTURE')">Structure <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="EMAIL_PRINCIPAL" onclick="trierParColonne('EMAIL_PRINCIPAL')">Email principal <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="TEL_PRINCIPAL" onclick="trierParColonne('TEL_PRINCIPAL')">Tél. principal <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="EMAILS_SECONDAIRES" onclick="trierParColonne('EMAILS_SECONDAIRES')">Email secondaire <span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort-key="TELS_SECONDAIRES" onclick="trierParColonne('TELS_SECONDAIRES')">Tél. secondaire <span class="sort-indicator"></span></th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="7" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
+        <tr><td colspan="9" style="text-align: center; color: #94a3b8;">Chargement des données...</td></tr>
       </tbody>
     </table>
   </div>
@@ -149,7 +173,12 @@
   <div class="modal-overlay" id="modal-overlay" onclick="fermerModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title">Modifier la fiche contact (Double-clic)</span>
+        <div class="modal-navigation">
+          <button type="button" class="btn-nav" id="modal-prev" onclick="naviguerContact(-1)" title="Contact précédent">‹</button>
+          <span class="modal-position" id="modal-position">0 / 0</span>
+          <button type="button" class="btn-nav" id="modal-next" onclick="naviguerContact(1)" title="Contact suivant">›</button>
+        </div>
+        <span class="modal-title">Modifier la fiche contact</span>
         <button class="btn-close" onclick="fermerModal()">×</button>
       </div>
       <div class="viewer-grid" id="modal-content"></div>
@@ -164,6 +193,8 @@
     </div>
   </div>
 
+  <div id="toast-message" class="toast" role="status" aria-live="polite"></div>
+
   <script>
     let allRecords = [];
     let matchingRecords = [];
@@ -174,6 +205,23 @@
     
     let selectedRecordIds = new Set();
     let lastCheckedIndex = null;
+    let sortState = { key: null, direction: 1 }; // 1 = A→Z, -1 = Z→A
+    let pendingSearchRestore = null;
+    let saveInProgress = false;
+    let currentSearchState = null;
+    let searchStateBeforeEdit = null;
+    let ignoreGristRefreshUntil = 0;
+    let restoringSearchState = false;
+    let currentEditingIndex = -1;
+    let modalDirty = false;
+    let saveProtectionUntil = 0;
+    const locallySavedRecords = new Map();
+
+    // Synchronisation robuste avec Grist.
+    let referenceTablesReady = false;
+    let referenceTablesPromise = null;
+    let recordsUpdateSequence = 0;
+    let ignoreRecordsUntil = 0;
     
     let etiquettesMap = {};
     let texteVersIdGlobal = {}; 
@@ -201,6 +249,7 @@
       STATUT: ['STATUT_JURidique', 'STATUT_JURIDIQUE', 'Statut Juridique', 'Statut_Juridique'],
       TYPE_STRUCTURE: ['TYPE_DE_STRUCTURE_CONTACT', 'TYPE_DE_STRUCTURE', 'Type de structure / contact', 'Type de structure'],
       DOMAINE: ['DOMAINE_D_ACTIVITES', "Domaine d'activités", 'Domaine_d_activites'],
+      ADRESSE: ['Adresse', 'ADRESSE', 'Adresse_Postale', 'ADRESSE_POSTALE'],
       CODE_POSTAL: ['Code_Postal', 'Code Postal', 'CP'],
       VILLE: ['Ville', 'VILLE'],
       EMAIL_PRINCIPAL: ['EMAIL_PRINCIPAL', 'Email Principal', 'Email'],
@@ -225,12 +274,51 @@
 
     grist.ready({ requiredAccess: 'full', allowSelectBy: false });
     grist.onRecords(async function(records) {
-      allRecords = records;
-      await chargerTablesDeReference();
+      if (!Array.isArray(records)) return;
+
+      const now = Date.now();
+      const incoming = records;
+
+      // IMPORTANT : après un UpdateRecord, Grist peut déclencher plusieurs
+      // notifications liées au rafraîchissement de la vue. Elles peuvent
+      // arriver alors que nous venons déjà de recalculer correctement la
+      // recherche avec la nouvelle fiche. Pendant cette courte période,
+      // on laisse le widget travailler sur son jeu de données local, qui
+      // contient déjà la modification enregistrée.
+      if (ignoreRecordsUntil > now) {
+        console.debug('[RECHERCHE_V2] onRecords ignoré temporairement après sauvegarde');
+        return;
+      }
+
+      if (saveProtectionUntil > now && locallySavedRecords.size) {
+        allRecords = incoming.map(rec => {
+          const local = locallySavedRecords.get(rec.id);
+          return local ? { ...rec, ...local } : rec;
+        });
+      } else {
+        allRecords = incoming;
+        if (locallySavedRecords.size) locallySavedRecords.clear();
+      }
+
+      try {
+        await chargerTablesDeReference();
+      } catch (e) {
+        console.warn('Erreur chargement références', e);
+      }
+
       extraireValeursDepuisContactsSiBesoin();
-      initialiserInterfaceDiffusion();
-      peuplerListesDeroulantesFiltres();
+
+      // Pendant la protection de sauvegarde, on ne reconstruit pas les contrôles
+      // de recherche : cela évite qu'une notification Grist ne remplace leur état.
+      if (saveProtectionUntil <= Date.now()) {
+        const etatRecherche = capturerEtatRecherche();
+        initialiserInterfaceDiffusion();
+        peuplerListesDeroulantesFiltres();
+        restaurerEtatRecherche(etatRecherche);
+      }
+
       appliquerFiltres();
+      mettreAJourIndicateursTri();
     });
     
     grist.onSelectedRow(function(recordId) {
@@ -241,7 +329,11 @@
     });
 
     async function chargerTablesDeReference() {
-      try {
+      if (referenceTablesReady) return;
+      if (referenceTablesPromise) return referenceTablesPromise;
+
+      referenceTablesPromise = (async () => {
+        try {
         const fetchTable = async (name) => {
           try { return await grist.docApi.fetchTable(name); } catch(e) { return null; }
         };
@@ -316,7 +408,13 @@
           referenceTables.services = extraireCol(tEtiq.SERVICE || tEtiq.Service || tEtiq.Service_Origine || tEtiq.ORIGINE_CONTACT || tEtiq.Origine_Contact || tEtiq['Service (Origine)']);
           referenceTables.statuts = extraireCol(tEtiq.STATUT_JURIDIQUE || tEtiq.Statut_Juridique || tEtiq.STATUT || tEtiq.Statut);
         }
-      } catch(e) { console.warn("Erreur chargement références", e); }
+        } catch(e) {
+          console.warn("Erreur chargement références", e);
+        }
+        referenceTablesReady = true;
+      })();
+
+      return referenceTablesPromise;
     }
 
     function extraireValeursDepuisContactsSiBesoin() {
@@ -410,6 +508,12 @@
 
     function initialiserInterfaceDiffusion() {
       const container = document.getElementById('diffusion-grid-container');
+      const checkedBefore = {};
+      container.querySelectorAll('input[type="checkbox"][data-groupe]:checked').forEach(chk => {
+        const groupe = chk.getAttribute('data-groupe');
+        if (!checkedBefore[groupe]) checkedBefore[groupe] = new Set();
+        checkedBefore[groupe].add(chk.value.toLowerCase());
+      });
       let html = '';
       for (const [titreGroupe, options] of Object.entries(optionsEtiquettes)) {
         html += `
@@ -423,7 +527,7 @@
           options.forEach(opt => {
             html += `
               <label class="checkbox-label">
-                <input type="checkbox" value="${opt}" data-groupe="${titreGroupe}" onchange="appliquerFiltres()">
+                <input type="checkbox" value="${opt}" data-groupe="${titreGroupe}" ${checkedBefore[titreGroupe]?.has(String(opt).toLowerCase()) ? 'checked' : ''} onchange="appliquerFiltres()">
                 <span>${opt}</span>
               </label>
             `;
@@ -457,8 +561,71 @@
       sel.innerHTML = '<option value="">-- Sélectionner --</option>' + optionsFiltrees.map(s => `<option value="${s}" ${s.toLowerCase() === cleanValActuelle.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('');
     }
 
+    function obtenirValeurTri(rec, key) {
+      const map = {
+        NOM: KEYS.NOM,
+        PRENOM: KEYS.PRENOM,
+        FONCTION: KEYS.FONCTION,
+        STRUCTURE: KEYS.STRUCTURE,
+        EMAIL_PRINCIPAL: KEYS.EMAIL_PRINCIPAL,
+        TEL_PRINCIPAL: KEYS.TEL_PRINCIPAL,
+        EMAILS_SECONDAIRES: KEYS.EMAILS_SECONDAIRES,
+        TELS_SECONDAIRES: KEYS.TELS_SECONDAIRES
+      };
+      return normaliserChaine(getVal(rec, map[key] || key)).trim();
+    }
+
+    function trierParColonne(key) {
+      if (sortState.key === key) {
+        sortState.direction *= -1;
+      } else {
+        sortState.key = key;
+        sortState.direction = 1;
+      }
+      appliquerFiltres();
+    }
+
+    function trierResultats(records) {
+      if (!sortState.key) return records;
+      const direction = sortState.direction;
+      const key = sortState.key;
+      return [...records].sort((a, b) => {
+        const av = obtenirValeurTri(a, key);
+        const bv = obtenirValeurTri(b, key);
+        const aEmpty = av === '';
+        const bEmpty = bv === '';
+        if (aEmpty && !bEmpty) return 1;
+        if (!aEmpty && bEmpty) return -1;
+        return av.localeCompare(bv, 'fr', { sensitivity: 'base', numeric: true }) * direction;
+      });
+    }
+
+    function mettreAJourIndicateursTri() {
+      document.querySelectorAll('th.sortable').forEach(th => {
+        const indicator = th.querySelector('.sort-indicator');
+        if (!indicator) return;
+        const key = th.getAttribute('data-sort-key');
+        if (key === sortState.key) {
+          indicator.textContent = sortState.direction === 1 ? '▲' : '▼';
+          th.setAttribute('aria-sort', sortState.direction === 1 ? 'ascending' : 'descending');
+        } else {
+          indicator.textContent = '↕';
+          th.setAttribute('aria-sort', 'none');
+        }
+      });
+    }
+
     function appliquerFiltres() {
-      if (!allRecords.length) return;
+      // Mémorise en permanence la recherche active. Ainsi une mise à jour Grist
+      // ne peut pas faire perdre les critères affichés à l'utilisateur.
+      const etatAvantCalcul = capturerEtatRecherche();
+      currentSearchState = etatAvantCalcul;
+
+      if (!allRecords.length) {
+        matchingRecords = [];
+        afficherTableau();
+        return;
+      }
       const textFilter = document.getElementById('filter-text').value.toLowerCase().trim();
       const serviceFilter = document.getElementById('filter-service').value;
       const statutFilter = document.getElementById('filter-statut').value;
@@ -469,13 +636,46 @@
       const villeFilter = document.getElementById('filter-ville').value.toLowerCase().trim();
 
       const selectedDiffusions = {};
-      document.querySelectorAll('.diffusion-box input[type="checkbox"]:checked').forEach(chk => {
+      document.querySelectorAll('.search-card .diffusion-box input[type="checkbox"]:checked').forEach(chk => {
         const groupe = chk.getAttribute('data-groupe');
         if (!selectedDiffusions[groupe]) selectedDiffusions[groupe] = [];
         selectedDiffusions[groupe].push(chk.value);
       });
 
-      matchingRecords = allRecords.filter(rec => {
+      // IMPORTANT : une recherche totalement vide ne doit pas tenter
+      // d'afficher les 4 623 contacts dans le DOM. Cela peut monopoliser
+      // le navigateur et donner l'impression que le module est figé.
+      // On demande donc explicitement un critère avant d'afficher les résultats.
+      const rechercheVide =
+        !textFilter &&
+        !serviceFilter &&
+        !statutFilter &&
+        !domaineFilter &&
+        !typeStructFilter &&
+        !professionFilter &&
+        !cpFilter &&
+        !villeFilter &&
+        Object.keys(selectedDiffusions).length === 0;
+
+      if (rechercheVide) {
+        matchingRecords = [];
+        const tbody = document.getElementById('table-body');
+        tbody.replaceChildren();
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.style.textAlign = 'center';
+        td.style.color = '#94a3b8';
+        td.textContent = 'Saisissez un critère de recherche pour afficher les contacts.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
+        updateSelectAllState();
+        currentSearchState = capturerEtatRecherche();
+        return;
+      }
+
+      const filtered = allRecords.filter(rec => {
         if (textFilter) {
           const textGlobal = [
             getVal(rec, KEYS.NOM), getVal(rec, KEYS.PRENOM), getVal(rec, KEYS.STRUCTURE),
@@ -492,15 +692,30 @@
         if (villeFilter && !contientCritere(getVal(rec, KEYS.VILLE), villeFilter)) return false;
 
         for (const [groupe, valeursCochees] of Object.entries(selectedDiffusions)) {
-          if (valeursCochees.length > 0) {
-            const colKey = KEYS.DIFFUSION_CONTACTS[groupe];
-            const libellesContact = getLibellesDiffusion(rec, colKey);
-            const matchUnGroupe = valeursCochees.some(v => libellesContact.some(lc => lc.toLowerCase() === v.toLowerCase()));
-            if (!matchUnGroupe) return false;
-          }
+          const colKey = KEYS.DIFFUSION_CONTACTS[groupe];
+          const libellesContact = getLibellesDiffusion(rec, colKey);
+          const matchUnGroupe = valeursCochees.some(v => libellesContact.some(lc => lc.toLowerCase() === v.toLowerCase()));
+          if (!matchUnGroupe) return false;
         }
         return true;
       });
+
+      matchingRecords = trierResultats(filtered);
+      if (saveProtectionUntil > Date.now()) {
+        console.debug('[RECHERCHE_V2] filtres après sauvegarde', {
+          total: allRecords.length,
+          resultats: matchingRecords.length,
+          texte: textFilter,
+          service: serviceFilter,
+          statut: statutFilter,
+          domaine: domaineFilter,
+          typeStructure: typeStructFilter,
+          profession: professionFilter,
+          cp: cpFilter,
+          ville: villeFilter,
+          diffusions: selectedDiffusions
+        });
+      }
       afficherTableau();
     }
 
@@ -517,11 +732,26 @@
       appliquerFiltres();
     }
 
+    function creerCellule(tr, valeur, classe = '') {
+      const td = document.createElement('td');
+      if (classe) td.className = classe;
+      td.textContent = normaliserChaine(valeur);
+      return td;
+    }
+
     function afficherTableau() {
       const tbody = document.getElementById('table-body');
-      tbody.innerHTML = '';
+      tbody.replaceChildren();
+      mettreAJourIndicateursTri();
       if (matchingRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8;">Aucun résultat trouvé</td></tr>`;
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.style.textAlign = 'center';
+        td.style.color = '#94a3b8';
+        td.textContent = allRecords.length ? 'Aucun résultat trouvé' : 'Chargement des données...';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
         document.getElementById('info-count').innerText = `0 / ${allRecords.length} contact(s)`;
         updateSelectAllState();
         return;
@@ -529,25 +759,41 @@
       matchingRecords.forEach((rec, index) => {
         const tr = document.createElement('tr');
         if (rec.id === selectedId) tr.classList.add('selected');
-        const isChecked = selectedRecordIds.has(rec.id) ? 'checked' : '';
-        tr.innerHTML = `
-          <td>${getVal(rec, KEYS.NOM)}</td>
-          <td>${getVal(rec, KEYS.PRENOM)}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.STRUCTURE))}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.SERVICE))}</td>
-          <td>${normaliserChaine(getVal(rec, KEYS.STATUT))}</td>
-          <td>${getVal(rec, KEYS.EMAIL_PRINCIPAL)}</td>
-          <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${rec.id}" data-index="${index}" ${isChecked} onclick="event.stopPropagation(); handleCheckboxClick(event, ${index}, this)"></td>
-        `;
-        tr.onclick = () => {
+
+        const selectTd = document.createElement('td');
+        selectTd.style.textAlign = 'center';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'row-checkbox';
+        checkbox.dataset.id = String(rec.id);
+        checkbox.dataset.index = String(index);
+        checkbox.checked = selectedRecordIds.has(rec.id);
+        checkbox.title = 'Sélectionner ce contact';
+        checkbox.addEventListener('click', event => {
+          event.stopPropagation();
+          handleCheckboxClick(event, index, checkbox);
+        });
+        selectTd.appendChild(checkbox);
+        tr.appendChild(selectTd);
+
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.PRENOM)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.NOM)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.FONCTION)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.STRUCTURE)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.EMAIL_PRINCIPAL)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.TEL_PRINCIPAL)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.EMAILS_SECONDAIRES)));
+        tr.appendChild(creerCellule(tr, getVal(rec, KEYS.TELS_SECONDAIRES)));
+
+        tr.addEventListener('click', () => {
           selectedId = rec.id;
           grist.setSelectedRecord(rec.id);
           mettreAJourSelectionVisuelle();
-        };
-        tr.ondblclick = () => {
+        });
+        tr.addEventListener('dblclick', () => {
           selectedId = rec.id;
           ouvrirModal(rec);
-        };
+        });
         tbody.appendChild(tr);
       });
       document.getElementById('info-count').innerText = `${matchingRecords.length} / ${allRecords.length} contact(s)`;
@@ -631,8 +877,72 @@
       });
     }
 
+    function capturerEtatRecherche() {
+      const selectedDiffusions = {};
+      document.querySelectorAll('.search-card .diffusion-box input[type="checkbox"][data-groupe]').forEach(chk => {
+        const groupe = chk.getAttribute('data-groupe');
+        if (!selectedDiffusions[groupe]) selectedDiffusions[groupe] = [];
+        if (chk.checked) selectedDiffusions[groupe].push(chk.value);
+      });
+      return {
+        text: document.getElementById('filter-text')?.value || '',
+        service: document.getElementById('filter-service')?.value || '',
+        statut: document.getElementById('filter-statut')?.value || '',
+        domaine: document.getElementById('filter-domaine')?.value || '',
+        typeStructure: document.getElementById('filter-type-structure')?.value || '',
+        profession: document.getElementById('filter-profession')?.value || '',
+        cp: document.getElementById('filter-cp')?.value || '',
+        ville: document.getElementById('filter-ville')?.value || '',
+        diffusions: selectedDiffusions,
+        sortKey: sortState.key,
+        sortDirection: sortState.direction
+      };
+    }
+
+    function restaurerEtatRecherche(etat) {
+      if (!etat) return;
+      const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value ?? '';
+      };
+      setValue('filter-text', etat.text);
+      setValue('filter-service', etat.service);
+      setValue('filter-statut', etat.statut);
+      setValue('filter-domaine', etat.domaine);
+      setValue('filter-type-structure', etat.typeStructure);
+      setValue('filter-profession', etat.profession);
+      setValue('filter-cp', etat.cp);
+      setValue('filter-ville', etat.ville);
+      sortState.key = etat.sortKey || null;
+      sortState.direction = etat.sortDirection === -1 ? -1 : 1;
+
+      document.querySelectorAll('.search-card .diffusion-box input[type="checkbox"][data-groupe]').forEach(chk => {
+        const groupe = chk.getAttribute('data-groupe');
+        const valeurs = (etat.diffusions && etat.diffusions[groupe]) || [];
+        chk.checked = valeurs.some(v => String(v).toLowerCase() === String(chk.value).toLowerCase());
+      });
+      currentSearchState = JSON.parse(JSON.stringify(etat));
+    }
+
+    function afficherToast(message, type = 'success') {
+      const toast = document.getElementById('toast-message');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.toggle('error', type === 'error');
+      toast.style.display = 'block';
+      clearTimeout(afficherToast._timer);
+      afficherToast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4500);
+    }
+
     function ouvrirModal(rec) {
+      // Snapshot dédié : il ne dépend plus des éventuelles reconstructions du DOM
+      // provoquées par Grist pendant l'édition.
+      searchStateBeforeEdit = capturerEtatRecherche();
+      pendingSearchRestore = JSON.parse(JSON.stringify(searchStateBeforeEdit));
+      currentSearchState = JSON.parse(JSON.stringify(searchStateBeforeEdit));
+      currentEditingIndex = matchingRecords.findIndex(r => r && r.id === rec.id);
       currentEditingRecord = rec;
+      modalDirty = false;
       const container = document.getElementById('modal-content');
       
       const valNom = getVal(rec, KEYS.NOM);
@@ -649,6 +959,7 @@
       const valEmailsSec = getVal(rec, KEYS.EMAILS_SECONDAIRES);
       const valTel = getVal(rec, KEYS.TEL_PRINCIPAL);
       const valTelsSec = getVal(rec, KEYS.TELS_SECONDAIRES);
+      const valAdresse = getVal(rec, KEYS.ADRESSE);
       const valCommentaire = getVal(rec, KEYS.COMMENTAIRE);
 
       const successMsg = document.getElementById('save-success-msg');
@@ -713,6 +1024,10 @@
           <label>Téléphones Secondaires</label>
           <input type="text" id="edit-tels-sec" value="${valTelsSec}">
         </div>
+        <div class="viewer-field full" style="grid-column: 1 / -1 !important;">
+          <label>Adresse postale</label>
+          <input type="text" id="edit-adresse" value="${valAdresse}" placeholder="Adresse postale complète...">
+        </div>
         <div class="viewer-field">
           <label>Code Postal</label>
           <input type="text" id="edit-cp" value="${valCP}" oninput="onCodePostalChange(this.value)">
@@ -753,10 +1068,51 @@
       alimenterSelectUnique('edit-domaine', referenceTables.domaines, valDomaine);
       alimenterSelectUnique('edit-type-structure', referenceTables.typesStructure, valTypeStruct);
 
-      document.getElementById('modal-overlay').style.display = 'flex';
+      const modalOverlay = document.getElementById('modal-overlay');
+      modalOverlay.style.display = 'flex';
+      modalOverlay.style.pointerEvents = 'auto';
       validerFormatEmail(document.getElementById('edit-email'), 'email-validation-msg');
       validerFormatEmailsSecondaires(document.getElementById('edit-emails-sec'), 'emails-sec-validation-msg');
       onCodePostalChange(valCP);
+      installerSuiviModificationsModale();
+      mettreAJourNavigationModale();
+    }
+
+    function installerSuiviModificationsModale() {
+      const container = document.getElementById('modal-content');
+      if (!container) return;
+      const marquerModifie = () => { modalDirty = true; };
+      container.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input', marquerModifie);
+        el.addEventListener('change', marquerModifie);
+      });
+    }
+
+    function mettreAJourNavigationModale() {
+      const total = matchingRecords.length;
+      const position = currentEditingIndex >= 0 ? currentEditingIndex + 1 : 0;
+      const label = document.getElementById('modal-position');
+      const prev = document.getElementById('modal-prev');
+      const next = document.getElementById('modal-next');
+      if (label) label.textContent = `${position} / ${total}`;
+      if (prev) prev.disabled = currentEditingIndex <= 0;
+      if (next) next.disabled = currentEditingIndex < 0 || currentEditingIndex >= total - 1;
+    }
+
+    function naviguerContact(direction) {
+      if (!matchingRecords.length || currentEditingIndex < 0) return;
+      const nouvelIndex = currentEditingIndex + direction;
+      if (nouvelIndex < 0 || nouvelIndex >= matchingRecords.length) return;
+
+      if (modalDirty) {
+        const abandonner = confirm('Des modifications n’ont pas été enregistrées. Voulez-vous les abandonner et changer de contact ?');
+        if (!abandonner) return;
+      }
+
+      const prochain = matchingRecords[nouvelIndex];
+      if (!prochain) return;
+      currentEditingIndex = nouvelIndex;
+      ouvrirModal(prochain);
     }
 
     function genererCheckboxesModale(titreGroupe) {
@@ -779,7 +1135,11 @@
     function fermerModal(e) {
       if (!e || e.target.id === 'modal-overlay' || e.target.classList.contains('btn-close') || e.target.classList.contains('btn-reset')) {
         document.getElementById('modal-overlay').style.display = 'none';
+        document.getElementById('modal-overlay').style.pointerEvents = 'none';
         currentEditingRecord = null;
+        currentEditingIndex = -1;
+        searchStateBeforeEdit = null;
+        modalDirty = false;
       }
     }
 
@@ -915,6 +1275,7 @@
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.TYPE_STRUCTURE)] = getIdRefPourChamp(KEYS.TYPE_STRUCTURE, document.getElementById('edit-type-structure').value);
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.DOMAINE)] = getIdRefPourChamp(KEYS.DOMAINE, document.getElementById('edit-domaine').value);
       
+      fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.ADRESSE)] = document.getElementById('edit-adresse').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.CODE_POSTAL)] = document.getElementById('edit-cp').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.VILLE)] = document.getElementById('edit-ville').value.trim();
       fieldsToUpdate[getExistingKey(currentEditingRecord, KEYS.EMAIL_PRINCIPAL)] = mailInput.value.trim();
@@ -929,52 +1290,101 @@
       fieldsToUpdate[KEYS.DIFFUSION_CONTACTS['Diffusion Intervenant']] = getRefListIds('Diffusion Intervenant');
 
       try {
+        // La recherche affichée à l'écran est la source de vérité.
+        // IMPORTANT : au moment de sauvegarder, la fiche modale est encore ouverte.
+        // capturerEtatRecherche() ne doit donc surtout pas être utilisé ici :
+        // la modale contient elle aussi des cases à cocher avec data-groupe,
+        // ce qui pourrait être interprété à tort comme des filtres de recherche.
+        // Le véritable état de recherche a été photographié avant l'ouverture
+        // de la fiche dans searchStateBeforeEdit.
+        const etatRecherche = JSON.parse(JSON.stringify(
+          searchStateBeforeEdit || currentSearchState || capturerEtatRecherche()
+        ));
+        currentSearchState = JSON.parse(JSON.stringify(etatRecherche));
+
         const tableId = await grist.selectedTable.getTableId();
         await grist.docApi.applyUserActions([
           ['UpdateRecord', tableId, recordIdToEdit, fieldsToUpdate]
         ]);
 
-        const successMsg = document.getElementById('save-success-msg');
-        if (successMsg) {
-          successMsg.innerText = '✓ Modifs enregistrées !';
-          successMsg.style.display = 'inline';
-        }
+        // Grist peut encore envoyer une notification avec l'ancien contenu
+        // immédiatement après applyUserActions. On mémorise donc explicitement
+        // la version que nous venons d'enregistrer et on la protège quelques
+        // secondes contre un écrasement par une notification tardive.
+        const indexLocal = allRecords.findIndex(r => r.id === recordIdToEdit);
+        const recordLocal = indexLocal >= 0
+          ? { ...allRecords[indexLocal], ...fieldsToUpdate, id: recordIdToEdit }
+          : { id: recordIdToEdit, ...fieldsToUpdate };
+        if (indexLocal >= 0) allRecords[indexLocal] = recordLocal;
+        locallySavedRecords.set(recordIdToEdit, recordLocal);
+        saveProtectionUntil = Date.now() + 5000;
+        ignoreRecordsUntil = Date.now() + 4000;
 
-        const recIndex = allRecords.findIndex(r => r.id === recordIdToEdit);
-        if (recIndex !== -1) {
-          allRecords[recIndex] = { ...allRecords[recIndex], ...fieldsToUpdate };
+        console.debug('[RECHERCHE_V2] sauvegarde OK, état local protégé pendant 4 secondes');
+
+        // Fermer réellement la fiche et désactiver toute interception de clic.
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay) {
+          overlay.style.display = 'none';
+          overlay.style.pointerEvents = 'none';
         }
-        
+        currentEditingRecord = null;
+        currentEditingIndex = -1;
+        modalDirty = false;
+
+        // Restaurer les contrôles AVANT de recalculer les résultats.
+        restaurerEtatRecherche(etatRecherche);
+        currentSearchState = JSON.parse(JSON.stringify(etatRecherche));
+        pendingSearchRestore = JSON.parse(JSON.stringify(etatRecherche));
+        appliquerFiltres();
+        mettreAJourIndicateursTri();
+        afficherToast('✓ Modification enregistrée. Recherche en cours restaurée.');
+
+        // Aucun verrou temporel : une nouvelle recherche doit être possible
+        // immédiatement après l'enregistrement.
+        saveInProgress = false;
+        restoringSearchState = false;
+        ignoreGristRefreshUntil = 0;
+        pendingSearchRestore = null;
         setTimeout(() => {
-          document.getElementById('modal-overlay').style.display = 'none';
-          currentEditingRecord = null;
-          appliquerFiltres();
-        }, 1000);
+          if (Date.now() >= saveProtectionUntil) {
+            locallySavedRecords.clear();
+          }
+        }, 5200);
+        searchStateBeforeEdit = JSON.parse(JSON.stringify(currentSearchState));
 
       } catch (err) {
-        alert("Erreur lors de la sauvegarde dans Grist: " + err.message);
+        restoringSearchState = false;
+        saveInProgress = false;
+        ignoreGristRefreshUntil = 0;
+        afficherToast('Erreur lors de la sauvegarde : ' + err.message, 'error');
       }
     }
 
     async function supprimerContactActuel() {
       if (!currentEditingRecord) return;
-      const confirmation = confirm("Êtes-vous sûr de vouloir supprimer ce contact ?");
+      const nomContact = `${normaliserChaine(getVal(currentEditingRecord, KEYS.PRENOM))} ${normaliserChaine(getVal(currentEditingRecord, KEYS.NOM))}`.trim();
+      const confirmation = confirm(`Supprimer définitivement${nomContact ? ` le contact « ${nomContact} »` : ' ce contact'} ?\n\nCette action ne peut pas être annulée.`);
       if (!confirmation) return;
 
       try {
+        const etatRecherche = currentSearchState || capturerEtatRecherche();
         const tableId = await grist.selectedTable.getTableId();
         await grist.docApi.applyUserActions([
           ['RemoveRecord', tableId, currentEditingRecord.id]
         ]);
 
         document.getElementById('modal-overlay').style.display = 'none';
+        document.getElementById('modal-overlay').style.pointerEvents = 'none';
         allRecords = allRecords.filter(r => r.id !== currentEditingRecord.id);
         selectedRecordIds.delete(currentEditingRecord.id);
         if (selectedId === currentEditingRecord.id) {
           selectedId = null;
         }
         currentEditingRecord = null;
-        
+        currentEditingIndex = -1;
+        modalDirty = false;
+        restaurerEtatRecherche(etatRecherche);
         appliquerFiltres();
       } catch (err) {
         alert("Erreur lors de la suppression du contact : " + err.message);
@@ -995,15 +1405,62 @@
     }
 
     function telechargerFichier(contenu, nomFichier, typeMime) {
-      const blob = new Blob(["\uFEFF" + contenu], { type: typeMime + ";charset=utf-8;" });
+      const blob = new Blob(["\uFEFF" + contenu], {
+        type: typeMime + ";charset=utf-8;"
+      });
+
+      // CSV : ouverture immédiate d'un nouvel onglet.
+      // Elle intervient directement dans le clic utilisateur afin d'éviter
+      // les blocages de téléchargement liés à l'iframe Grist.
+      if (typeMime === 'text/csv') {
+        const url = URL.createObjectURL(blob);
+        const fenetre = window.open('', '_blank');
+
+        if (!fenetre) {
+          URL.revokeObjectURL(url);
+          alert(
+            "Le navigateur a bloqué l'ouverture du fichier CSV. " +
+            "Autorisez les fenêtres pop-up pour ce site Grist puis réessayez."
+          );
+          return;
+        }
+
+        try {
+          fenetre.document.title = nomFichier;
+          fenetre.location.href = url;
+          afficherToast('✓ Export CSV ouvert dans un nouvel onglet.');
+        } catch (err) {
+          try { fenetre.close(); } catch (_) {}
+          URL.revokeObjectURL(url);
+          console.error('Erreur ouverture CSV :', err);
+          alert("Impossible d'ouvrir le fichier CSV.");
+          return;
+        }
+
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return;
+      }
+
+      // TXT : téléchargement direct, sans nouvelle fenêtre.
       const url = URL.createObjectURL(blob);
-      const lien = document.createElement('a');
-      lien.setAttribute('href', url);
-      lien.setAttribute('download', nomFichier);
-      document.body.appendChild(lien);
-      lien.click();
-      document.body.removeChild(lien);
-      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nomFichier;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+
+      try {
+        a.click();
+        afficherToast('✓ Export préparé : ' + nomFichier);
+      } catch (err) {
+        console.error('Erreur téléchargement TXT :', err);
+        alert("Impossible de télécharger le fichier TXT.");
+      } finally {
+        setTimeout(() => {
+          a.remove();
+          URL.revokeObjectURL(url);
+        }, 10000);
+      }
     }
 
     function genererContenuTxtParLots(records) {
@@ -1033,45 +1490,79 @@
     }
 
     function genererContenuCsv(records) {
-      if (records.length === 0) return "";
+      if (!Array.isArray(records) || records.length === 0) return "";
 
+      // En-têtes volontairement lisibles pour les collègues qui ouvrent
+      // le fichier directement dans Excel.
+      // L'ordre commence par les informations les plus utiles.
       const headers = [
-        'ID', 'Nom', 'Prénom', 'Structure', 'Fonction', 'Service', 'Statut Juridique', 
-        'Type de structure', "Domaine d'activités", 'Code Postal', 'Ville', 
-        'Email Principal', 'Emails Secondaires', 'Téléphone Principal', 'Téléphones Secondaires', 'Commentaire'
+        'ID',
+        'Prénom',
+        'Nom',
+        'Fonction',
+        'Structure',
+        'Email principal',
+        'Téléphone principal',
+        'Email secondaire',
+        'Téléphone secondaire',
+        'Service',
+        'Statut juridique',
+        'Type de structure',
+        "Domaine d'activités",
+        'Code postal',
+        'Ville',
+        'Commentaire'
       ];
 
-      let lignesCsv = [headers.join(';')];
+      function convertirEnTexte(valeur) {
+        if (valeur === null || valeur === undefined) return '';
+        if (Array.isArray(valeur)) return valeur.join(', ');
+        return String(valeur);
+      }
 
-      records.forEach(rec => {
+      function protegerCelluleCsv(valeur) {
+        let v = convertirEnTexte(valeur);
+
+        // Protection contre l'interprétation d'une cellule comme formule Excel.
+        if (/^[=+\-@]/.test(v)) v = "'" + v;
+
+        // Échappement CSV standard.
+        v = v.replace(/"/g, '""');
+        if (v.includes(';') || v.includes('\n') || v.includes('\r') || v.includes('"')) {
+          v = '"' + v + '"';
+        }
+        return v;
+      }
+
+      // Le fichier exporté reprend l'ordre actuellement affiché dans le widget.
+      // Ainsi, si l'utilisateur a trié par Structure, le CSV est lui aussi
+      // trié par Structure dans le même sens.
+      const recordsTries = trierResultats(records);
+
+      const lignesCsv = [];
+      lignesCsv.push(headers.map(protegerCelluleCsv).join(';'));
+
+      recordsTries.forEach(rec => {
         const valeurs = [
-          rec.id || '',
-          String(getVal(rec, KEYS.NOM) || ''),
-          String(getVal(rec, KEYS.PRENOM) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.STRUCTURE)) || ''),
-          String(getVal(rec, KEYS.FONCTION) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.SERVICE)) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.STATUT)) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE)) || ''),
-          String(normaliserChaine(getVal(rec, KEYS.DOMAINE)) || ''),
-          String(getVal(rec, KEYS.CODE_POSTAL) || ''),
-          String(getVal(rec, KEYS.VILLE) || ''),
-          String(getVal(rec, KEYS.EMAIL_PRINCIPAL) || ''),
-          String(getVal(rec, KEYS.EMAILS_SECONDAIRES) || ''),
-          String(getVal(rec, KEYS.TEL_PRINCIPAL) || ''),
-          String(getVal(rec, KEYS.TELS_SECONDAIRES) || ''),
-          String(getVal(rec, KEYS.COMMENTAIRE) || '')
+          convertirEnTexte(rec.id),
+          convertirEnTexte(getVal(rec, KEYS.PRENOM)),
+          convertirEnTexte(getVal(rec, KEYS.NOM)),
+          convertirEnTexte(getVal(rec, KEYS.FONCTION)),
+          convertirEnTexte(normaliserChaine(getVal(rec, KEYS.STRUCTURE))),
+          convertirEnTexte(getVal(rec, KEYS.EMAIL_PRINCIPAL)),
+          convertirEnTexte(getVal(rec, KEYS.TEL_PRINCIPAL)),
+          convertirEnTexte(getVal(rec, KEYS.EMAILS_SECONDAIRES)),
+          convertirEnTexte(getVal(rec, KEYS.TELS_SECONDAIRES)),
+          convertirEnTexte(normaliserChaine(getVal(rec, KEYS.SERVICE))),
+          convertirEnTexte(normaliserChaine(getVal(rec, KEYS.STATUT))),
+          convertirEnTexte(normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE))),
+          convertirEnTexte(normaliserChaine(getVal(rec, KEYS.DOMAINE))),
+          convertirEnTexte(getVal(rec, KEYS.CODE_POSTAL)),
+          convertirEnTexte(getVal(rec, KEYS.VILLE)),
+          convertirEnTexte(getVal(rec, KEYS.COMMENTAIRE))
         ];
 
-        const valeursEchappees = valeurs.map(val => {
-          let v = val.replace(/"/g, '""');
-          if (v.includes(';') || v.includes('\n') || v.includes('"')) {
-            v = `"${v}"`;
-          }
-          return v;
-        });
-
-        lignesCsv.push(valeursEchappees.join(';'));
+        lignesCsv.push(valeurs.map(protegerCelluleCsv).join(';'));
       });
 
       return lignesCsv.join('\r\n');
@@ -1092,7 +1583,7 @@
         return;
       }
       const contenu = genererContenuCsv(matchingRecords);
-      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv');
+      telechargerFichier(contenu, 'export_recherche_contacts.csv', 'text/csv;charset=utf-8');
     }
 
     function exporterTxtSelection() {
@@ -1112,7 +1603,416 @@
         return;
       }
       const contenu = genererContenuCsv(recordsSelectionnes);
-      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv');
+      telechargerFichier(contenu, 'export_selection_contacts.csv', 'text/csv;charset=utf-8');
+    }
+
+    function exporterExcelRecherche() {
+      if (!matchingRecords || matchingRecords.length === 0) {
+        alert("Aucun contact dans la recherche en cours.");
+        return;
+      }
+      exporterExcel(matchingRecords, 'export_recherche_contacts.xlsx');
+    }
+
+    function exporterExcelSelection() {
+      const recordsSelectionnes = allRecords.filter(r => selectedRecordIds.has(r.id));
+      if (recordsSelectionnes.length === 0) {
+        alert("Aucun contact sélectionné (cochez des cases dans le tableau).");
+        return;
+      }
+      exporterExcel(recordsSelectionnes, 'export_selection_contacts.xlsx');
+    }
+
+    // ---------------------------------------------------------------------
+    // Export Excel autonome : aucun CDN ni bibliothèque externe.
+    // Le fichier .xlsx est construit directement au format Open XML.
+    // ---------------------------------------------------------------------
+
+    function xlsxXmlEscape(value) {
+      let s = value === null || value === undefined ? '' : String(value);
+      // Excel/XML n'accepte pas certains caractères de contrôle.
+      s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+      return s.replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    function xlsxColLetter(number) {
+      let n = number;
+      let result = '';
+      while (n > 0) {
+        const rem = (n - 1) % 26;
+        result = String.fromCharCode(65 + rem) + result;
+        n = Math.floor((n - 1) / 26);
+      }
+      return result;
+    }
+
+    function xlsxCellInlineString(ref, value, styleIndex) {
+      const style = styleIndex ? ` s="${styleIndex}"` : '';
+      return `<c r="${ref}" t="inlineStr"${style}><is><t xml:space="preserve">${xlsxXmlEscape(value)}</t></is></c>`;
+    }
+
+    function xlsxMakeSheetXml(headers, rows, widths, options = {}) {
+      const sheetName = options.sheetName || 'Contacts';
+      const freezeTopRow = options.freezeTopRow !== false;
+      const maxCol = headers.length;
+      const maxRow = rows.length + 1;
+      const lastRef = `${xlsxColLetter(maxCol)}${maxRow}`;
+      const parts = [];
+
+      parts.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+      parts.push('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
+      parts.push('<sheetPr><outlinePr summaryBelow="1" summaryRight="1"/><pageSetUpPr fitToPage="1"/></sheetPr>');
+      parts.push('<dimension ref="A1:' + lastRef + '"/>');
+
+      if (freezeTopRow) {
+        parts.push('<sheetViews><sheetView workbookViewId="0" showGridLines="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews>');
+      } else {
+        parts.push('<sheetViews><sheetView workbookViewId="0" showGridLines="1"/></sheetViews>');
+      }
+
+      parts.push('<sheetFormatPr defaultRowHeight="18"/>');
+      parts.push('<cols>');
+      widths.forEach((width, i) => {
+        const w = Math.max(8, Math.min(80, Number(width) || 12));
+        parts.push(`<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`);
+      });
+      parts.push('</cols>');
+
+      parts.push('<sheetData>');
+      // Header row.
+      parts.push('<row r="1" ht="28" customHeight="1">');
+      headers.forEach((header, i) => {
+        parts.push(xlsxCellInlineString(`${xlsxColLetter(i + 1)}1`, header, 1));
+      });
+      parts.push('</row>');
+
+      rows.forEach((row, rowIndex) => {
+        const excelRow = rowIndex + 2;
+        const style = excelRow % 2 === 0 ? 2 : 0;
+        parts.push(`<row r="${excelRow}">`);
+        row.forEach((value, colIndex) => {
+          parts.push(xlsxCellInlineString(`${xlsxColLetter(colIndex + 1)}${excelRow}`, value, style));
+        });
+        parts.push('</row>');
+      });
+      parts.push('</sheetData>');
+
+      if (options.tableRef) {
+        parts.push('<tableParts count="1"><tablePart r:id="rId1"/></tableParts>');
+      }
+      parts.push('</worksheet>');
+      return parts.join('');
+    }
+
+    function xlsxMakeHelpSheetXml() {
+      const rows = [
+        ['UTILISATION', ''],
+        ['Trier', 'Cliquez sur la flèche de la colonne puis choisissez Croissant ou Décroissant.'],
+        ['Filtrer', 'Cliquez sur la flèche d’une colonne pour ne conserver que certaines valeurs.'],
+        ['Recherche', 'Le fichier contient uniquement les contacts correspondant à la recherche ou à la sélection exportée.'],
+        ['Colonnes', 'Les largeurs sont préparées pour faciliter la lecture des noms, structures, emails et téléphones.'],
+        ['Sécurité', 'L’export est généré directement dans le navigateur. Aucune bibliothèque Excel externe ni CDN tiers n’est nécessaire.']
+      ];
+      const widths = [24, 90];
+      const parts = [];
+      parts.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+      parts.push('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
+      parts.push('<sheetPr><outlinePr summaryBelow="1" summaryRight="1"/></sheetPr>');
+      parts.push('<dimension ref="A1:B6"/>');
+      parts.push('<sheetViews><sheetView workbookViewId="0" showGridLines="1"/></sheetViews>');
+      parts.push('<sheetFormatPr defaultRowHeight="18"/>');
+      parts.push('<cols><col min="1" max="1" width="24" customWidth="1"/><col min="2" max="2" width="90" customWidth="1"/></cols>');
+      parts.push('<sheetData>');
+      rows.forEach((row, i) => {
+        const r = i + 1;
+        const height = i === 0 ? 24 : 34;
+        parts.push(`<row r="${r}" ht="${height}" customHeight="1">`);
+        parts.push(xlsxCellInlineString(`A${r}`, row[0], i === 0 ? 3 : 4));
+        parts.push(xlsxCellInlineString(`B${r}`, row[1], i === 0 ? 3 : 0));
+        parts.push('</row>');
+      });
+      parts.push('</sheetData></worksheet>');
+      return parts.join('');
+    }
+
+    function xlsxMakeTableXml(headers, lastRow) {
+      const lastCol = xlsxColLetter(headers.length);
+      const ref = `A1:${lastCol}${lastRow}`;
+      const parts = [];
+      parts.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+      parts.push(`<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="1" name="TableContactsExport" displayName="TableContactsExport" ref="${ref}" totalsRowShown="0">`);
+      parts.push(`<autoFilter ref="${ref}"/>`);
+      parts.push(`<tableColumns count="${headers.length}">`);
+      headers.forEach((header, i) => {
+        parts.push(`<tableColumn id="${i + 1}" name="${xlsxXmlEscape(header)}"/>`);
+      });
+      parts.push('</tableColumns>');
+      parts.push('<tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/>');
+      parts.push('</table>');
+      return parts.join('');
+    }
+
+    function xlsxMakeStylesXml() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <numFmts count="0"/>
+  <fonts count="3">
+    <font><sz val="11"/><name val="Calibri"/><family val="2"/></font>
+    <font><b/><color rgb="FF000000"/><sz val="11"/><name val="Calibri"/><family val="2"/></font>
+    <font><b/><color rgb="FF000000"/><sz val="14"/><name val="Calibri"/><family val="2"/></font>
+  </fonts>
+  <fills count="3">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD9EAF7"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border><left style="thin"><color rgb="FFB7C9D6"/></left><right style="thin"><color rgb="FFB7C9D6"/></right><top style="thin"><color rgb="FFB7C9D6"/></top><bottom style="thin"><color rgb="FFB7C9D6"/></bottom><diagonal/></border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="5">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="1" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" xfId="0"><alignment horizontal="left" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="2" borderId="0" applyFill="1" xfId="0"/>
+    <xf numFmtId="0" fontId="2" fillId="1" borderId="0" applyFont="1" applyFill="1" applyAlignment="1" xfId="0"><alignment horizontal="left" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyAlignment="1" xfId="0"><alignment vertical="top" wrapText="1"/></xf>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+  <dxfs count="0"/>
+  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleMedium9"/>
+</styleSheet>`;
+    }
+
+    function xlsxMakeWorkbookXml() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="1"/>
+  <workbookPr defaultThemeVersion="124226"/>
+  <bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/></bookViews>
+  <sheets>
+    <sheet name="Contacts" sheetId="1" r:id="rId1"/>
+    <sheet name="Mode d’emploi" sheetId="2" r:id="rId2"/>
+  </sheets>
+  <calcPr calcId="191029" fullCalcOnLoad="1" forceFullCalc="1"/>
+</workbook>`;
+    }
+
+    function xlsxMakeWorkbookRels() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+    }
+
+    function xlsxMakeSheet1Rels() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/>
+</Relationships>`;
+    }
+
+    function xlsxMakeRootRels() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`;
+    }
+
+    function xlsxMakeContentTypes() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/tables/table1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`;
+    }
+
+    function xlsxMakeCoreProps() {
+      const now = new Date().toISOString();
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>Export des contacts</dc:title>
+  <dc:subject>Contacts exportés depuis Grist</dc:subject>
+  <dc:creator>Widget Recherche de contacts</dc:creator>
+  <cp:lastModifiedBy>Widget Recherche de contacts</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+</cp:coreProperties>`;
+    }
+
+    function xlsxMakeAppProps() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Widget Recherche de contacts</Application>
+  <DocSecurity>0</DocSecurity>
+  <ScaleCrop>false</ScaleCrop>
+  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>2</vt:i4></vt:variant></vt:vector></HeadingPairs>
+  <TitlesOfParts><vt:vector size="2" baseType="lpstr"><vt:lpstr>Contacts</vt:lpstr><vt:lpstr>Mode d’emploi</vt:lpstr></vt:vector></TitlesOfParts>
+</Properties>`;
+    }
+
+    function xlsxU16(value) {
+      return new Uint8Array([value & 255, (value >>> 8) & 255]);
+    }
+
+    function xlsxU32(value) {
+      return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]);
+    }
+
+    function xlsxConcatUint8(parts) {
+      let total = 0;
+      parts.forEach(p => total += p.length);
+      const out = new Uint8Array(total);
+      let offset = 0;
+      parts.forEach(p => { out.set(p, offset); offset += p.length; });
+      return out;
+    }
+
+    function xlsxCrc32(bytes) {
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) {
+        crc ^= bytes[i];
+        for (let j = 0; j < 8; j++) {
+          crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
+        }
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function xlsxZipStore(files) {
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+      const now = new Date();
+      const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+      const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
+      files.forEach(file => {
+        const nameBytes = encoder.encode(file.name);
+        const data = typeof file.data === 'string' ? encoder.encode(file.data) : file.data;
+        const crc = xlsxCrc32(data);
+        const localHeader = xlsxConcatUint8([
+          xlsxU32(0x04034b50), xlsxU16(20), xlsxU16(0x0800), xlsxU16(0),
+          xlsxU16(dosTime), xlsxU16(dosDate), xlsxU32(crc),
+          xlsxU32(data.length), xlsxU32(data.length), xlsxU16(nameBytes.length), xlsxU16(0), nameBytes
+        ]);
+        localParts.push(localHeader, data);
+
+        const centralHeader = xlsxConcatUint8([
+          xlsxU32(0x02014b50), xlsxU16(20), xlsxU16(20), xlsxU16(0x0800), xlsxU16(0),
+          xlsxU16(dosTime), xlsxU16(dosDate), xlsxU32(crc), xlsxU32(data.length), xlsxU32(data.length),
+          xlsxU16(nameBytes.length), xlsxU16(0), xlsxU16(0), xlsxU16(0), xlsxU16(0), xlsxU32(0), xlsxU32(offset), nameBytes
+        ]);
+        centralParts.push(centralHeader);
+        offset += localHeader.length + data.length;
+      });
+
+      const centralDirectory = xlsxConcatUint8(centralParts);
+      const localData = xlsxConcatUint8(localParts);
+      const endRecord = xlsxConcatUint8([
+        xlsxU32(0x06054b50), xlsxU16(0), xlsxU16(0), xlsxU16(files.length), xlsxU16(files.length),
+        xlsxU32(centralDirectory.length), xlsxU32(localData.length), xlsxU16(0)
+      ]);
+      return xlsxConcatUint8([localData, centralDirectory, endRecord]);
+    }
+
+    function xlsxPrepareExportRows(records) {
+      const headers = [
+        'ID contact', 'Prénom', 'Nom', 'Fonction', 'Structure', 'Email principal',
+        'Téléphone principal', 'Emails secondaires', 'Téléphones secondaires', 'Service',
+        'Statut juridique', 'Type de structure', "Domaine d'activités", 'Code postal',
+        'Ville', 'Commentaire'
+      ];
+
+      function texte(valeur) {
+        if (valeur === null || valeur === undefined) return '';
+        if (Array.isArray(valeur)) return valeur.join(', ');
+        return String(valeur);
+      }
+
+      const rows = trierResultats(records).map(rec => [
+        texte(rec.id),
+        texte(getVal(rec, KEYS.PRENOM)),
+        texte(getVal(rec, KEYS.NOM)),
+        texte(getVal(rec, KEYS.FONCTION)),
+        texte(normaliserChaine(getVal(rec, KEYS.STRUCTURE))),
+        texte(getVal(rec, KEYS.EMAIL_PRINCIPAL)),
+        texte(getVal(rec, KEYS.TEL_PRINCIPAL)),
+        texte(getVal(rec, KEYS.EMAILS_SECONDAIRES)),
+        texte(getVal(rec, KEYS.TELS_SECONDAIRES)),
+        texte(normaliserChaine(getVal(rec, KEYS.SERVICE))),
+        texte(normaliserChaine(getVal(rec, KEYS.STATUT))),
+        texte(normaliserChaine(getVal(rec, KEYS.TYPE_STRUCTURE))),
+        texte(normaliserChaine(getVal(rec, KEYS.DOMAINE))),
+        texte(getVal(rec, KEYS.CODE_POSTAL)),
+        texte(getVal(rec, KEYS.VILLE)),
+        texte(getVal(rec, KEYS.COMMENTAIRE))
+      ]);
+
+      const widths = [12, 20, 24, 30, 38, 32, 20, 36, 24, 24, 28, 30, 30, 14, 24, 50];
+      return { headers, rows, widths };
+    }
+
+    function exporterExcel(records, nomFichier) {
+      try {
+        const data = xlsxPrepareExportRows(records);
+        const lastRow = data.rows.length + 1;
+        const sheetXml = xlsxMakeSheetXml(data.headers, data.rows, data.widths, {
+          sheetName: 'Contacts', freezeTopRow: true, tableRef: `A1:${xlsxColLetter(data.headers.length)}${lastRow}`
+        });
+        const tableXml = xlsxMakeTableXml(data.headers, lastRow);
+        const helpXml = xlsxMakeHelpSheetXml();
+
+        const files = [
+          { name: '[Content_Types].xml', data: xlsxMakeContentTypes() },
+          { name: '_rels/.rels', data: xlsxMakeRootRels() },
+          { name: 'docProps/core.xml', data: xlsxMakeCoreProps() },
+          { name: 'docProps/app.xml', data: xlsxMakeAppProps() },
+          { name: 'xl/workbook.xml', data: xlsxMakeWorkbookXml() },
+          { name: 'xl/_rels/workbook.xml.rels', data: xlsxMakeWorkbookRels() },
+          { name: 'xl/styles.xml', data: xlsxMakeStylesXml() },
+          { name: 'xl/worksheets/sheet1.xml', data: sheetXml },
+          { name: 'xl/worksheets/_rels/sheet1.xml.rels', data: xlsxMakeSheet1Rels() },
+          { name: 'xl/tables/table1.xml', data: tableXml },
+          { name: 'xl/worksheets/sheet2.xml', data: helpXml }
+        ];
+
+        const zipBytes = xlsxZipStore(files);
+        const blob = new Blob([zipBytes], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nomFichier;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          a.remove();
+          URL.revokeObjectURL(url);
+        }, 15000);
+        afficherToast('✓ Fichier Excel préparé : ' + nomFichier);
+      } catch (err) {
+        console.error('Erreur export Excel :', err);
+        alert("Impossible de générer le fichier Excel : " + (err && err.message ? err.message : err));
+      }
     }
   </script>
 </body>
